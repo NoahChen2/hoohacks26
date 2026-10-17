@@ -5,6 +5,7 @@ import { renderBodyPanel } from './ui/bodyPanel.js';
 import { renderClosetPanel } from './ui/closetPanel.js';
 import { renderUpcyclePanel, previewEvents, setPreview } from './ui/upcyclePanel.js';
 import { GARMENT_TYPES } from './state.js';
+import { initAccount } from './ui/account.js';
 
 const panel = document.getElementById('panel');
 const caption = document.getElementById('stage-caption');
@@ -93,3 +94,4 @@ scene.resetCamera();
 applyOpts();
 renderCaption();
 switchTab(state.tab && PANELS[state.tab] ? state.tab : 'body');
+initAccount(document.getElementById('account'));

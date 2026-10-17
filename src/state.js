@@ -150,15 +150,18 @@ function initialState() {
   };
 }
 
-function load() {
+// Guests save under KEY; signed-in users get their own local cache so accounts never mix.
+let storageKey = KEY;
+
+function load(key = storageKey) {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return initialState();
+  return null;
 }
 
-export const state = load();
+export const state = load() || initialState();
 const subs = new Set();
 
 export function subscribe(fn) {
@@ -166,15 +169,43 @@ export function subscribe(fn) {
   return () => subs.delete(fn);
 }
 
+function persistLocal() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {}
+}
+
 let saveTimer;
 export function emit(reason = 'change') {
   subs.forEach((fn) => fn(reason));
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-    } catch {}
-  }, 250);
+  saveTimer = setTimeout(persistLocal, 250);
+}
+
+// The parts of state worth saving to an account (UI-only fields like `tab` stay local).
+export function snapshot() {
+  const { body, garments, selected, tools } = state;
+  return JSON.parse(JSON.stringify({ body, garments, selected, tools }));
+}
+
+export function replaceState(data) {
+  const tab = state.tab;
+  const next = { ...initialState(), ...data, tab };
+  Object.keys(state).forEach((k) => delete state[k]);
+  Object.assign(state, next);
+  persistLocal();
+  emit('reset');
+}
+
+// Switch which local cache we read/write. Returns that cache's saved data (or null).
+export function useStorage(userId) {
+  clearTimeout(saveTimer);
+  storageKey = userId ? `${KEY}.user.${userId}` : KEY;
+  return load();
+}
+
+export function guestData() {
+  return load(KEY);
 }
 
 export function selectedGarment() {
@@ -182,8 +213,5 @@ export function selectedGarment() {
 }
 
 export function resetAll() {
-  const fresh = initialState();
-  Object.keys(state).forEach((k) => delete state[k]);
-  Object.assign(state, fresh);
-  emit('reset');
+  replaceState(initialState());
 }
