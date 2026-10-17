@@ -32,7 +32,7 @@ function syncScene() {
   pending = true;
   requestAnimationFrame(() => {
     pending = false;
-    scene.setBody(state.body);
+    scene.setBody(state.body, state.character);
     scene.setGarment(preview?.g || selectedGarment());
     renderCaption();
   });
@@ -75,20 +75,21 @@ subscribe((reason) => {
 // --- stage toggles
 const tgBody = document.getElementById('tg-body');
 const tgFit = document.getElementById('tg-fit');
+const tgClothing = document.getElementById('tg-clothing');
 const tgSpin = document.getElementById('tg-spin');
 const legend = document.getElementById('fit-legend');
 const applyOpts = () => {
-  scene.setOptions({ showBody: tgBody.checked, fitMap: tgFit.checked, spin: tgSpin.checked });
+  scene.setOptions({ showBody: tgBody.checked, showClothing: tgClothing.checked, fitMap: tgFit.checked, spin: tgSpin.checked });
   legend.hidden = !tgFit.checked;
 };
-[tgBody, tgFit, tgSpin].forEach((t) => t.addEventListener('change', applyOpts));
+[tgBody, tgClothing, tgFit, tgSpin].forEach((t) => t.addEventListener('change', applyOpts));
 document.getElementById('btn-reset-cam').addEventListener('click', () => scene.resetCamera());
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') document.getElementById('overlay').hidden = true;
 });
 
 // --- boot
-scene.setBody(state.body);
+scene.setBody(state.body, state.character);
 scene.setGarment(selectedGarment());
 scene.resetCamera();
 applyOpts();

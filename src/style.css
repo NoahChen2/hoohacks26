@@ -1230,3 +1230,38 @@ b.loose {
     display: none;
   }
 }
+
+/* Phase 1–2 body studio: measurements and visual proportions stay distinct. */
+.body-starting-points { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:16px; }
+.body-section-label { display:block; font-size:10px; font-weight:700; letter-spacing:.13em; color:var(--ink-2); margin-bottom:10px; }
+.body-shape-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.body-shape-option { display:grid; grid-template-columns:28px 1fr; align-items:center; gap:3px 8px; text-align:left; padding:14px 10px; border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--ink); cursor:pointer; }
+.body-shape-option.active { background:#edf4f3; border-color:#789c98; box-shadow:inset 0 0 0 1px #789c98; }
+.body-shape-symbol { grid-row:span 2; color:#678e8e; font-size:29px; line-height:1; }
+.body-shape-option strong { font-size:14px; }
+.body-shape-option small { font-size:10px; color:var(--ink-2); }
+.body-starting-points p,.body-proportions p { font-size:12px; line-height:1.6; color:var(--ink-2); margin:12px 0 18px; }
+.body-starting-points p:last-child { margin-bottom:0; }
+.body-build-options { display:flex; flex-wrap:wrap; gap:6px; }
+.body-build-options .pill.active { background:#e2eeea; border-color:#789c98; color:#345c58; }
+.body-preview-note { display:grid; gap:6px; padding:14px 16px; margin-bottom:24px; border-left:3px solid #92aaa8; background:#edf1ee; border-radius:0 8px 8px 0; font-size:11px; line-height:1.6; color:#536561; }
+.body-preview-note strong { font-size:12px; }
+.body-subheading { font-size:17px; margin:0 0 12px; }
+.body-subheading small { font-size:11px; font-family:Inter,sans-serif; font-weight:400; color:var(--ink-2); margin-left:6px; }
+.body-proportions { margin-top:24px; border:1px solid var(--line); border-radius:14px; background:var(--card); padding:16px; }
+.body-proportions summary { cursor:pointer; font-size:15px; font-weight:600; }
+.body-proportions summary span { float:right; padding:3px 7px; border-radius:8px; background:#eaf0ee; color:#58756f; font-size:10px; font-weight:500; }
+.body-proportions .field { display:block; margin-bottom:16px; }
+.body-proportions output { font-size:11px; font-variant-numeric:tabular-nums; color:#58756f; }
+.body-proportions input { width:100%; accent-color:#658e86; }
+.character-view-status { position:absolute; top:65px; left:16px; right:16px; width:fit-content; max-width:calc(100% - 32px); padding:9px 13px; color:#3d5754; background:#f4f7f1eb; border:1px solid #c9d4ce; border-radius:9px; font-size:12px; z-index:3; pointer-events:none; }
+@media(max-width:600px) { .body-shape-option { padding:12px 8px; } .body-shape-option strong { font-size:13px; } .character-view-status { top:100px; } }
+
+.presets .pill[aria-pressed="true"] { border-color:#789c98; background:#eaf1ed; color:#345c58; }
+@media(max-width:600px) {
+  .stage-toolbar { top:8px; left:8px; right:8px; flex-wrap:nowrap; justify-content:flex-start; overflow-x:auto; gap:4px; }
+  .stage-toolbar .chip { flex-shrink:0; white-space:nowrap; font-size:11px; padding:5px 8px; gap:4px; }
+  .stage-toolbar input { width:12px; height:12px; margin:0; }
+  #viewport { top:50px; }
+  .fit-legend { top:46px; font-size:10px; padding:5px 8px; }
+}

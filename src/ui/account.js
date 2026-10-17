@@ -1,6 +1,6 @@
 // Login / account UI + cloud sync of the user's body, closet and tools to Supabase.
 
-import { supabase } from '../supabase.js';
+import { supabase, supabaseEnabled } from '../supabase.js';
 import { subscribe, snapshot, replaceState, useStorage, guestData } from '../state.js';
 
 const TABLE = 'user_data';
@@ -15,8 +15,8 @@ let root;
 
 export function initAccount(el) {
   root = el;
-  if (!supabase) {
-    root.innerHTML = '<span class="acct-chip muted" title="Add Supabase keys to .env.local to enable accounts">Guest · saved on this device</span>';
+  if (!supabaseEnabled) {
+    root.innerHTML = '<span class="acct-chip muted" title="Guest mode: your changes are saved in this browser. Cloud accounts are unavailable.">Guest · saved on this device</span>';
     return;
   }
   render();

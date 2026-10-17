@@ -1,3 +1,4 @@
+import { defaultCharacter, normalizeCharacter } from './character/settings.ts';
 // Central app state with localStorage persistence and a tiny pub/sub.
 
 const KEY = 'restitch.v1';
@@ -143,6 +144,7 @@ function initialState() {
   flannel.hem = 120;
   return {
     body: { ...BODY_PRESETS['Medium (M)'] },
+    character: defaultCharacter(),
     garments: [shirt, jeans, flannel],
     selected: shirt.id,
     tools: { scissors: true, needle: true, pins: true },
@@ -162,6 +164,8 @@ function load(key = storageKey) {
 }
 
 export const state = load() || initialState();
+// Additive migration: keep existing measurements, garments, IDs and unknown fields.
+state.character = normalizeCharacter(state.character);
 const subs = new Set();
 
 export function subscribe(fn) {
@@ -184,13 +188,13 @@ export function emit(reason = 'change') {
 
 // The parts of state worth saving to an account (UI-only fields like `tab` stay local).
 export function snapshot() {
-  const { body, garments, selected, tools } = state;
-  return JSON.parse(JSON.stringify({ body, garments, selected, tools }));
+  const { body, garments, selected, tools, character } = state;
+  return JSON.parse(JSON.stringify({ body, garments, selected, tools, character }));
 }
 
 export function replaceState(data) {
   const tab = state.tab;
-  const next = { ...initialState(), ...data, tab };
+  const next = { ...initialState(), ...data, tab, character: normalizeCharacter(data.character ?? state.character) };
   Object.keys(state).forEach((k) => delete state[k]);
   Object.assign(state, next);
   persistLocal();
