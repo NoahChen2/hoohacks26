@@ -64,10 +64,56 @@ export function createScene(container, { characterAsset = null, quality = detect
   key.shadow.camera.near = .1;
   key.shadow.camera.far = 8;
   scene.add(key);
-  const rim = new THREE.DirectionalLight('#ffe7c4', 0.9);
+  const rim = new THREE.DirectionalLight('#cd89fa', 1.25);
   rim.position.set(-2.5, 2, -2.5);
   scene.add(rim);
+  const revealLight = new THREE.PointLight('#adf8ff', 0, 5.5, 1.8);
+  revealLight.position.set(0, 1.15, 1.15);
+  scene.add(revealLight);
+  let revealStarted = -Infinity;
 
+  // Celestial pedestal only — intentionally no solid floor/ground mesh.
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.54, 0.575, 96),
+    new THREE.MeshBasicMaterial({ color: '#adf8ff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.001;
+  scene.add(ring);
+  const pedestal = new THREE.Group();
+  pedestal.position.y = 0.004;
+  const glowMat = (color, opacity) =>
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false });
+  [
+    [0.7, 0.72, '#adf8ff', 0.82],
+    [0.86, 0.875, '#cd89fa', 0.58],
+    [1.08, 1.095, '#adf8ff', 0.36],
+    [1.24, 1.27, '#3464ea', 0.28],
+  ].forEach(([inner, outer, color, opacity]) => {
+    const orbit = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 128), glowMat(color, opacity));
+    orbit.rotation.x = -Math.PI / 2;
+    pedestal.add(orbit);
+  });
+  const starPoints = [];
+  for (let i = 0; i <= 16; i += 1) {
+    const angle = (i * Math.PI * 2) / 16;
+    const radius = i % 2 ? 0.48 : 0.92;
+    starPoints.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+  }
+  pedestal.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(starPoints), new THREE.LineBasicMaterial({ color: '#cd89fa', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending })));
+  const ticks = [];
+  for (let i = 0; i < 48; i += 1) {
+    const angle = (i * Math.PI * 2) / 48;
+    const inner = i % 4 === 0 ? 1.1 : 1.15;
+    ticks.push(new THREE.Vector3(Math.cos(angle) * inner, 0, Math.sin(angle) * inner));
+    ticks.push(new THREE.Vector3(Math.cos(angle) * 1.22, 0, Math.sin(angle) * 1.22));
+  }
+  pedestal.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ticks), new THREE.LineBasicMaterial({ color: '#adf8ff', transparent: true, opacity: 0.52, blending: THREE.AdditiveBlending })));
+  const pedestalGlow = new THREE.Mesh(new THREE.RingGeometry(0.28, 1.44, 128), glowMat('#3464ea', 0.1));
+  pedestalGlow.rotation.x = -Math.PI / 2;
+  pedestalGlow.position.y = -0.006;
+  pedestal.add(pedestalGlow);
+  scene.add(pedestal);
   const figure = new THREE.Group();
   figure.scale.setScalar(CM);
   scene.add(figure);
@@ -515,6 +561,8 @@ export function createScene(container, { characterAsset = null, quality = detect
   renderer.setAnimationLoop(() => {
     const dt = clock.getDelta();
     const animating = opts.animate && animatable && !!rig;
+    const revealAge = performance.now() - revealStarted;
+    revealLight.intensity = revealAge < 150 ? 7.5 * Math.sin((revealAge / 150) * Math.PI) : revealAge < 650 ? 1.8 * (1 - (revealAge - 150) / 500) : 0;
     if (opts.spin) figure.rotation.y += dt * 0.6;
     if (animating) animationTime += dt;
     controls.update();
@@ -536,6 +584,9 @@ export function createScene(container, { characterAsset = null, quality = detect
     setGarment,
     setOptions,
     resetCamera,
+    flashReveal() {
+      revealStarted = performance.now();
+    },
     get checks() {
       return current.checks;
     },
