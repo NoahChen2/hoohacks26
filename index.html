@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReStitch — Upcycle Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9C%82%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">✂</span>
+        <span class="name">ReStitch</span>
+        <span class="tag">upcycle studio</span>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button data-tab="body" class="active"><b>1</b> Body</button>
+        <button data-tab="closet"><b>2</b> Closet</button>
+        <button data-tab="upcycle"><b>3</b> Upcycle</button>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <aside class="panel" id="panel"></aside>
+
+      <section class="stage">
+        <div id="viewport"></div>
+        <div class="stage-toolbar">
+          <label class="chip"><input type="checkbox" id="tg-body" checked /> Body</label>
+          <label class="chip"><input type="checkbox" id="tg-fit" /> Fit map</label>
+          <label class="chip"><input type="checkbox" id="tg-spin" /> Turntable</label>
+          <button class="chip" id="btn-reset-cam">Reset view</button>
+        </div>
+        <div class="fit-legend" id="fit-legend" hidden>
+          <span><i style="background:#e5484d"></i>tight</span>
+          <span><i style="background:#f5d90a"></i>snug</span>
+          <span><i style="background:#46a758"></i>good</span>
+          <span><i style="background:#3e63dd"></i>loose</span>
+        </div>
+        <div class="stage-caption" id="stage-caption"></div>
+      </section>
+    </main>
+
+    <div class="overlay" id="overlay" hidden>
+      <div class="sheet" id="sheet"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
