@@ -28,7 +28,11 @@ export function presentationPoint(x, y, z, model, proportions) {
   return [newX, newY, newZ];
 }
 
+// All cosmetic sliders at zero map every point to itself.
+export const isNeutralPresentation = p => !(p.shoulderBreadth || p.torsoLength || p.legRatio || p.upperArmVolume || p.thighVolume || p.calfVolume || p.fullness);
+
 export function applyPresentation(geometry, model, proportions) {
+  if (isNeutralPresentation(proportions)) return geometry;
   const positions = geometry.attributes.position;
   // Finite-difference Jacobian transforms smooth implicit normals, retaining the
   // continuity across marching-cubes triangles instead of creating faceted normals.

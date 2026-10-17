@@ -9,9 +9,15 @@ The original mannequin used separate elliptical ring surfaces and spheres.
 
 Only anatomy, body starting points and visual body proportions are implemented in
 this iteration. Face controls, hair, skin controls, new garment categories, a
-six-tab studio and additional camera modes are intentionally deferred. The blue
-material, studio lighting, orbit camera, closet and upcycling workflows remain.
-The Clothing visibility toggle is provided for reviewing the body under garments.
+six-tab studio and additional camera modes are intentionally deferred. Studio
+lighting, orbit camera, closet and upcycling workflows remain. The Clothing
+visibility toggle is provided for reviewing the body under garments.
+
+The figure and clothes render in a comic style: flat cartoon colours, one hard
+shadow band with halftone dots, ink rim lines and a constant-width inverted-hull
+outline (`src/materials.js`). Face, hair, muscle definition, underwear and shoes
+are line art painted by the body shader in measured coordinates, so they follow
+every proportion slider; they are not geometry and not customizable yet.
 
 ## Architecture
 
@@ -22,10 +28,18 @@ The Clothing visibility toggle is provided for reviewing the body under garments
 - `src/character/geometry.js`: signed-distance volume with smooth unions and one
   closed, connected marching-cubes surface. The neck, shoulders, hands, ankles
   and feet are joined before extraction rather than rendered as separate pieces.
-- `src/character/body.worker.js` / `service.js`: geometry generation off the main
-  thread, one active job plus the latest pending job, and four CPU geometry cache
-  entries. Rendered clones are disposed when replaced; original cached meshes
-  are never deformed. Camera position is not reset on customization.
+- `src/character/body.worker.js` / `service.js`: builds one **canonical** body per
+  shape (`canonical.js`) off the main thread: marching cubes, welded to an
+  indexed mesh, Taubin-smoothed (`finish.js`), with ambient occlusion baked from
+  the distance field, skin weights and morph regions. `src/boot.js` starts this
+  worker before the app bundle loads (`main.js` is a 3 kB entry that then
+  imports `app.js`). The canonical mesh also carries the sculpted face planes,
+  hair volume (short spiky cut or bob with side curtains) and jointed fingers.
+- `src/character/morph.js`: every measurement change morphs the canonical mesh
+  in a few milliseconds instead of re-meshing it. Torso vertices land on the
+  target's calibrated polar sections; legs and arms follow their measured radius
+  profiles and joints; head, hands and feet scale with stature. Region weights
+  blend the maps at the joints. Camera position is not reset on customization.
 - `src/character/presentation.js`: explicitly approximate visual proportions.
   This same transformation is applied to the body and clothing. Smooth normals
   are transformed with local tangent vectors rather than recomputed per triangle.
@@ -38,6 +52,12 @@ The Clothing visibility toggle is provided for reviewing the body under garments
 - `src/upcycle.js`: unchanged measurement-based project/cut calculations.
 - `src/ui/bodyPanel.js`: shape/build options, existing XS–XL measurement controls,
   plus an explicitly separated appearance section.
+- `src/character/rig.js`: eight-bone skeleton (spine, head, upper/lower arms,
+  a hem bone), skin weights baked by the body worker, garment weight transfer
+  and the cycling animation clips (Idle, Wave, Stretch, Twist, Check sleeve,
+  Shrug). Toggle with **Animate**; poses never affect fit calculations.
+- `src/quality.js`: device tier (high, mobile, low; `?quality=` overrides) for
+  pixel ratio, MSAA, shadows, body mesh resolution and frame rate.
 - `src/state.js`: additive local migration and character data in the existing
   cloud snapshot; no new database table or authentication flow.
 
@@ -64,11 +84,29 @@ anatomical morphs. Exact new anatomical measurements need an authored morph set
 and calibration data. Implausible inseam/height combinations show a preview
 limitation while measurements remain saved.
 
-The fallback is **not rigged**, not a body scan, and not AAA or Fortnite-quality.
-The head is deliberately a neutral integrated form, not a detailed face. Hands
-have a palm, thumb and finger grouping but no articulated finger rig. No cloth
-simulation is introduced. Existing procedural fabrics, folds and fit colors are
-retained; clothes are given clearance without changing their measured data.
+The fallback has a light procedural rig, is not a body scan, and is not AAA or
+Fortnite-quality. Rendered proportions follow standard anthropometric ratios
+(head ~13% of stature, trapezius meeting the neck near 0.85 H, fingertips near
+0.38 H, feet ~15% of stature); arm length is taped from the shoulder point.
+Hands have a palm, thumb and finger grouping but no articulated finger rig.
+
+No cloth simulation is introduced. Each garment vertex copies the averaged skin
+weights of the body surface nearest it (only sleeves may bind to arm skin) and
+is pushed out along that skin normal if it lies within clearance, so clothing
+moves with the same transforms as the skin beneath it. Linear blend skinning
+still thins the shoulder at extreme poses, and loose cloth does not swing.
+Existing procedural fabrics, folds and fit colors are retained; clothes are
+given clearance without changing their measured data.
+
+Performance: the welded body has ~6x fewer vertices than the raw surface;
+measurement changes are a main-thread morph (no worker round trip), garment
+materials persist (shader programs compile once, in parallel at startup via
+`compileAsync`), garment textures are cached, and the exact garment weight
+transfer runs time-sliced after input settles. The line art is data (a stroke
+texture read in one loop) so the body shader stays small: Direct3D shader
+compilers on Windows unroll and inline code, and the earlier hard-coded strokes
+took over three seconds to link. All materials are Lambert-based; there is no
+environment map. Frames are only drawn while animating, turning or after a change.
 
 ## Importing a licensed rigged character
 

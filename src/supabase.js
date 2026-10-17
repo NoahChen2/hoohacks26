@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
@@ -7,18 +5,20 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 // local development even if credentials are present. No .env file is required.
 const enabled = import.meta.env.VITE_SUPABASE_ENABLED?.trim().toLowerCase() !== 'false';
 
-function configuredClient() {
-  if (!enabled || !url || !key) return null;
-
+function validUrl() {
   try {
-    const parsed = new URL(url);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
-    return createClient(url, key);
+    return ['http:', 'https:'].includes(new URL(url).protocol);
   } catch {
     // Invalid or placeholder configuration must not prevent local use.
-    return null;
+    return false;
   }
 }
 
-export const supabase = configuredClient();
-export const supabaseEnabled = supabase !== null;
+export const supabaseEnabled = enabled && !!url && !!key && validUrl();
+
+// The client library is loaded on demand so it stays off the startup path.
+let client = null;
+export function getSupabase() {
+  client ||= import('@supabase/supabase-js').then(({ createClient }) => createClient(url, key));
+  return client;
+}

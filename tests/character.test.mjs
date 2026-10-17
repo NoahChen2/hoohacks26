@@ -2,8 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { bodyModel, perim } from '../src/character/measurements.js';
-import { buildProceduralBody } from '../src/character/geometry.js';
-import { createTorsoSampler } from '../src/character/sections.js';
+import { buildProceduralBody, weld } from '../src/character/geometry.js';
+import { smoothSurface, vertexNormals, bakeOcclusion } from '../src/character/finish.js';
+import { morphRegions, morphBody } from '../src/character/morph.js';
+import { CANONICAL_MEASUREMENTS, canonicalCharacter } from '../src/character/canonical.js';
+import { createTorsoSampler, conformToCharacter } from '../src/character/sections.js';
+import { createRig, CLIPS } from '../src/character/rig.js';
 import { presentationPoint, applyPresentation } from '../src/character/presentation.js';
 import { defaultCharacter, normalizeCharacter, buildStartingPoint, BUILD_LABELS } from '../src/character/settings.ts';
 import { inspectCharacterAsset, applyCharacterMorphs, disposeCharacterAsset } from '../src/character/assets.ts';
@@ -76,14 +80,15 @@ for(const shape of shapes)for(const size of sizes)test(`${shape} ${size}: contin
     assert.ok(Math.abs(circumference-b[key])/b[key]<.015,`${key} section tracks cm`);
   }
   const geometry=buildProceduralBody(m,c);validateGeometry(geometry);
-  assert.ok(Math.abs(geometry.boundingBox.max.y-b.height)<.3,'height preserved');
+  // Stature is to the scalp; the hair volume may add up to 2.5 cm above it.
+  assert.ok(geometry.boundingBox.max.y>b.height-.3&&geometry.boundingBox.max.y<b.height+2.5,'height preserved');
   assert.ok(geometry.boundingBox.min.y>=-.05,'flat contact at floor');
   assert.ok(geometry.attributes.position.count/3<120000,'triangle budget');
   const topologyReport=topology(geometry);
   assert.equal(topologyReport.components,1,'single connected surface');
   assert.equal(topologyReport.boundaries,0,'closed surface');
   const presented=applyPresentation(geometry.clone(),m,{...c.proportions,legRatio:1,shoulderBreadth:1,fullness:.5});validateGeometry(presented);
-  assert.ok(Math.abs(presented.boundingBox.max.y-b.height)<.3,'proportion preview preserves height');
+  assert.ok(Math.abs(presented.boundingBox.max.y-geometry.boundingBox.max.y)<.3,'proportion preview preserves height');
   geometry.dispose();presented.dispose();
   for(const type of Object.keys(GARMENT_TYPES)){
     const g=defaultGarment(type),saved=structuredClone(g),built=buildGarment(g,m);
@@ -114,6 +119,63 @@ test('fitted geometry remains finite for snug and oversized garments',()=>{
   }
   const g=defaultGarment('tshirt');g.chest=m.b.chest-5;
   assert.equal(buildGarment(g,m).checks.find(c=>c.label==='Chest').ease,-5);
+});
+
+test('rigged clothing inherits skin weights, clears the skin and never binds a torso panel to an arm',()=>{
+  const m=bodyModel(BODY_PRESETS['Medium (M)']),c=normalizeCharacter({bodyPreset:'masculine'}),sampler=createTorsoSampler(m,c);
+  const body=buildProceduralBody(m,c),rig=createRig(m,c.proportions,sampler);
+  rig.attach(new THREE.Group());rig.skinBody(body);
+  const weights=geo=>{const w=geo.attributes.skinWeight;for(let i=0;i<w.count;i++)assert.ok(Math.abs(w.getX(i)+w.getY(i)+w.getZ(i)+w.getW(i)-1)<1e-4,'normalized');};
+  weights(body);
+  const S=body.attributes.position,N=body.attributes.normal;
+  for(const type of ['tshirt','buttonup','jeans']){
+    for(const part of buildGarment(defaultGarment(type),m).parts)for(const geo of Array.isArray(part.geo)?part.geo:[part.geo]){
+      conformToCharacter(geo,part.region,m,sampler);
+      rig.skinGarment(geo,{arms:part.region==='sleeve'});weights(geo);
+      const p=geo.attributes.position,index=geo.attributes.skinIndex,w=geo.attributes.skinWeight;
+      for(let i=0;i<p.count;i+=7){
+        if(part.region!=='sleeve'){
+          let limb=0;for(let k=0;k<4;k++)if([3,4,5,6].includes(index.getComponent(i,k)))limb+=w.getComponent(i,k);
+          assert.ok(limb<=.86,`${type} ${part.region} stays off the arms`);
+        }
+        // Nearest skin vertex: cloth must sit on its outer side.
+        let best=Infinity,skin=0;
+        for(let j=0;j<S.count;j+=3){const d=(S.getX(j)-p.getX(i))**2+(S.getY(j)-p.getY(i))**2+(S.getZ(j)-p.getZ(i))**2;if(d<best){best=d;skin=j;}}
+        const depth=(p.getX(i)-S.getX(skin))*N.getX(skin)+(p.getY(i)-S.getY(skin))*N.getY(skin)+(p.getZ(i)-S.getZ(skin))*N.getZ(skin);
+        assert.ok(depth>-.05,`${type} ${part.region} clears the skin`);
+      }
+    }
+  }
+  for(const clip of CLIPS){rig.pose(CLIPS.indexOf(clip)*4.5+2);for(const bone of Object.values(rig.bones))assert.ok(Number.isFinite(bone.rotation.x+bone.rotation.y+bone.rotation.z));}
+  rig.rest();for(const bone of Object.values(rig.bones))assert.equal(bone.rotation.x+bone.rotation.y+bone.rotation.z,0);
+});
+
+test('morphing the canonical body tracks target stature, calibrated torso sections and joints',()=>{
+  const shape=canonicalCharacter('masculine'),cm=bodyModel({...CANONICAL_MEASUREMENTS}),cs=createTorsoSampler(cm,shape);
+  const raw=buildProceduralBody(cm,shape,96),mesh=weld(raw.attributes.position.array,raw.attributes.normal.array,raw.attributes.uv.array);
+  assert.ok(mesh.positions.length<raw.attributes.position.array.length/4,'welding removes duplicated vertices');
+  smoothSurface(mesh.positions,mesh.index);vertexNormals(mesh.positions,mesh.index,mesh.normals);
+  const ao=bakeOcclusion(mesh.positions,mesh.normals,raw.sdf);
+  assert.ok(ao.every(v=>v>=.3&&v<=1)&&ao.some(v=>v<.8),'creases are occluded');
+  const regions=morphRegions(cm,cs,mesh.positions),from={model:cm,sampler:cs};
+  const same=morphBody(mesh.positions,regions,from,from);
+  assert.ok(same.every((v,i)=>Math.abs(v-mesh.positions[i])<1e-3),'canonical maps to itself');
+  for(const shapeName of shapes)for(const size of sizes){
+    const m=bodyModel(BODY_PRESETS[size]),c=normalizeCharacter({bodyPreset:shapeName}),s=createTorsoSampler(m,c);
+    const out=morphBody(mesh.positions,regions,from,{model:m,sampler:s});
+    let top=-Infinity,total=0,count=0;
+    for(let i=0;i<out.length/3;i++){
+      assert.ok(Number.isFinite(out[i*3]+out[i*3+1]+out[i*3+2]));
+      top=Math.max(top,out[i*3+1]);
+      if(regions[i*3]+regions[i*3+1]+regions[i*3+2]>.001)continue;
+      for(const key of ['chestY','waistY','hipY'])if(Math.abs(out[i*3+1]-m.lm[key])<1){
+        const r=Math.hypot(out[i*3],out[i*3+2]),target=s.radius(out[i*3+1],Math.atan2(out[i*3],out[i*3+2]));
+        total+=Math.abs(r-target)/target;count++;
+      }
+    }
+    assert.ok(count>50&&total/count<.01,`${shapeName} ${size}: torso sits on the target sections`);
+    assert.ok(top>m.lm.H-.5&&top<m.lm.H+2.5,`${shapeName} ${size}: stature`);
+  }
 });
 
 test('GLB adapter inventories real skeletons and reports unsupported morphs honestly',()=>{

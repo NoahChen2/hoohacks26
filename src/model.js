@@ -327,23 +327,28 @@ export function buildGarment(g, M) {
     if (T.hasSleeves) {
       const armholeC = Math.max(g.chest * 0.42, M.upperR * 2 * Math.PI + 4);
       const L = Math.min(g.sleeve, lm.armLen + 4);
+      // Sleeves are measured from the shoulder point; the ring frame starts at the joint.
+      const reach = L - (lm.armLen - lm.wristT), toArm = lm.armLen / lm.wristT;
       for (const side of [-1, 1]) {
         const dir = M.armDir.clone();
         dir.x *= side;
         const joint = side < 0 ? M.jointL : M.jointR;
         const { e1, e2 } = armBasis(dir);
-        const ts = sampleYs(L, -M.upperR * 0.9, 3, [0]);
+        const ts = sampleYs(reach, -M.upperR * 0.9, 3, [0]);
         const srings = ts.map((t) => {
-          const br = M.armRAt(Math.min(t, lm.armLen));
+          const br = M.armRAt(Math.min(t * toArm, lm.armLen));
           const Cb = 2 * Math.PI * br;
-          const Cs = t <= 0 ? armholeC : lerp(armholeC, g.sleeveOpen, clamp(t / L, 0, 1));
-          let r = Math.max(br + 0.5, Cs / (2 * Math.PI));
-          // round the sleeve cap over the shoulder instead of a flat disc
-          if (t < 0) r = lerp(M.upperR * 1.03 + 0.8, r, clamp(1 + t / (M.upperR * 0.9), 0, 1));
+          const Cs = t <= 0 ? armholeC : lerp(armholeC, g.sleeveOpen, clamp(t / reach, 0, 1));
+          // The rendered arm carries up to ~12% muscle volume over the measured radius.
+          const skin = br * 1.12;
+          let r = Math.max(skin + 0.5, Cs / (2 * Math.PI));
+          // A domed sleeve cap closes over the deltoid instead of ending in a wide
+          // ring above the shoulder line.
+          if (t < 0) r = lerp(M.upperR * 0.35, r, Math.sqrt(clamp(1 + t / (M.upperR * 0.9), 0, 1)));
           // flat mapping for the sleeve: along the flat sleeve direction
           const fx = side * (T.S[0] + Math.cos(T.theta) * Math.max(t, 0));
           const fy = T.S[1] + Math.sin(T.theta) * Math.max(t, 0);
-          return { c: joint.clone().addScaledVector(dir, t), e1, e2, r1: r, r2: r * 0.96, minR1: br+0.8, minR2: br+0.8, flatY: fy, xOff: fx, color: easeColor(Cs - Cb), ease: Cs - Cb };
+          return { c: joint.clone().addScaledVector(dir, t), e1, e2, r1: r, r2: r * 0.96, minR1: skin+0.8, minR2: skin+0.8, flatY: fy, xOff: fx, color: easeColor(Cs - Cb), ease: Cs - Cb };
         });
         parts.push({ geo: ringSurface(srings, { segments: 48, cloth: true, material: g.material, trimEnd: true }), region: 'sleeve' });
       }

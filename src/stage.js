@@ -6,9 +6,9 @@ export function addStudioStage(scene,renderer) {
   gradient.addColorStop(0,'#ccd6dd');gradient.addColorStop(.65,'#e6e9e8');gradient.addColorStop(1,'#f0ece5');c.fillStyle=gradient;c.fillRect(0,0,32,512);
   const backdrop=new THREE.CanvasTexture(canvas);backdrop.colorSpace=THREE.SRGBColorSpace;scene.background=backdrop;
   scene.fog=new THREE.Fog('#e2e7e6',5,13);
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#d6dcdb',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.064;floor.receiveShadow=true;scene.add(floor);
-  const podium=new THREE.Mesh(new THREE.CylinderGeometry(.77,.80,.06,96),new THREE.MeshStandardMaterial({color:'#efede6',roughness:.8}));podium.position.y=-.032;podium.receiveShadow=true;scene.add(podium);
-  const rim=new THREE.Mesh(new THREE.TorusGeometry(.772,.006,8,96),new THREE.MeshStandardMaterial({color:'#8caaa9',roughness:.45,metalness:.25}));rim.rotation.x=Math.PI/2;rim.position.y=-.008;scene.add(rim);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshLambertMaterial({color:'#d6dcdb'}));floor.rotation.x=-Math.PI/2;floor.position.y=-.064;floor.receiveShadow=true;scene.add(floor);
+  const podium=new THREE.Mesh(new THREE.CylinderGeometry(.77,.80,.06,96),new THREE.MeshLambertMaterial({color:'#efede6'}));podium.position.y=-.032;podium.receiveShadow=true;scene.add(podium);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(.772,.006,8,96),new THREE.MeshLambertMaterial({color:'#8caaa9'}));rim.rotation.x=Math.PI/2;rim.position.y=-.008;scene.add(rim);
   const ring=new THREE.Mesh(new THREE.RingGeometry(.65,.653,96),new THREE.MeshBasicMaterial({color:'#b6c5c1',side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.0005;scene.add(ring);
   // Baked soft contact shadow supplements directional shadows beneath the feet.
   const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCanvas.height=128;

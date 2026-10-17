@@ -3,6 +3,25 @@ import * as THREE from 'three';
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// Head height (vertex to chin) is ~13% of stature, breadth ~9% and length ~11.5%.
+// Shared by the body mesh and the comic face shader.
+export const headFrame = H => ({ y: H * .935, r: H * .065, z: 1.1 });
+
+export function assertPreviewRange(model) {
+  const { crotchY, H } = model.lm;
+  if (crotchY > H * .59 || crotchY < H * .30) throw new Error('This inseam-to-height combination is outside the procedural preview range. Fit measurements are still saved.');
+}
+
+// Hairline height (in head radii from the head centre) by angle around the head,
+// 0 = face. Mirrored by the body shader, which paints the hair above it.
+export function hairline(angle, longHair) {
+  const step = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const a = Math.abs(angle), front = 1 - step(.25, 1.35, a), back = step(1.75, 2.75, a);
+  let sides = .17 + (.47 - .17) * front;
+  if (longHair) sides += (-.8 - sides) * step(.95, 1.45, a);
+  return sides + ((longHair ? -1.25 : -.78) - sides) * back;
+}
+
 // Ramanujan's ellipse perimeter
 export const perim = (a, b) => Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
 const radiiFor = (C, k) => {
@@ -91,7 +110,10 @@ export function bodyModel(b) {
     { t: L, r: upperR * 0.52 },
   ];
 
-  const lm = { H, crotchY, hipY, waistY, chestY, armpitY, shoulderY, neckBaseY, neckTopY, headR, headY, legX, armAngle, armLen: L };
+  // Arm length is taped from the shoulder point (acromion), which sits above and
+  // outside the rotation joint; wristT is the joint-to-wrist distance along the arm.
+  const wristT = L + (0.55 * upperR) * Math.sin(armAngle) - 0.95 * upperR * Math.cos(armAngle);
+  const lm = { H, crotchY, hipY, waistY, chestY, armpitY, shoulderY, neckBaseY, neckTopY, headR, headY, legX, armAngle, armLen: L, wristT };
 
   function profileAt(y) {
     if (y >= torso[0].y) {
@@ -112,18 +134,10 @@ export function bodyModel(b) {
     const t = clamp((top.y - y) / 6, 0, 1);
     return { rx: lerp(top.rx, legX + r, t), rz: lerp(top.rz, r * 1.08, t) };
   }
-  function legRAt(y) {
-    return piecewise(
-      legs.map((l) => [l.y, l.r]).reverse(),
-      y
-    );
-  }
-  function armRAt(t) {
-    return piecewise(
-      arm.map((a) => [a.t, a.r]),
-      t
-    );
-  }
+  // Keys are built once; these run per vertex when morphing the body.
+  const legKeys = legs.map((l) => [l.y, l.r]).reverse(), armKeys = arm.map((a) => [a.t, a.r]);
+  const legRAt = (y) => piecewise(legKeys, y);
+  const armRAt = (t) => piecewise(armKeys, t);
   const circAt = (y) => {
     const p = profileAt(y);
     return perim(p.rx, p.rz);
