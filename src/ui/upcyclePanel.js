@@ -1,7 +1,3 @@
-import { completeProject, WORLDS, SCHOOLS } from '../progression.js';
-import { rankProgress } from './communityPanel.js';
-import { ITEM_BY_ID } from '../avatar/items.js';
-import { THRESHOLDS,tierFor } from '../progression.js';
 import { state, emit, TOOLS, GARMENT_TYPES, MATERIALS, selectedGarment } from '../state.js';
 import { flatSVG } from '../flats.js';
 import { suggest, buildSteps, afterGarment, fitSummary } from '../upcycle.js';
@@ -161,27 +157,8 @@ export function openSheet(r) {
         </li>`
         )
         .join('')}
-    </ol><section class="completion-result"><button class="btn" id="sh-complete" ${r.missing.length ? 'disabled' : ''}>${state.progression.completed.includes(g.id + ':' + p.id) ? 'Already completed' : 'I completed this project'}</button><div id="completion-feedback" role="status"></div></section>
+    </ol>
   `;
-  const completionButton = sheet.querySelector('#sh-complete');
-  completionButton.disabled = r.missing.length > 0 || state.progression.completed.includes(g.id + ':' + p.id);
-  completionButton.addEventListener('click', () => {
-    const result = completeProject(state.progression, g.id + ':' + p.id, new Date(), p.title);
-    if (!result) return;
-    emit('reward');
-    completionButton.disabled = true;
-    completionButton.textContent = 'Completed';
-    const progress = state.progression, world = WORLDS[progress.theme];
-    const community = SCHOOLS.find(s => s.id === progress.communityId);
-    const feedback = sheet.querySelector('#completion-feedback');
-    feedback.innerHTML = `<h3>+100 XP · +40 ${world.currency}</h3>${progress.communityId ? `<p>+100 XP contributed to your <a href="#/community/schools/${progress.communityId}">${community.name} ${world.community}</a></p>` : '<p><a href="#/community">Join a school community (optional)</a></p>'}<div class="profile-rank ${result.rankUp?'rank-up':''}">${result.rankUp?'<strong>New rank reached!</strong>':''}${rankProgress(progress)}</div>`;
-    feedback.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { overlay.hidden = true; }));
-    feedback.querySelector('.profile-rank').classList.add('xp-stitch');
-    feedback.querySelector('.xp-stitch').dataset.effects=progress.avatar.intensity;
-    const nextTier=tierFor(progress.xp)+1;
-    feedback.insertAdjacentHTML('beforeend',`<p class="cosmetic-next">${nextTier<8?`${THRESHOLDS[nextTier]-progress.xp} XP to your next free cosmetic: ${ITEM_BY_ID[`${progress.theme}-milestone-${nextTier}`].name}`:'All free rank cosmetics unlocked.'}</p>`);
-    if(result.rankUp) import('../avatar/BreakthroughDialog.js').then(({showBreakthrough})=>{if(state.progression===progress)showBreakthrough(progress,result);});
-  });
   overlay.hidden = false;
   const close = () => (overlay.hidden = true);
   sheet.querySelector('#sh-close').addEventListener('click', close);
