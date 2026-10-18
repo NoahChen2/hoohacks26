@@ -1,5 +1,6 @@
 import { state, emit, subscribe, selectedGarment } from './state.js';
 import { createScene } from './scene.js';
+import { STAGE_THEMES } from './stage.js';
 import { fitWord } from './model.js';
 import { renderBodyPanel } from './ui/bodyPanel.js';
 import { renderClosetPanel } from './ui/closetPanel.js';
@@ -15,13 +16,19 @@ const sparkleLayer = document.createElement('div');
 sparkleLayer.className = 'sparkle-burst';
 sparkleLayer.setAttribute('aria-hidden', 'true');
 stage.appendChild(sparkleLayer);
+const STAGE_KEY = 'restitch.stage';
+let stageTheme = 'celestial';
+try {
+  const saved = localStorage.getItem(STAGE_KEY);
+  if (STAGE_THEMES[saved]) stageTheme = saved;
+} catch { /* storage unavailable */ }
 let scene;
 try {
-  scene = createScene(document.getElementById('viewport'));
+  scene = createScene(document.getElementById('viewport'), { stageTheme });
 } catch (error) {
   console.error('Could not start garment preview', error);
   document.getElementById('viewport').innerHTML = '<p class="preview-unavailable" role="status">The 3D preview could not start on this device. Your closet and project guides are still available.</p>';
-  scene = { setBody() {}, setGarment() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, get checks() { return []; } };
+  scene = { setBody() {}, setGarment() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, setStage() {}, get checks() { return []; } };
   document.querySelectorAll('.stage-toolbar input, .stage-toolbar button').forEach((control) => (control.disabled = true));
 }
 
@@ -182,6 +189,18 @@ motionPreference.addEventListener('change', (event) => {
   applyOpts();
 });
 document.getElementById('btn-reset-cam').addEventListener('click', () => scene.resetCamera());
+const stagePick = document.getElementById('tg-stage');
+stagePick.innerHTML = Object.entries(STAGE_THEMES).map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
+stagePick.value = stageTheme;
+document.body.dataset.stage = stageTheme;
+stagePick.addEventListener('change', () => {
+  stageTheme = stagePick.value;
+  document.body.dataset.stage = stageTheme;
+  scene.setStage(stageTheme);
+  try {
+    localStorage.setItem(STAGE_KEY, stageTheme);
+  } catch { /* storage unavailable */ }
+});
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') document.getElementById('overlay').hidden = true;
 });

@@ -2,7 +2,7 @@ import { defaultCharacter, normalizeCharacter } from './character/settings.ts';
 import { CharacterGeometryService } from './character/service.js';
 import { applyPresentation, presentationPoint } from './character/presentation.js';
 import { createTorsoSampler, conformToCharacter } from './character/sections.js';
-import { addCelestialStage } from './stage.js';
+import { addStage } from './stage.js';
 import { createRig } from './character/rig.js';
 import { morphBody } from './character/morph.js';
 import { vertexNormals } from './character/finish.js';
@@ -23,7 +23,7 @@ const TEX_H = 200;
 const MARGIN = 12;
 const PPC = 6; // px per cm
 
-export function createScene(container, { characterAsset = null, quality = detectQuality() } = {}) {
+export function createScene(container, { characterAsset = null, quality = detectQuality(), stageTheme = 'celestial' } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: quality.antialias, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatio));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -40,12 +40,12 @@ export function createScene(container, { characterAsset = null, quality = detect
   renderer.setClearColor(0x000000, 0);
   const scene = new THREE.Scene();
   scene.background = null;
-  // The celestial stage and the figure turn together on the turntable.
+  // The stage and the figure turn together on the turntable.
   const stageGroup = new THREE.Group();
   scene.add(stageGroup);
-  const sky = addCelestialStage(stageGroup);
+  let sky = addStage(stageTheme, scene, stageGroup);
   // Ambient sky motion; still on the lowest tier and when reduced motion is asked for.
-  const ambientSky = quality.name !== 'low' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ambientMotion = quality.name !== 'low' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   // Every material is Lambert-based (no environment map or PBR shaders), which
   // keeps shader compilation and per-pixel cost low on every device.
 
@@ -536,6 +536,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     const dt = clock.getDelta();
     if (document.hidden) return;
     const animating = opts.animate && animatable && !!rig;
+    const ambientSky = ambientMotion && sky.animated;
     const revealAge = performance.now() - revealStarted, revealing = revealAge < 700;
     revealLight.intensity = revealAge < 150 ? 7.5 * Math.sin((revealAge / 150) * Math.PI) : revealAge < 650 ? 1.8 * (1 - (revealAge - 150) / 500) : 0;
     if (opts.spin) stageGroup.rotation.y += dt * 0.6;
@@ -565,6 +566,11 @@ export function createScene(container, { characterAsset = null, quality = detect
     flashReveal() {
       revealStarted = performance.now();
     },
+    setStage(theme) {
+      sky.dispose();
+      sky = addStage(theme, scene, stageGroup);
+      invalidate();
+    },
     get checks() {
       return current.checks;
     },
@@ -576,7 +582,7 @@ export function createScene(container, { characterAsset = null, quality = detect
       renderer.setAnimationLoop(null);
       if(importedAsset){bodyGroup.remove(importedAsset.root);assetTools.disposeCharacterAsset(importedAsset.root);}
       clearTimeout(transferTimer);
-      clearBody();disposeGroup(garmentGroup);
+      clearBody();disposeGroup(garmentGroup);sky.dispose();
       for (const material of [...Object.values(garmentMats), skinMat, outlineMat]) material.dispose();
       garmentTex.texture?.dispose();blank.dispose();
       releaseSkeletons();rig?.skeleton.dispose();

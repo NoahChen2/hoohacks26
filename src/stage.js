@@ -236,3 +236,81 @@ export function addCelestialStage(stageGroup) {
     },
   };
 }
+
+// Fitting-room studios: graded backdrop, fogged floor and a podium. Night is the
+// unified-studio palette; daylight is the original light studio.
+const STUDIOS = {
+  night: { sky: ['#0d1724', '#142233', '#18283c'], fog: '#18283c', floor: '#18283c', podium: '#354854', rim: '#7faaa8', ring: '#b6c5c1', shadow: '8,14,22' },
+  daylight: { sky: ['#ccd6dd', '#e6e9e8', '#f0ece5'], fog: '#e2e7e6', floor: '#d6dcdb', podium: '#efede6', rim: '#8caaa9', ring: '#b6c5c1', shadow: '38,52,60' },
+};
+
+export const STAGE_THEMES = { celestial: 'Celestial', night: 'Night studio', daylight: 'Daylight studio' };
+
+function addStudioStage(stageGroup, scene, c) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+  gradient.addColorStop(0, c.sky[0]);
+  gradient.addColorStop(0.65, c.sky[1]);
+  gradient.addColorStop(1, c.sky[2]);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 32, 512);
+  const backdrop = new THREE.CanvasTexture(canvas);
+  backdrop.colorSpace = THREE.SRGBColorSpace;
+  scene.background = backdrop;
+  scene.fog = new THREE.Fog(c.fog, 5, 13);
+
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshLambertMaterial({ color: c.floor }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -0.064;
+  floor.receiveShadow = true;
+  const podium = new THREE.Mesh(new THREE.CylinderGeometry(0.77, 0.8, 0.06, 96), new THREE.MeshLambertMaterial({ color: c.podium }));
+  podium.position.y = -0.032;
+  podium.receiveShadow = true;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.772, 0.006, 8, 96), new THREE.MeshLambertMaterial({ color: c.rim }));
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = -0.008;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.65, 0.653, 96), new THREE.MeshBasicMaterial({ color: c.ring, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.0005;
+  // Baked soft contact shadow supplements directional shadows beneath the feet.
+  const shadowCanvas = document.createElement('canvas');
+  shadowCanvas.width = shadowCanvas.height = 128;
+  const sc = shadowCanvas.getContext('2d');
+  const radial = sc.createRadialGradient(64, 64, 8, 64, 64, 64);
+  radial.addColorStop(0, `rgba(${c.shadow},.22)`);
+  radial.addColorStop(1, `rgba(${c.shadow},0)`);
+  sc.fillStyle = radial;
+  sc.fillRect(0, 0, 128, 128);
+  const contact = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.65), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false }));
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.set(0, 0.001, 0.04);
+  stageGroup.add(floor, podium, rim, ring, contact);
+  return { update() {}, animated: false };
+}
+
+// Builds the chosen stage in its own group under `parent`; dispose() removes it
+// and restores the transparent, fog-free scene the celestial stage expects.
+export function addStage(theme, scene, parent) {
+  const group = new THREE.Group();
+  parent.add(group);
+  const stage = STUDIOS[theme] ? addStudioStage(group, scene, STUDIOS[theme]) : { ...addCelestialStage(group), animated: true };
+  return {
+    ...stage,
+    dispose() {
+      parent.remove(group);
+      group.traverse((o) => {
+        o.geometry?.dispose();
+        for (const m of [o.material].flat()) {
+          m?.map?.dispose();
+          m?.dispose();
+        }
+      });
+      scene.background?.dispose?.();
+      scene.background = null;
+      scene.fog = null;
+    },
+  };
+}
