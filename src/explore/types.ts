@@ -17,3 +17,12 @@ export interface ProjectLibrary {
 
 /** Image-relative coordinates, independent of the displayed viewport size. */
 export interface VisualSearchSelection { x: number; y: number; width: number; height: number; }
+
+export interface OnboardingPreferences {
+  version: 1;
+  aesthetics: string[];
+  skill: "" | "Beginner" | "Intermediate" | "Advanced";
+  tools: string[];
+  world: "cultivation" | "fairy" | "fantasy" | "runway" | "cyberpunk";
+  status: "draft" | "completed" | "skipped";
+}

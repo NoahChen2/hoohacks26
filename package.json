@@ -9,12 +9,15 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/explore src/entry.js tests/explore*.test.mjs scripts/generate-explore-assets.mjs"
+    "lint": "eslint src/explore src/studio src/entry.js server vite.config.js tests/*.test.mjs scripts/generate-explore-assets.mjs",
+    "start": "node server/index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",
     "lucide": "^1.59.0",
-    "three": "^0.169.0"
+    "openai": "^7.38.0",
+    "three": "^0.169.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "eslint": "^10.13.0",

@@ -1,3 +1,5 @@
+import {loadPreferences,rankProjects,PREFERENCES_KEY} from './preferences.js';
+import './onboarding.css';
 import './style.css';
 import {projects,CATEGORIES,filterProjects} from './projects.js';
 import {toggleEngagement,ENGAGEMENT_KEY} from './storage.js';
@@ -11,6 +13,7 @@ import {createImageFocus} from './image-focus.js';
 import {installImageLongPress} from './long-press.js';
 import {createVisualSearch} from './visual-search.js';
 
+
 let storage;
 try{storage=window.localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
 let engagement=loadLibrary(storage);
@@ -23,7 +26,7 @@ const projectId=/^\/project\/([^/]+)\/?$/.exec(location.pathname)?.[1];
 const project=projects.find(p=>p.id===projectId);
 
 document.body.classList.add('discovery-page');
-document.body.innerHTML=`<header class="discovery-header"><a class="discovery-brand" href="/explore" aria-label="ReThread explore">${icon('thread')}<span>ReThread<span class="brand-dot">.</span></span></a><nav aria-label="Main navigation"><a href="/explore" ${isExplore?'aria-current="page"':''}>Explore</a><a href="/">Upcycle studio ↗</a></nav><a class="saved-nav" href="/profile" aria-label="Profile and saved boards">${icon('save')}<span>Saved</span><span data-saved-count>${engagement.saved.length}</span></a></header><main id="discovery-main"></main><div class="discovery-toast" role="status" aria-live="polite"></div>`;
+document.body.innerHTML=`<header class="discovery-header"><a class="discovery-brand" href="/explore" aria-label="ReThread explore">${icon('thread')}<span>ReThread<span class="brand-dot">.</span></span></a><nav aria-label="Main navigation"><a href="/explore" ${isExplore?'aria-current="page"':''}>Explore</a><a href="/studio">AI Studio ↗</a></nav><a class="preferences-link" href="/settings">Settings</a><a class="saved-nav" href="/profile" aria-label="Profile and saved boards">${icon('save')}<span>Saved</span><span data-saved-count>${engagement.saved.length}</span></a></header><main id="discovery-main"></main><div class="discovery-toast" role="status" aria-live="polite"></div>`;
 const main=document.getElementById('discovery-main');
 const compact=n=>new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(n);
 function actions(p,large=false){return `<div class="project-actions ${large?'large-actions':''}"><button type="button" class="engagement-button ${engagement.liked.includes(p.id)?'is-active':''}" data-kind="liked" data-id="${p.id}" aria-label="${engagement.liked.includes(p.id)?'Unlike':'Like'} ${escape(p.title)}" aria-pressed="${engagement.liked.includes(p.id)}">${icon('heart')}<span>${compact(p.likes+Number(engagement.liked.includes(p.id)))}</span></button><button type="button" class="engagement-button ${engagement.saved.includes(p.id)?'is-active':''}" data-board-project="${p.id}" data-id="${p.id}" aria-label="Save ${escape(p.title)} to board">${icon('save')}${large?`<span>${engagement.saved.includes(p.id)?'Saved':'Save project'}</span>`:''}</button></div>`;}
@@ -39,7 +42,8 @@ function renderFeed(){
   updateFeed();
 }
 function updateFeed(){
-  const filtered=filterProjects(query,category,savedOnly,engagement.saved);
+  const preferences=loadPreferences(storage);
+  const filtered=rankProjects(filterProjects(query,category,savedOnly,engagement.saved),preferences);
   main.querySelector('#project-feed').innerHTML=filtered.length?filtered.map(card).join(''):`<div class="feed-empty">${icon(savedOnly?'save':'search')}<h2>${savedOnly?'Your next favorite is out there.':'Nothing here just yet.'}</h2><p>${savedOnly?'Save a project using its bookmark button, or try another filter.':'Try another search or explore all the categories.'}</p><button type="button" id="clear-filters">Show all projects</button></div>`;
   main.querySelector('#feed-count').textContent=`${filtered.length} ${savedOnly?'saved ':''}${filtered.length===1?'idea':'ideas'} to make your own`;
   const toggle=main.querySelector('.saved-filter');toggle.classList.toggle('active',savedOnly);toggle.setAttribute('aria-pressed',String(savedOnly));
@@ -161,5 +165,5 @@ async function handleAction(event){
   if(!result.persisted)toast('Changes work for this visit. Browser storage is unavailable.');
 }
 main.addEventListener('click',handleAction);
-window.addEventListener('storage',event=>{if(event.key===ENGAGEMENT_KEY||event.key===null){engagement=loadLibrary(storage);renderCurrent();boardDialog.refresh();}});
+window.addEventListener('storage',event=>{if(event.key===ENGAGEMENT_KEY||event.key===PREFERENCES_KEY||event.key===null){engagement=loadLibrary(storage);renderCurrent();boardDialog.refresh();}});
 if(isExplore)renderFeed();else renderCurrent();
