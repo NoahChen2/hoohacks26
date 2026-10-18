@@ -17,6 +17,7 @@
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@types/three": "^0.169.0",
     "eslint": "^10.13.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.10"

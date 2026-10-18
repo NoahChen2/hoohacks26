@@ -1,4 +1,5 @@
-import { state, emit, BODY_FIELDS, BODY_PRESETS, BODY_PROFILE_DEFAULTS } from '../state.js';
+import { BUILD_LABELS, PROPORTION_FIELDS, buildStartingPoint } from '../character/settings.ts';
+import { state, emit, BODY_FIELDS, BODY_PRESETS, BODY_PROFILE_DEFAULTS, FRAME_TO_SHAPE, SHAPE_TO_FRAME } from '../state.js';
 import { bodyModel } from '../model.js';
 import { inch } from '../upcycle.js';
 
@@ -17,10 +18,14 @@ const HINTS = {
 };
 let bodyPane = 'measurements';
 
+// Options saved with the profile that the 3D character does not model yet.
+const NOT_IN_3D = '<p class="option-note">Saved with your profile. Not shown on the 3D character yet.</p>';
+
 export function renderBodyPanel(el) {
   const b = state.body;
+  const character = state.character;
   Object.entries(BODY_PROFILE_DEFAULTS).forEach(([key, value]) => {
-    if (b[key] == null) b[key] = value;
+    if (b[key] == null) b[key] = key === 'frame' ? SHAPE_TO_FRAME[character.bodyPreset] : value;
   });
   el.innerHTML = `
     <div class="panel-head">
@@ -28,12 +33,13 @@ export function renderBodyPanel(el) {
       <p>Enter real tape-measure numbers. Everything in the 3D view and the cut lines is worked out from these.</p>
     </div>
     <div class="presets">${Object.keys(BODY_PRESETS)
-      .map((k) => `<button class="pill" data-preset="${k}">${k}</button>`)
+      .map((k) => `<button class="pill" data-preset="${k}" aria-pressed="${character.sizePreset === k}">${k}</button>`)
       .join('')}</div>
     <div class="body-subtabs">
       <button data-body-pane="measurements" class="${bodyPane === 'measurements' ? 'active' : ''}">📏 <span>Measurements</span></button>
       <button data-body-pane="frame" class="${bodyPane === 'frame' ? 'active' : ''}">👤 <span>Frame & maternity</span></button>
       <button data-body-pane="accessibility" class="${bodyPane === 'accessibility' ? 'active' : ''}">♿ <span>Accessibility</span></button>
+      <button data-body-pane="appearance" class="${bodyPane === 'appearance' ? 'active' : ''}">✨ <span>Appearance</span></button>
     </div>
     <div class="body-pane" data-pane="frame" ${bodyPane === 'frame' ? '' : 'hidden'}>
     <section class="sec anatomy-controls">
@@ -45,6 +51,7 @@ export function renderBodyPanel(el) {
       <label class="choice-label">Maternity / abdomen</label>
       <div class="visual-choices four">${choiceCards('maternity', [['none','○','None'],['first','◔','1st tri'],['second','◑','2nd tri'],['third','●','3rd tri']], b.maternity)}</div>
       ${selectField('posture', 'Posture / spine', [['upright','Standard upright'],['kyphosis','Kyphosis / rounded back'],['scoliosis','Scoliosis asymmetry'],['seated','Seated / wheelchair']], b.posture)}
+      ${NOT_IN_3D.replace('Saved', 'Posture is saved')}
     </section>
     </div>
     <div class="body-pane" data-pane="accessibility" ${bodyPane === 'accessibility' ? '' : 'hidden'}>
@@ -58,9 +65,25 @@ export function renderBodyPanel(el) {
         ${selectField('leftLeg', 'Left leg', legOptions(), b.leftLeg)}
         ${selectField('rightLeg', 'Right leg', legOptions(), b.rightLeg)}
       </div>
+      ${NOT_IN_3D}
+    </section>
+    </div>
+    <div class="body-pane" data-pane="appearance" ${bodyPane === 'appearance' ? '' : 'hidden'}>
+    <section class="body-proportions">
+      <h3>Appearance proportions <span>Preview only</span></h3>
+      <p>These change the character and clothing preview together. They do not change tape measurements, fit warnings or cut lines.</p>
+      ${PROPORTION_FIELDS.map(([key, label, min, max]) => `<label class="field"><span class="field-top"><span>${label}</span><output data-proportion-value="${key}">${Math.round(character.proportions[key] * 100)}%</output></span><input type="range" data-proportion="${key}" min="${min}" max="${max}" step=".05" value="${character.proportions[key]}" /></label>`).join('')}
+      <button class="btn small ghost" id="reset-proportions">Reset appearance proportions</button>
     </section>
     </div>
     <div class="body-pane" data-pane="measurements" ${bodyPane === 'measurements' ? '' : 'hidden'}>
+    <section class="body-starting-points" aria-label="Build starting points">
+      <span class="body-section-label">BUILD STARTING POINTS</span>
+      <div class="body-build-options" role="group" aria-label="Body build">
+        ${Object.entries(BUILD_LABELS).map(([value, label]) => `<button class="pill ${character.build === value ? 'active' : ''}" data-build="${value}" aria-pressed="${character.build === value}">${label}</button>`).join('')}
+      </div>
+      <p>Builds set editable measurement values. Manual edits always take precedence.</p>
+    </section>
     <div class="body-grid">
       <div class="silhouette" id="silhouette"></div>
       <div class="fields">
@@ -90,6 +113,8 @@ export function renderBodyPanel(el) {
   el.querySelectorAll('[data-choice]').forEach((button) =>
     button.addEventListener('click', () => {
       b[button.dataset.choice] = button.dataset.value;
+      // The body frame sets the 3D character's shape.
+      if (button.dataset.choice === 'frame') character.bodyPreset = FRAME_TO_SHAPE[button.dataset.value];
       button.parentElement.querySelectorAll('[data-choice]').forEach((item) => item.classList.toggle('active', item === button));
       draw();
       emit('body');
@@ -113,8 +138,13 @@ export function renderBodyPanel(el) {
   );
 
   const set = (key, v) => {
-    if (Number.isNaN(v)) return;
+    if (!Number.isFinite(v)) return;
+    const [, , min, max] = BODY_FIELDS.find((field) => field[0] === key);
+    const numeric = el.querySelector(`[data-num="${key}"]`);
+    numeric.setCustomValidity(v < min || v > max ? `Enter ${min}–${max} cm.` : '');
+    if (!numeric.reportValidity()) return;
     state.body[key] = v;
+    character.sizePreset = null;
     el.querySelector(`[data-key="${key}"]`).value = v;
     const num = el.querySelector(`[data-num="${key}"]`);
     if (document.activeElement !== num) num.value = v;
@@ -126,9 +156,38 @@ export function renderBodyPanel(el) {
   el.querySelectorAll('input[data-num]').forEach((n) => n.addEventListener('change', () => set(n.dataset.num, parseFloat(n.value))));
   el.querySelectorAll('[data-preset]').forEach((btn) =>
     btn.addEventListener('click', () => {
-      Object.entries(BODY_PRESETS[btn.dataset.preset]).forEach(([k, v]) => set(k, v));
+      Object.assign(b, BODY_PRESETS[btn.dataset.preset]);
+      character.sizePreset = btn.dataset.preset;
+      character.build = 'average';
+      renderBodyPanel(el);
+      emit('body');
     })
   );
+  el.querySelectorAll('[data-build]').forEach((button) =>
+    button.addEventListener('click', () => {
+      const build = button.dataset.build;
+      const closest = Object.keys(BODY_PRESETS).reduce((best, key) => (Math.abs(BODY_PRESETS[key].height - b.height) < Math.abs(BODY_PRESETS[best].height - b.height) ? key : best), Object.keys(BODY_PRESETS)[0]);
+      const source = BODY_PRESETS[character.sizePreset] || { ...BODY_PRESETS[closest], height: b.height, arm: b.arm, inseam: b.inseam };
+      const values = buildStartingPoint(source, build);
+      for (const [key, , min, max] of BODY_FIELDS) if (values[key] != null) b[key] = Math.max(min, Math.min(max, values[key]));
+      character.build = build;
+      character.proportions.muscleDefinition = { slim: .08, average: .15, athletic: .55, muscular: .9, curvy: .12, plus: .05 }[build];
+      renderBodyPanel(el);
+      emit('body');
+    })
+  );
+  el.querySelectorAll('[data-proportion]').forEach((input) =>
+    input.addEventListener('input', () => {
+      character.proportions[input.dataset.proportion] = Number(input.value);
+      el.querySelector(`[data-proportion-value="${input.dataset.proportion}"]`).textContent = `${Math.round(Number(input.value) * 100)}%`;
+      emit('character');
+    })
+  );
+  el.querySelector('#reset-proportions').addEventListener('click', () => {
+    for (const [key] of PROPORTION_FIELDS) character.proportions[key] = key === 'muscleDefinition' ? .15 : 0;
+    renderBodyPanel(el);
+    emit('character');
+  });
 }
 
 function selectField(key, label, options, value) {

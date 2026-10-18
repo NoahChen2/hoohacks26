@@ -1,3 +1,4 @@
+import { defaultCharacter, normalizeCharacter } from './character/settings.ts';
 // Central app state with localStorage persistence and a tiny pub/sub.
 
 const KEY = 'restitch.v1';
@@ -76,6 +77,10 @@ export const BODY_PROFILE_DEFAULTS = {
   chestOption: 'symmetric',
   posture: 'upright',
 };
+
+// The body frame (adaptive profile) and the 3D character's shape stay in step.
+export const FRAME_TO_SHAPE = { female: 'feminine', neutral: 'neutral', male: 'masculine' };
+export const SHAPE_TO_FRAME = { feminine: 'female', neutral: 'neutral', masculine: 'male' };
 
 // Garment measurement fields (flat-lay measurements, doubled to circumference where noted).
 export function garmentFields(type) {
@@ -161,6 +166,7 @@ function initialState() {
   flannel.hem = 120;
   return {
     body: { ...BODY_PROFILE_DEFAULTS, ...BODY_PRESETS['Medium (M)'] },
+    character: { ...defaultCharacter(), bodyPreset: FRAME_TO_SHAPE[BODY_PROFILE_DEFAULTS.frame] },
     garments: [shirt, jeans, flannel],
     selected: shirt.id,
     tools: { scissors: true, needle: true, pins: true },
@@ -179,13 +185,19 @@ function load(key = storageKey) {
   return null;
 }
 
-function hydrate(data) {
+// Additive migration: stored measurements, garments, IDs and unknown fields are
+// kept as saved (the body panel fills any missing profile options when shown).
+// A snapshot without character settings keeps the current ones.
+function hydrate(data, currentCharacter) {
   if (!data) return initialState();
   const defaults = initialState();
+  const body = data.body ? { ...data.body } : defaults.body;
+  const character = normalizeCharacter(data.character ?? currentCharacter ?? (body.frame ? { bodyPreset: FRAME_TO_SHAPE[body.frame] } : undefined));
   return {
     ...defaults,
     ...data,
-    body: { ...defaults.body, ...(data.body || {}) },
+    body,
+    character,
     tools: { ...defaults.tools, ...(data.tools || {}) },
     garments: Array.isArray(data.garments) ? data.garments : defaults.garments,
   };
@@ -214,13 +226,13 @@ export function emit(reason = 'change') {
 
 // The parts of state worth saving to an account (UI-only fields like `tab` stay local).
 export function snapshot() {
-  const { body, garments, selected, tools } = state;
-  return JSON.parse(JSON.stringify({ body, garments, selected, tools }));
+  const { body, garments, selected, tools, character } = state;
+  return JSON.parse(JSON.stringify({ body, garments, selected, tools, character }));
 }
 
 export function replaceState(data) {
   const tab = state.tab;
-  const next = { ...hydrate(data), tab };
+  const next = { ...hydrate(data, state.character), tab };
   Object.keys(state).forEach((k) => delete state[k]);
   Object.assign(state, next);
   persistLocal();

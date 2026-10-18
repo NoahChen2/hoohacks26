@@ -1,16 +1,19 @@
-// Parametric body + garment geometry (all in cm; the scene scales to metres).
-// Every surface is a stack of elliptical rings so a garment's circumference at any height
-// can be compared directly against the body's circumference at that height.
+// Canonical measurement exports and garment geometry, in centimetres.
+// The continuous rendered body lives in character/geometry.js. Garment fit and
+// cutting calculations continue to use the unchanged measurement model.
 
 import * as THREE from 'three';
 import { GARMENT_TYPES } from './state.js';
 import { topLandmarks, bottomLandmarks } from './flats.js';
 
+import { bodyModel, perim } from './character/measurements.js';
+export { bodyModel, perim };
+import { buildProceduralBody } from './character/geometry.js';
+import { defaultCharacter } from './character/settings.ts';
+
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// Ramanujan's ellipse perimeter
-export const perim = (a, b) => Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
 const radiiFor = (C, k) => {
   const a = C / perim(1, k);
   return [a, a * k];
@@ -29,160 +32,6 @@ function piecewise(keys, x) {
   return keys[keys.length - 1][1];
 }
 
-// ---------------------------------------------------------------- body model
-
-export function bodyModel(b) {
-  const H = b.height;
-  const frame = b.frame || 'neutral';
-  const stature = b.stature || 'standard';
-  const limbRatio = b.limbRatio ?? (stature === 'achondroplasia' ? 0.68 : 1);
-  const crotchY = b.inseam * (stature === 'achondroplasia' ? 0.78 : 1);
-  const hipY = Math.min(crotchY + 0.05 * H, 0.6 * H - 8);
-  const waistY = 0.615 * H;
-  const chestY = 0.725 * H;
-  const armpitY = 0.745 * H;
-  const shoulderY = 0.818 * H;
-  const neckBaseY = 0.838 * H;
-  const neckTopY = 0.875 * H;
-  const headR = 0.062 * H;
-  const headY = neckTopY + headR * 0.95;
-
-  const hipDepth = frame === 'female' ? 0.76 : frame === 'male' ? 0.68 : 0.72;
-  const waistDepth = frame === 'female' ? 0.7 : frame === 'male' ? 0.75 : 0.73;
-  const chestDepth = frame === 'female' ? 0.72 : frame === 'male' ? 0.62 : 0.68;
-  const [hipA0, hipB0] = radiiFor(b.hips, hipDepth);
-  const [waA, waB] = radiiFor(b.waist, waistDepth);
-  const [chA0, chB0] = radiiFor(b.chest, chestDepth);
-  const hipA = hipA0 * (frame === 'female' ? 1.06 : frame === 'male' ? 0.94 : 1);
-  const hipB = hipB0 * (frame === 'female' ? 1.08 : 0.98);
-  const chA = chA0 * (frame === 'male' ? 1.08 : frame === 'female' ? 0.97 : 1);
-  const chB = chB0;
-  const underbust = b.underbust || Math.min(b.chest - 6, b.waist + 8);
-  const [ribA, ribB] = radiiFor(underbust, frame === 'male' ? 0.64 : 0.7);
-  const trimester = { none: 0, first: 0.18, second: 0.58, third: 1 }[b.maternity || 'none'];
-  const bellyProjection = Math.max(b.belly || 0, trimester * (frame === 'female' ? 17 : 14));
-  const bustProjection = frame === 'female' ? Math.max(0, b.chest - underbust) * 0.12 * (b.chestProjection ?? 0.7) + trimester * 1.5 : frame === 'neutral' ? (b.chestProjection ?? 0.5) * 2.5 : 0.8;
-  const postureBack = b.posture === 'kyphosis' ? -3 : 0;
-  const lordosis = b.posture === 'seated' ? 1.5 : trimester * 1.8 + (stature === 'achondroplasia' ? 1.2 : 0);
-  const scoliosis = b.posture === 'scoliosis' ? 1.8 : 0;
-  const neckR = b.neck / (2 * Math.PI);
-  const shA = b.shoulder / 2;
-
-  const gaussian = (y, center, span) => Math.exp(-0.5 * Math.pow((y - center) / (span / 2.355), 2));
-  const chestShape = b.chestOption === 'bilateralFlat' ? 0 : bustProjection;
-  const leftChestShape = b.chestOption === 'leftFlat' || b.chestOption === 'bilateralFlat' ? 0 : bustProjection;
-  const rightChestShape = b.chestOption === 'rightFlat' || b.chestOption === 'bilateralFlat' ? 0 : bustProjection;
-  const bellyCenter = lerp(hipY, waistY, trimester > 0 ? 0.58 : 0.48);
-  const torso = [
-    { y: crotchY - 1, rx: hipA * 0.86, rz: hipB * 0.82, z: -hipB * 0.08, frontBulge: bellyProjection * 0.2 },
-    { y: crotchY + 2, rx: hipA * 0.97, rz: hipB * 0.95, z: -hipB * 0.11, frontBulge: bellyProjection * 0.38 },
-    { y: hipY, rx: hipA, rz: hipB, z: -hipB * 0.13, frontBulge: bellyProjection * 0.62 },
-    { y: lerp(hipY, waistY, 0.5), rx: lerp(hipA, waA, 0.55), rz: lerp(hipB, waB, 0.5), z: lordosis, frontBulge: bellyProjection },
-    { y: waistY, rx: waA, rz: waB, z: lordosis, frontBulge: bellyProjection * (trimester > 0.5 ? 0.86 : 0.42) },
-    { y: lerp(waistY, chestY, 0.42), rx: lerp(waA, ribA, 0.65), rz: lerp(waB, ribB, 0.65), z: 0, frontBulge: bellyProjection * trimester * 0.42 },
-    { y: lerp(waistY, chestY, 0.68), rx: ribA, rz: ribB, z: 0, frontBulge: bustProjection * 0.2 },
-    { y: chestY, rx: chA, rz: chB, z: 0.4, frontBulge: bustProjection },
-    { y: armpitY, rx: chA * 0.98, rz: chB * 0.95, z: 0, frontBulge: bustProjection * 0.42 },
-    { y: lerp(armpitY, shoulderY, 0.55), rx: Math.max(chA * 0.97, shA - 3), rz: chB * 0.85, z: postureBack },
-    { y: shoulderY - 1.5, rx: shA - 2.5, rz: chB * 0.62, z: postureBack, x: scoliosis },
-    { y: shoulderY + 0.8, rx: lerp(shA - 2.5, neckR, 0.55), rz: lerp(chB * 0.55, neckR, 0.5), z: postureBack, x: scoliosis * 0.7 },
-    { y: neckBaseY, rx: neckR * 1.15, rz: neckR * 1.1, z: postureBack, x: scoliosis * 0.4 },
-    { y: neckTopY, rx: neckR, rz: neckR, z: postureBack, x: scoliosis * 0.3 },
-  ].map((t) => {
-    const abdomen = bellyProjection * gaussian(t.y, bellyCenter, trimester > 0 ? 32 : 24);
-    const chestBell = gaussian(t.y, chestY, 22);
-    return {
-      ...t,
-      x: t.x || 0,
-      z: t.z || 0,
-      frontBulge: abdomen + chestShape * chestBell,
-      frontBulgeLeft: abdomen + leftChestShape * chestBell,
-      frontBulgeRight: abdomen + rightChestShape * chestBell,
-    };
-  });
-
-  // legs
-  const thighR = b.thigh / (2 * Math.PI);
-  const legX = hipA * 0.47;
-  const legs = [
-    { y: hipY, r: thighR * 1.05 },
-    { y: crotchY, r: thighR },
-    { y: lerp(crotchY, 0.285 * H, 0.5), r: thighR * 0.86 },
-    { y: 0.285 * H, r: thighR * 0.62 },
-    { y: 0.22 * H, r: thighR * 0.64 },
-    { y: 0.12 * H, r: thighR * 0.48 },
-    { y: 0.045 * H, r: thighR * 0.36 },
-    { y: 0.025 * H, r: thighR * 0.36 },
-  ];
-
-  // arms (A-pose)
-  const L = b.arm * limbRatio;
-  const upperR = (b.chest * 0.31) / (2 * Math.PI);
-  const armAngle = (13 * Math.PI) / 180;
-  const armDir = new THREE.Vector3(Math.sin(armAngle), -Math.cos(armAngle), 0);
-  const jointL = new THREE.Vector3(-(shA - upperR * 0.55), shoulderY - upperR * 0.95, 0);
-  const jointR = new THREE.Vector3(shA - upperR * 0.55, shoulderY - upperR * 0.95, 0);
-  const arm = [
-    { t: -upperR * 0.6, r: upperR * 0.75 },
-    { t: 0, r: upperR },
-    { t: L * 0.2, r: upperR * 0.97 },
-    { t: L * 0.45, r: upperR * 0.78 },
-    { t: L * 0.58, r: upperR * 0.84 },
-    { t: L * 0.85, r: upperR * 0.62 },
-    { t: L, r: upperR * 0.52 },
-  ];
-
-  const lm = { H, crotchY, hipY, waistY, chestY, armpitY, shoulderY, neckBaseY, neckTopY, headR, headY, legX, armAngle, armLen: L };
-
-  function profileAt(y) {
-    if (y >= torso[0].y) {
-      for (let i = 1; i < torso.length; i++) {
-        if (y <= torso[i].y) {
-          const a = torso[i - 1],
-            c = torso[i];
-          const t = (y - a.y) / (c.y - a.y);
-          return { rx: lerp(a.rx, c.rx, t), rz: lerp(a.rz, c.rz, t), x: lerp(a.x, c.x, t), z: lerp(a.z, c.z, t), frontBulge: lerp(a.frontBulge, c.frontBulge, t) };
-        }
-      }
-      const t = torso[torso.length - 1];
-      return { rx: t.rx, rz: t.rz, x: t.x, z: t.z, frontBulge: t.frontBulge };
-    }
-    // below crotch: hull around both legs
-    const r = legRAt(y);
-    const top = torso[0];
-    const t = clamp((top.y - y) / 6, 0, 1);
-    return { rx: lerp(top.rx, legX + r, t), rz: lerp(top.rz, r * 1.08, t), x: 0, z: 0, frontBulge: 0 };
-  }
-  function legRAt(y) {
-    return piecewise(
-      legs.map((l) => [l.y, l.r]).reverse(),
-      y
-    );
-  }
-  function armRAt(t) {
-    return piecewise(
-      arm.map((a) => [a.t, a.r]),
-      t
-    );
-  }
-  function legPose(y, side) {
-    if (b.posture !== 'seated') return { c: new THREE.Vector3(side * legX, y, 0), e1: X, e2: Z };
-    const kneeY = 0.285 * H;
-    const thighLen = Math.max(10, crotchY - kneeY);
-    if (y >= kneeY) {
-      const t = clamp((crotchY - y) / thighLen, 0, 1);
-      return { c: new THREE.Vector3(side * legX, crotchY - t * 5, t * thighLen), e1: X, e2: new THREE.Vector3(0, 0.98, 0.2).normalize() };
-    }
-    return { c: new THREE.Vector3(side * legX, crotchY - 5 - (kneeY - y), thighLen), e1: X, e2: Z };
-  }
-  const circAt = (y) => {
-    const p = profileAt(y);
-    return perim(p.rx, p.rz + p.frontBulge * 0.45);
-  };
-
-  return { b, torso, legs, arm, armDir, jointL, jointR, lm, profileAt, legRAt, armRAt, legPose, circAt, upperR, thighR, neckR, frame, bellyProjection, bustProjection };
-}
-
 // ---------------------------------------------------------------- ring surface builder
 
 /**
@@ -190,6 +39,19 @@ export function bodyModel(b) {
  * φ = 0 points along e2 (front). u is arc-length based so patterns keep real-world scale.
  */
 export function ringSurface(rings, opts = {}) {
+  if (opts.cloth) {
+    const dense = [];
+    for (let j=0;j<rings.length-1;j++) {
+      const a=rings[j], b=rings[j+1], steps=Math.max(1,Math.ceil(a.c.distanceTo(b.c)/1.2));
+      for(let k=0;k<steps;k++) {
+        const t=k/steps, r={...a,c:a.c.clone().lerp(b.c,t)};
+        for(const field of ['r1','r2','flatY','xOff','ease','minR1','minR2','pelvisBlend','pelvisR1','pelvisR2']) if(a[field]!=null && b[field]!=null)r[field]=lerp(a[field],b[field],t);
+        if(a.color && b.color)r.color=a.color.map((v,i)=>lerp(v,b.color[i],t));
+        dense.push(r);
+      }
+    }
+    dense.push(rings.at(-1));rings=dense;
+  }
   const N = opts.segments || 48;
   const W = opts.texW || 220;
   const Hc = opts.texH || 200;
@@ -204,14 +66,36 @@ export function ringSurface(rings, opts = {}) {
     const pts = [];
     for (let i = 0; i <= N; i++) {
       const phi = -Math.PI + (i / N) * Math.PI * 2;
-      const p = R.c
-        .clone()
-        .addScaledVector(R.e1, Math.sin(phi) * R.r1)
-        .addScaledVector(R.e2, Math.cos(phi) * R.r2);
-      if (R.frontBulge) {
-        const sideBulge = Math.sin(phi) < 0 ? (R.frontBulgeLeft ?? R.frontBulge) : (R.frontBulgeRight ?? R.frontBulge);
-        p.addScaledVector(R.e2, sideBulge * Math.pow(Math.max(0, Math.cos(phi)), 2.2));
+      let r1=R.r1,r2=R.r2;
+      if(opts.cloth) {
+        const loose=clamp((R.ease ?? 12)/25,0,1), y=R.flatY??R.c.y;
+        const stiffness=opts.material==='denim'?.65:opts.material==='wool'?.8:1;
+        const folds=(Math.sin(phi*9+Math.sin(y*.055))*.65+Math.sin(phi*15-y*.10)*.22)*(.12+loose*1.0);
+        const creases=Math.sin(y*.90+Math.cos(phi*2)*2.5)*.12*Math.pow(Math.abs(Math.sin(phi)),3);
+        const delta=(folds+creases)*stiffness;
+        r1=Math.max(R.minR1??0,r1+delta);r2=Math.max(R.minR2??0,r2+delta);
       }
+      const p = R.c.clone().addScaledVector(R.e1,Math.sin(phi)*r1).addScaledVector(R.e2,Math.cos(phi)*r2);
+      if(R.pelvisBlend) {
+        const wave=opts.cloth?(Math.sin(phi*9+R.c.y*.045)*.15):0;
+        const targetX=R.side*Math.max(0,R.side*Math.sin(phi))*(R.pelvisR1+wave);
+        const targetZ=Math.cos(phi)*(R.pelvisR2+wave);
+        p.x=lerp(p.x,targetX,R.pelvisBlend);p.z=lerp(p.z,targetZ,R.pelvisBlend);
+      }
+      if(opts.bodyCollision) {
+        const M=opts.bodyCollision,y=p.y;
+        let envelope=0;
+        if(y>=M.lm.crotchY-1) {
+          const b=M.profileAt(y),u=p.x/b.rx;
+          if(Math.abs(u)<1)envelope=Math.max(envelope,b.rz*Math.sqrt(1-u*u)+.75);
+        }
+        if(y<=M.lm.hipY)for(const side of [-1,1]) {
+          const r=M.legRAt(y),u=(p.x-side*M.lm.legX)/r;
+          if(Math.abs(u)<1)envelope=Math.max(envelope,r*1.04*Math.sqrt(1-u*u)+.75);
+        }
+        p.z=(p.z<0?-1:1)*Math.max(Math.abs(p.z),envelope);
+      }
+      if(opts.neckDrop) p.y-=Math.max(0,Math.cos(phi))**2*opts.neckDrop*clamp((R.c.y-(rings.at(-1).c.y-6))/6,0,1);
       pts.push(p);
     }
     let s = 0;
@@ -220,7 +104,7 @@ export function ringSurface(rings, opts = {}) {
       s += pts[i].distanceTo(pts[i - 1]);
       arcs.push(s);
     }
-    const half = s / 2;
+    const half = arcs[N / 2];
     for (let i = 0; i <= N; i++) {
       pos.push(pts[i].x, pts[i].y, pts[i].z);
       const sc = arcs[i] - half; // arc from front centre; +sc toward +e1
@@ -243,21 +127,36 @@ export function ringSurface(rings, opts = {}) {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  // Ring order differs for descending arms and ascending torsos/legs.
+  const axis=rings.at(-1).c.clone().sub(rings[0].c);
+  const reverse=axis.dot(new THREE.Vector3().crossVectors(rings[0].e1,rings[0].e2))>0;
+  if(reverse)for(let i=0;i<idx.length;i+=3)[idx[i],idx[i+1]]=[idx[i+1],idx[i]];
   geo.setIndex(idx);
   geo.computeVertexNormals();
+  if(opts.cloth) {
+    const result=[geo];
+    for(const j of [opts.trimStart?0:null,opts.trimEnd?rings.length-1:null].filter(v=>v!==null)) {
+      const points=[];for(let i=0;i<N;i++){const k=(j*(N+1)+i)*3;points.push(new THREE.Vector3(pos[k],pos[k+1],pos[k+2]));}
+      const curve=new THREE.CatmullRomCurve3(points,true);
+      const trim=new THREE.TubeGeometry(curve,N*2,(j===rings.length-1 && opts.neckDrop) ? .27 : .14,6,true);
+      trim.userData.trim=true;result.push(trim);
+    }
+    return result;
+  }
   if (opts.capStart || opts.capEnd) {
     // simple fan caps
     const caps = [];
     if (opts.capStart) caps.push([0, -1]);
     if (opts.capEnd) caps.push([rings.length - 1, 1]);
     const merged = [geo];
-    for (const [j] of caps) {
+    for (const [j, end] of caps) {
       const R = rings[j];
       const g2 = new THREE.CircleGeometry(1, N);
       g2.scale(R.r1, R.r2, 1);
       const m = new THREE.Matrix4().makeBasis(R.e1, R.e2, new THREE.Vector3().crossVectors(R.e1, R.e2));
       g2.applyMatrix4(m);
       g2.translate(R.c.x, R.c.y, R.c.z);
+      if(axis.clone().multiplyScalar(end).dot(new THREE.Vector3().crossVectors(R.e1,R.e2))<0){const ids=g2.index.array;for(let i=0;i<ids.length;i+=3)[ids[i],ids[i+1]]=[ids[i+1],ids[i]];g2.computeVertexNormals();}
       merged.push(g2);
     }
     return merged;
@@ -276,67 +175,8 @@ export function armBasis(dir) {
 
 // ---------------------------------------------------------------- body meshes
 
-export function buildBodyGeometries(M) {
-  const out = [];
-  const pushTagged = (geometry, region) => {
-    for (const geo of Array.isArray(geometry) ? geometry : [geometry]) {
-      geo.userData.region = region;
-      out.push(geo);
-    }
-  };
-  const torsoRings = M.torso.map((t) => ({
-    c: new THREE.Vector3(t.x || 0, t.y, t.z || 0), e1: X, e2: Z, r1: t.rx, r2: t.rz,
-    frontBulge: t.frontBulge || 0,
-    frontBulgeLeft: t.frontBulgeLeft,
-    frontBulgeRight: t.frontBulgeRight,
-  }));
-  pushTagged(ringSurface(torsoRings, { capStart: true }), 'linen');
-  // legs
-  for (const side of [-1, 1]) {
-    const option = side < 0 ? M.b.leftLeg || 'full' : M.b.rightLeg || 'full';
-    const cutoff = option === 'aboveKnee' ? M.lm.H * 0.38 : option === 'belowKnee' ? M.lm.H * 0.16 : -Infinity;
-    const source = M.legs.filter((l) => l.y >= cutoff);
-    const rings = source.map((l) => ({ ...M.legPose(l.y, side), r1: l.r, r2: l.r * 1.04 }));
-    out.push(ringSurface(rings, { segments: 40, capEnd: option !== 'full' }));
-    // foot
-    if (option === 'full') {
-      const foot = new THREE.SphereGeometry(1, 24, 16);
-      const fr = M.thighR * 0.4;
-      foot.scale(fr * 1.05, fr * 0.75, fr * 2.6);
-      const fp = M.legPose(M.lm.H * 0.02, side).c;
-      foot.translate(fp.x, fp.y, fp.z + fr * 1.3);
-      out.push(foot);
-    }
-  }
-  // arms
-  for (const side of [-1, 1]) {
-    const option = side < 0 ? M.b.leftArm || 'full' : M.b.rightArm || 'full';
-    if (option === 'shoulder') continue;
-    const dir = M.armDir.clone();
-    dir.x *= side;
-    const joint = side < 0 ? M.jointL : M.jointR;
-    const { e1, e2 } = armBasis(dir);
-    const cutoff = option === 'aboveElbow' ? M.lm.armLen * 0.34 : option === 'belowElbow' ? M.lm.armLen * 0.72 : Infinity;
-    const armSource = M.arm.filter((a) => a.t <= cutoff);
-    const rings = armSource.map((a) => ({ c: joint.clone().addScaledVector(dir, a.t), e1, e2, r1: a.r, r2: a.r * 0.95 }));
-    pushTagged(ringSurface(rings, { segments: 36, capEnd: option !== 'full' }), 'wood');
-    const shoulder = new THREE.SphereGeometry(M.upperR * 1.02, 20, 14);
-    shoulder.translate(joint.x, joint.y, joint.z);
-    shoulder.userData.region = 'wood';
-    out.push(shoulder);
-    // hand
-    if (option === 'full') {
-      const hand = new THREE.SphereGeometry(1, 20, 14);
-      const hr = M.upperR * 0.55;
-      hand.scale(hr * 0.75, hr * 1.9, hr * 0.42);
-      const hp = joint.clone().addScaledVector(dir, M.lm.armLen + hr * 1.6);
-      hand.rotateZ(side * M.lm.armAngle);
-      hand.translate(hp.x, hp.y, hp.z);
-      hand.userData.region = 'wood';
-      out.push(hand);
-    }
-  }
-  return out.flat();
+export function buildBodyGeometries(M, character = defaultCharacter()) {
+  return [buildProceduralBody(M, character)];
 }
 
 // ---------------------------------------------------------------- garments
@@ -351,20 +191,17 @@ export function easeColor(ease) {
 
 function fitRing(M, y, Cg, flatY, extra = 0.6) {
   const p = M.profileAt(y);
-  const surfaceGap = y >= M.lm.chestY - 6 ? Math.max(extra, 1.45) : extra;
   const Cb = perim(p.rx, p.rz);
   let r1, r2;
   if (Cg > Cb + extra * 6.3) {
-    const s = Cg / Cb;
-    r1 = p.rx * s;
-    r2 = p.rz * s;
+    const aspect=lerp(p.rz/p.rx,.74,clamp((Cg-Cb)/24,0,1));
+    [r1,r2]=radiiFor(Cg,aspect);
+    r1=Math.max(r1,p.rx+extra);r2=Math.max(r2,p.rz+extra);
   } else {
-    r1 = p.rx + surfaceGap;
-    r2 = p.rz + surfaceGap;
+    r1 = p.rx + extra;
+    r2 = p.rz + extra;
   }
-  const bulge = p.frontBulge || 0;
-  r2 = Math.max(r2, p.rz + surfaceGap + bulge * 0.78);
-  return { c: new THREE.Vector3(p.x || 0, y, p.z || 0), e1: X, e2: Z, r1, r2, frontBulge: bulge * 0.9, flatY, color: easeColor(Cg - Cb), ease: Cg - Cb };
+  return { c: new THREE.Vector3(0, y, 0), e1: X, e2: Z, r1, r2, flatY, minR1: p.rx+extra, minR2: p.rz+extra, color: easeColor(Cg - Cb), ease: Cg - Cb };
 }
 
 function sampleYs(top, bottom, step, extras = []) {
@@ -375,6 +212,32 @@ function sampleYs(top, bottom, step, extras = []) {
     if (e > bottom && e < top) ys.add(+e.toFixed(2));
   });
   return [...ys].sort((a, b) => a - b);
+}
+
+// A shallow, draped pocket panel with its own stitched boundary.
+function frontPocket(rings, cx, top, width, height, texTop) {
+  top=Math.min(top,rings.at(-1).c.y-1);
+  const bottom=Math.max(rings[0].c.y+1,top-height);
+  if(top-bottom<3)return [];
+  const vertices=[],uv=[],colors=[],indices=[],rows=12,cols=16;
+  for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++) {
+    const v=j/rows,u=i/cols,y=lerp(bottom,top,v),x=cx+(u-.5)*width*lerp(.85,1,v);
+    let upper=rings.findIndex(r=>r.c.y>=y);if(upper<1)upper=1;
+    const a=rings[upper-1],b=rings[upper],t=clamp((y-a.c.y)/(b.c.y-a.c.y||1),0,1);
+    const rx=lerp(a.r1,b.r1,t),rz=lerp(a.r2,b.r2,t),phi=Math.asin(clamp(x/rx,-.95,.95));
+    let arc=0;for(let k=0;k<20;k++){const angle=phi*(k+.5)/20;arc+=Math.hypot(rx*Math.cos(angle),rz*Math.sin(angle))*phi/20;}
+    const z=rz*Math.cos(phi)+.36+.65*Math.sin(u*Math.PI)*Math.sin(v*Math.PI);
+    vertices.push(x,y,z);uv.push(.5+arc/220,1-(texTop-y+12)/200);colors.push(...(a.color||[1,1,1]));
+    if(j<rows&&i<cols){const k=j*(cols+1)+i;indices.push(k,k+1,k+cols+1,k+1,k+cols+2,k+cols+1);}
+  }
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
+  const boundary=[];
+  for(let j=rows;j>=0;j--)boundary.push(j*(cols+1));
+  for(let i=1;i<=cols;i++)boundary.push(i);
+  for(let j=1;j<=rows;j++)boundary.push(j*(cols+1)+cols);
+  const points=boundary.map(k=>new THREE.Vector3(vertices[k*3],vertices[k*3+1],vertices[k*3+2]+.06));
+  const seam=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),100,.065,5,false);seam.userData.trim=true;
+  return [geo,seam];
 }
 
 /**
@@ -439,13 +302,23 @@ export function buildGarment(g, M) {
       }
       rings.push({ c: new THREE.Vector3(0, u.y, u.w === 0 ? 0.6 : 0), e1: X, e2: Z, r1, r2, flatY: topY - u.y, color: [0.27, 0.65, 0.35] });
     }
-    parts.push({ geo: ringSurface(rings, { segments: 56 }), region: 'torso' });
+    parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: true, neckDrop: g.type==='tank'?5:g.type==='buttonup'?2:2.8 }), region: 'torso' });
     const ringAt = (y) => rings.reduce((best, r) => (Math.abs(r.c.y - y) < Math.abs(best.c.y - y) ? r : best), rings[0]);
-    checks.push({ label: 'Chest', ease: g.chest - M.b.chest });
-    if ((M.b.belly || 0) > 0 || (M.b.maternity && M.b.maternity !== 'none')) {
-      const bellyY = lerp(lm.hipY, lm.waistY, 0.56);
-      checks.push({ label: 'Belly', ease: Cg(bellyY) - M.circAt(bellyY) });
+    if(g.type==='hoodie') parts.push({geo:frontPocket(rings,0,topY-g.length+27,27,16,topY),region:'pocket'});
+    if(g.type==='buttonup') parts.push({geo:frontPocket(rings,-g.chest*.105,lm.chestY+2,11,12,topY),region:'pocket'});
+    if (g.type === 'buttonup') {
+      for(let fy=7;fy<g.length-3;fy+=9) {
+        const y=topY-fy,r=ringAt(y),button=new THREE.SphereGeometry(.52,16,10);
+        button.scale(1,1,.35);button.translate(0,y,r.r2+.8);button.userData.button=true;
+        parts.push({geo:button,region:'button'});
+      }
+      for(const side of [-1,1]) {
+        const y=lm.neckBaseY,positions=[side*3,y+1,M.neckR+2.5,side*9,y-2,M.neckR+3,side*6,y-7,M.profileAt(y-7).rz+2];
+        const collar=new THREE.BufferGeometry();collar.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));collar.computeVertexNormals();collar.userData.trim=true;
+        parts.push({geo:collar,region:'collar'});
+      }
     }
+    checks.push({ label: 'Chest', ease: g.chest - M.b.chest });
     if (hemY < lm.waistY) checks.push({ label: 'Waist', ease: g.waist - M.b.waist });
     if (hemY < lm.hipY) checks.push({ label: 'Hips', ease: ringAt(lm.hipY).ease });
     checks.push({ label: 'Length', ease: null, text: lengthText(hemY, lm) });
@@ -454,25 +327,30 @@ export function buildGarment(g, M) {
     if (T.hasSleeves) {
       const armholeC = Math.max(g.chest * 0.42, M.upperR * 2 * Math.PI + 4);
       const L = Math.min(g.sleeve, lm.armLen + 4);
+      // Sleeves are measured from the shoulder point; the ring frame starts at the joint.
+      const reach = L - (lm.armLen - lm.wristT), toArm = lm.armLen / lm.wristT;
       for (const side of [-1, 1]) {
         const dir = M.armDir.clone();
         dir.x *= side;
         const joint = side < 0 ? M.jointL : M.jointR;
         const { e1, e2 } = armBasis(dir);
-        const ts = sampleYs(L, -M.upperR * 0.9, 3, [0]);
+        const ts = sampleYs(reach, -M.upperR * 0.9, 3, [0]);
         const srings = ts.map((t) => {
-          const br = M.armRAt(Math.min(t, lm.armLen));
+          const br = M.armRAt(Math.min(t * toArm, lm.armLen));
           const Cb = 2 * Math.PI * br;
-          const Cs = t <= 0 ? armholeC : lerp(armholeC, g.sleeveOpen, clamp(t / L, 0, 1));
-          let r = Math.max(br + 0.5, Cs / (2 * Math.PI));
-          // round the sleeve cap over the shoulder instead of a flat disc
-          if (t < 0) r = lerp(br + 0.6, r, clamp(1 + t / (M.upperR * 0.9), 0, 1));
+          const Cs = t <= 0 ? armholeC : lerp(armholeC, g.sleeveOpen, clamp(t / reach, 0, 1));
+          // The rendered arm carries up to ~12% muscle volume over the measured radius.
+          const skin = br * 1.12;
+          let r = Math.max(skin + 0.5, Cs / (2 * Math.PI));
+          // A domed sleeve cap closes over the deltoid instead of ending in a wide
+          // ring above the shoulder line.
+          if (t < 0) r = lerp(M.upperR * 0.35, r, Math.sqrt(clamp(1 + t / (M.upperR * 0.9), 0, 1)));
           // flat mapping for the sleeve: along the flat sleeve direction
           const fx = side * (T.S[0] + Math.cos(T.theta) * Math.max(t, 0));
           const fy = T.S[1] + Math.sin(T.theta) * Math.max(t, 0);
-          return { c: joint.clone().addScaledVector(dir, t), e1, e2, r1: r, r2: r * 0.96, flatY: fy, xOff: fx, color: easeColor(Cs - Cb), ease: Cs - Cb };
+          return { c: joint.clone().addScaledVector(dir, t), e1, e2, r1: r, r2: r * 0.96, minR1: skin+0.8, minR2: skin+0.8, flatY: fy, xOff: fx, color: easeColor(Cs - Cb), ease: Cs - Cb };
         });
-        parts.push({ geo: ringSurface(srings, { segments: 32 }), region: 'sleeve' });
+        parts.push({ geo: ringSurface(srings, { segments: 48, cloth: true, material: g.material, trimEnd: true }), region: 'sleeve' });
       }
       checks.push({ label: 'Sleeve', ease: g.sleeveOpen - 2 * Math.PI * M.armRAt(Math.min(L, lm.armLen)), text: sleeveText(g.sleeve, lm.armLen) });
     }
@@ -497,14 +375,16 @@ export function buildGarment(g, M) {
     ].sort((a, b) => a[0] - b[0]);
     const ys = sampleYs(topY, crotch - 1, 3, [lm.hipY]);
     const rings = ys.map((y) => fitRing(M, y, piecewise(keys, y), topY - y, 0.5));
-    parts.push({ geo: ringSurface(rings, { segments: 56 }), region: 'seat' });
+    const waistband = ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimEnd: true });
+    waistband.shift().dispose();
+    parts.push({geo:waistband,region:'waistband'});
     const seatBottom = rings[0];
     checks.push({ label: 'Waist', ease: g.waist - M.circAt(topY) });
     checks.push({ label: 'Hips', ease: g.hips - M.b.hips });
     const hemY = Math.max(crotch - g.inseam, 1.5);
     const thighC = g.hips * 0.62;
     for (const side of [-1, 1]) {
-      const ly = sampleYs(crotch + 1, hemY, 3, [lm.H * 0.285]);
+      const ly = sampleYs(topY, hemY, 2, [lm.H * 0.285,crotch-8,crotch+4,lm.hipY]);
       const lr = ly.map((y) => {
         const br = M.legRAt(y);
         const Cb = 2 * Math.PI * br;
@@ -514,9 +394,14 @@ export function buildGarment(g, M) {
         const blend = clamp((y - (crotch - 8)) / 9, 0, 1);
         r = Math.max(r, lerp(r, seatBottom.r1 - lm.legX + 0.3, blend));
         const fy = topY - y;
-        return { ...M.legPose(y, side), r1: r, r2: r * 1.02, flatY: fy, xOff: side * B.xc, color: easeColor(Cl - Cb), ease: Cl - Cb };
+        const blendT=clamp((y-(crotch-8))/12,0,1),pelvisBlend=blendT*blendT*(3-2*blendT);
+        const seat=fitRing(M,Math.max(y,crotch-1),piecewise(keys,Math.max(y,crotch-1)),fy,.7);
+        return { c: new THREE.Vector3(side * lm.legX, y, 0), e1: X, e2: Z, r1: r, r2: r*1.02,
+          minR1: br+.7,minR2: br*1.04+.7,flatY:fy,xOff:side*B.xc*(1-pelvisBlend),
+          pelvisBlend,pelvisR1:seat.r1,pelvisR2:seat.r2,side,
+          color:easeColor(lerp(Cl-Cb,seat.ease,pelvisBlend)),ease:lerp(Cl-Cb,seat.ease,pelvisBlend) };
       });
-      parts.push({ geo: ringSurface(lr, { segments: 36 }), region: 'leg' });
+      parts.push({ geo: ringSurface(lr, { segments: 64, cloth: true, material: g.material, trimStart: true, bodyCollision: M }), region: 'leg' });
     }
     checks.push({ label: 'Thigh', ease: thighC - M.b.thigh });
     checks.push({ label: 'Length', ease: null, text: inseamText(g.inseam, M.b.inseam) });
@@ -536,7 +421,7 @@ export function buildGarment(g, M) {
       const r = fitRing(M, y, piecewise(keys, y), topY - y, 0.6);
       return r;
     });
-    parts.push({ geo: ringSurface(rings, { segments: 64 }), region: 'skirt' });
+    parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: true }), region: 'skirt' });
     checks.push({ label: 'Waist', ease: g.waist - M.b.waist });
     checks.push({ label: 'Hips', ease: g.hips - M.b.hips });
     checks.push({ label: 'Length', ease: null, text: hemY > lm.H * 0.285 ? 'above knee' : hemY > lm.H * 0.12 ? 'midi' : 'maxi' });
