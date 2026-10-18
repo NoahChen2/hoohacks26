@@ -1,0 +1,9 @@
+Cyberpunk world background (cyberpunk.jpg, cyberpunk-card.jpg)
+
+Title:   Shibuya Nights, Japan -- 2017-05 (unsplash.com)
+Author:  Andre Benz (trapnation)
+License: CC0 1.0 Universal (Public Domain Dedication)
+Source:  https://commons.wikimedia.org/wiki/File:Shibuya_Nights,_Japan_--_2017-05_(unsplash.com).jpg
+
+Modifications: cropped to a wide frame, resized, blacks deepened slightly,
+saturation +8%, light smoothing for web compression.

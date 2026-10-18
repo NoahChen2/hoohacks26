@@ -1,0 +1,11 @@
+Fashion Runway world background (public/worlds/runway.jpg, public/worlds/runway-card.jpg)
+
+Title:   Spiegelzaal in het Paleis van Versailles. Versailles - Galerie des Glaces (titel op object), RP-F-F01092-AW
+         (The Hall of Mirrors, Palace of Versailles; albumen print, ca. 1880-1900)
+Author:  Anonymous photographer; Rijksmuseum, Amsterdam (object RP-F-F01092-AW)
+Licence: CC0 1.0 Universal (Public Domain Dedication) - as stated on Wikimedia Commons
+Source:  https://commons.wikimedia.org/wiki/File:Spiegelzaal_in_het_Paleis_van_Versailles_Versailles_-_Galerie_des_Glaces_(titel_op_object),_RP-F-F01092-AW.jpg
+Museum:  http://hdl.handle.net/10934/RM0001.COLLECT.277046
+
+Changes: cropped inside the album mount (caption removed), resized, and toned
+toward warm ivory/champagne with a light contrast adjustment.

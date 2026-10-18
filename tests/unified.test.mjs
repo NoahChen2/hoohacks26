@@ -42,11 +42,10 @@ test('Explore try-ons wear the colours and cut of their cover illustration', () 
     assert.equal(spec.color2, p.art.trim, p.id);
     if (p.aesthetic === 'Cottagecore') assert.equal(spec.pattern, 'floral', p.id);
   }
-  assert.equal(garmentFromSpec(garmentSpecFromProject(byId['prairie-dress']), M).sleeve > 10, true);
-  assert.deepEqual(pick(garmentSpecFromProject(byId['prairie-dress']), ['type', 'color', 'color2', 'pattern']), { type: 'dress', color: '#676e4a', color2: '#d6bc8b', pattern: 'floral' });
-  assert.deepEqual(pick(garmentSpecFromProject(byId['denim-corset']), ['type', 'neckline', 'pattern', 'material']), { type: 'cami', neckline: 'strapless', pattern: 'denim', material: 'denim' });
-  assert.equal(garmentFromSpec(garmentSpecFromProject(byId['scarf-halter']), M).neckline, 'halter');
-  assert.equal(garmentSpecFromProject(byId['patchwork-tote']), null);
+  assert.equal(garmentFromSpec(garmentSpecFromProject(byId['lace-bell-sleeves']), M).sleeve > 10, true);
+  assert.deepEqual(pick(garmentSpecFromProject(byId['lace-bell-sleeves']), ['type', 'color', 'color2', 'pattern']), { type: 'blouse', color: '#3a3f5c', color2: '#2f3550', pattern: 'floral' });
+  assert.deepEqual(pick(garmentSpecFromProject(byId['redyed-black-jeans']), ['type', 'pattern', 'material']), { type: 'jeans', pattern: 'denim', material: 'denim' });
+  assert.equal(garmentSpecFromProject(byId['sleeve-balaclava']), null);
 });
 
 test('strapless and halter tops are cut from the 3D cloth and the 2D flat', () => {

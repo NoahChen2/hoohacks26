@@ -10,16 +10,20 @@ pages) shares one header, one name (**ReThread**) and one space style.
   first, so `html[data-world]` and `html[data-space]` are set before any page
   renders. The theme follows the world saved in preferences
   (`preferences.world`: `cultivation` | `fairy` | `fantasy` | `runway` |
-  `cyberpunk` | `space`), chosen in Settings step 4 or the header picker.
-  `WORLD_STAGE` maps each world to the base space and 3D stage backdrop
+  `cyberpunk` | `space` | `furry`), chosen in Settings step 4 or the header
+  picker. `WORLD_STAGE` maps each world to the base space and 3D stage backdrop
   (`celestial` | `night` | `daylight`); `previewWorld()` tries one on without
   saving. A stage change fires a `spacechange` window event; the Fitting Room
   and body cards switch their 3D stage on it.
-- `worlds.css`: per-world tokens, fonts and backdrops layered over the space
-  tokens, plus each world's primary-button shape (Cultivation seal stamps,
-  Fairy pills, Fantasy gilded plates, Runway black labels, Cyberpunk cut
-  corners, Space orbit capsules). `[data-world-scope="<id>"]` applies a world's
-  tokens to one element, for the samples on the Settings world cards.
+- `worlds.css`: shared world mechanics. It imports one file per world from
+  `worlds/<id>.css`, puts the world's photo (`--world-image`) full-screen on
+  the root, and lays a flat `--world-scrim` colour over it via `body::before`
+  (the Fitting Room keeps its 3D stage). Each world file owns only selectors
+  scoped to `html[data-world="<id>"]` or `[data-world-scope="<id>"]` (the
+  samples on the Settings world cards): tokens, fonts, buttons, cards. Worlds
+  use no gradients; photos and flat colour only.
+- `public/worlds/<id>.jpg` and `<id>-card.jpg`: the world photos (CC0, from
+  Wikimedia Commons; source and author in `<id>.credit.txt`).
 - `theme.css`: per-space tokens (`--bg`, `--surface`, `--surface-2`,
   `--surface-3`, `--line`, `--ink`, `--ink-2`, `--ink-3`, `--accent`,
   `--accent-2`, `--on-accent`, `--danger`, `--ok`, `--warn`, `--scrim`) and the

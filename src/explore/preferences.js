@@ -3,13 +3,13 @@ export const AESTHETICS=['Streetwear','Y2K','Vintage','Minimalist','Cottagecore'
 export const SKILLS=['Beginner','Intermediate','Advanced'];
 export const TOOLS=['Needle and thread','Sewing machine','Fabric scissors','Iron','Measuring tape','None yet'];
 export const WORLDS=[
-  {id:'cultivation',name:'Chinese Cultivation',description:'Mountain sanctuaries, floating clouds, and a path of patient craft.',rank:'Outer Disciple',symbol:'山',colors:['#283e42','#bad1bc']},
-  {id:'fairy',name:'Fairy Garden',description:'An enchanted forest path strung with fireflies, moss, and bluebells.',rank:'Seedling Stitcher',symbol:'✿',colors:['#14251a','#f3d58a']},
-  {id:'fantasy',name:'Fantasy RPG',description:'Set out from a candlelit guild with your next creation in hand.',rank:'Crafting Apprentice',symbol:'⚔',colors:['#49365c','#e6c47e']},
-  {id:'runway',name:'Fashion Runway',description:'A spotlight, a fresh silhouette, and your own point of view.',rank:'Emerging Designer',symbol:'✧',colors:['#593d47','#f2d8c9']},
-  {id:'cyberpunk',name:'Cyberpunk',description:'Neon city nights meet inventive, future-facing reworks.',rank:'Thread Runner',symbol:'⌘',colors:['#252d51','#71e7d1']},
-  {id:'space',name:'Outer Space',description:'An orbital atelier drifting between planets, stitched by starlight.',rank:'Star Cadet',symbol:'✦',colors:['#0a0920','#9ff3ff']},
-  {id:'furry',name:'Furry Academy',description:'Ink-and-watercolour beasts, pressed blazers, and bold editorial type.',rank:'Fresh Cub',symbol:'❦',colors:['#b5122b','#f4efe6']},
+  {id:'cultivation',name:'Chinese Cultivation',description:'Jade pavilions above a sea of clouds, gold-leaf light, and a path of patient craft.',rank:'Outer Disciple',symbol:'梅',colors:['#1d6157','#f3eee3']},
+  {id:'fairy',name:'Fairy Garden',description:'A twilight garden party beneath the old trees — firefly gold, moss and lavender.',rank:'Seedling Stitcher',symbol:'❦',colors:['#0a110d','#e9c97a']},
+  {id:'fantasy',name:'Fantasy RPG',description:'Take your place in a candlelit great hall — velvet, gold, and your next creation laid out on the banquet table.',rank:'Crafting Apprentice',symbol:'⚜',colors:['#1c1121','#d4b26a']},
+  {id:'runway',name:'Fashion Runway',description:'A couture show in a gilded hall of mirrors: ivory, black and champagne gold.',rank:'Emerging Designer',symbol:'✧',colors:['#15120e','#e9dcc0']},
+  {id:'cyberpunk',name:'Cyberpunk',description:'Black glass, chrome and neon — tech-couture reworks for the megacity after dark.',rank:'Thread Runner',symbol:'⌘',colors:['#050608','#3ef2e0']},
+  {id:'space',name:'Outer Space',description:'A private observatory lounge beneath Andromeda — midnight glass, platinum and champagne.',rank:'Star Cadet',symbol:'✧',colors:['#07080c','#e2cd9c']},
+  {id:'furry',name:'Furry Academy',description:'Ink-and-watercolour beasts, pressed blazers, and bold editorial type.',rank:'Fresh Cub',symbol:'❦',colors:['#b5122b','#f1eadc']},
 ];
 export const defaultPreferences=()=>({version:1,aesthetics:[],skill:'',tools:[],world:'cultivation',status:'draft'});
 export function normalizePreferences(value){

@@ -1,0 +1,11 @@
+Furry Academy world image (public/worlds/furry.jpg, public/worlds/furry-card.jpg)
+
+Title:   Black Wolf ("Lupus Nubilus. Dusky wolf.")
+Author:  Charles Hamilton Smith (1776-1859), watercolour and ink on paper
+Source:  Yale Center for British Art, Paul Mellon Collection, B1981.25.2258
+Licence: CC0 1.0 Universal (Public Domain Dedication)
+Commons: https://commons.wikimedia.org/wiki/File:Charles_Hamilton_Smith_-_Black_Wolf_-_B1981.25.2258_-_Yale_Center_for_British_Art.jpg
+
+Edits: paper tone normalised to the theme cream, pencil numbers and captions removed,
+cropped and resized. The card adds a flat crimson block and "RE / TH" letters set in
+Gloock (SIL Open Font License).

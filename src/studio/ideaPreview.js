@@ -115,10 +115,13 @@ export function previewIdea(project, base, body = null, index = 0) {
   return { garment, changes, worn };
 }
 
-/** The spec + garment an idea starts from: the scanned piece that matches the analysis, or the analysis itself. */
-export function ideaBase(scan, analysisSpec, body = null) {
+/**
+ * The spec + garment an idea starts from: the scanned piece the idea names
+ * (`piece`), else the one that matches the analysis, or the analysis itself.
+ */
+export function ideaBase(scan, analysisSpec, body = null, piece = null) {
   if (scan?.garments?.length) {
-    const i = Math.max(0, scan.garments.findIndex((g) => g.type === analysisSpec?.type));
+    const i = scan.garments[piece] ? piece : Math.max(0, scan.garments.findIndex((g) => g.type === analysisSpec?.type));
     return { spec: { ...(scan.specs?.[i] || {}), type: scan.garments[i].type }, garment: scan.garments[i] };
   }
   const spec = analysisSpec || { type: 'tshirt' };

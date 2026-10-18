@@ -21,5 +21,5 @@ test('ranking prioritizes explicit aesthetics then skill with deterministic ties
  const original=projects.map(p=>p.id),p={aesthetics:['Vintage'],skill:'Beginner'};
  const ranked=rankProjects(projects,p);assert.equal(ranked[0].aesthetic,'Vintage');assert.equal(ranked[0].difficulty,'Beginner');assert.deepEqual(rankProjects(projects,p),ranked);assert.deepEqual(projects.map(p=>p.id),original);
  assert.deepEqual(rankProjects(projects,defaultPreferences()),projects);
- const unknown=rankProjects(projects,{aesthetics:['Coquette'],skill:'Beginner'});assert.equal(unknown[0].difficulty,'Beginner');assert.equal(unknown.length,24);
+ const unknown=rankProjects(projects,{aesthetics:['Coquette'],skill:'Beginner'});assert.equal(unknown[0].difficulty,'Beginner');assert.equal(unknown.length,projects.length);
 });

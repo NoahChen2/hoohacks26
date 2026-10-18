@@ -1,55 +1,359 @@
 /* Chinese Cultivation world theme (html[data-world='cultivation']). Owns only selectors scoped to
-   this world; shared mechanics live in ../worlds.css. */
+   this world; shared mechanics live in ../worlds.css.
+   Direction: an immortal sect above the sea of clouds at sunrise. Cloud ivory and rice
+   paper over a real Huangshan fog photo, champagne gold-leaf hairlines, jade lacquer for
+   action, ink for text, a single crimson plum-blossom seal as the nod to Mount Hua.
+   No gradients: flat colour, the photo, hairlines, solid shadows and thin qi strokes. */
 
 html[data-space][data-world='cultivation'],
 [data-world-scope='cultivation'] {
-  --bg: #efe9dc;
-  --surface: #f8f4ea;
-  --surface-2: #e3e6dc;
-  --surface-3: #cbd6cc;
-  --line: #a9b8ad;
-  --ink: #1d2a2a;
-  --ink-2: #3c4d4a;
-  --ink-3: #56665f;
-  --accent: #2d6a5c;
-  --accent-2: #a8352a;
-  --on-accent: #fffaf0;
-  --danger: #a8352a;
-  --ok: #2d6a5c;
-  --warn: #8a6400;
-  --loose-c: #3b5f8f;
-  --scrim: #1d2a2a;
-  --font-display: 'Noto Serif SC', 'Songti SC', 'Iowan Old Style', serif;
-  --world-glyph: '山';
+  --bg: #f3eee3;
+  --surface: #fbf8f1;
+  --surface-2: #f2eee5;
+  --surface-3: #e3eae5;
+  --line: #d3c39b;
+  --ink: #1c2725;
+  --ink-2: #3d4946;
+  --ink-3: #5c6763;
+  --accent: #1d6157;
+  --accent-2: #7a5b1c;
+  --on-accent: #fbf6ea;
+  --danger: #a3303a;
+  --ok: #2c6b58;
+  --warn: #855f00;
+  --loose-c: #3e5d8c;
+  --scrim: #1c2725;
+  --font-display: 'Noto Serif SC', 'Songti SC', 'STSong', 'Iowan Old Style', serif;
+  --world-glyph: '梅';
+  --world-image: url('/worlds/cultivation.jpg');
+  --world-scrim: rgba(247, 242, 232, 0.28);
+  /* world-only helpers */
+  --cv-gold: #c2a25f;
+  --cv-gold-soft: rgba(194, 162, 95, 0.5);
+  --cv-gold-hi: #ead7a3;
+  --cv-jade-deep: #133f39;
+  --cv-crimson: #a3303a;
+  --cv-plum: #c25b76;
+  --cv-paper: rgba(251, 248, 241, 0.93);
+  --cv-paper-hi: rgba(252, 250, 245, 0.97);
+  --cv-halo: 0 0 1px rgba(251, 248, 241, 0.95), 0 0 14px rgba(251, 248, 241, 0.9), 0 0 28px rgba(247, 242, 232, 0.75);
+  /* gold corner brackets for paper panels (solid strokes only) */
+  --cv-c-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cpath d='M.5 22V.5H22M4.5 22V4.5H22' fill='none' stroke='%23c2a25f'/%3E%3Crect x='8' y='8' width='3' height='3' fill='%23c2a25f' transform='rotate(45 9.5 9.5)'/%3E%3C/svg%3E");
+  --cv-c-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cpath d='M0 .5h21.5V22M0 4.5h17.5V22' fill='none' stroke='%23c2a25f'/%3E%3Crect x='11' y='8' width='3' height='3' fill='%23c2a25f' transform='rotate(45 12.5 9.5)'/%3E%3C/svg%3E");
+  --cv-c-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cpath d='M.5 0v21.5H22M4.5 0v17.5H22' fill='none' stroke='%23c2a25f'/%3E%3Crect x='8' y='11' width='3' height='3' fill='%23c2a25f' transform='rotate(45 9.5 12.5)'/%3E%3C/svg%3E");
+  --cv-c-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cpath d='M21.5 0v21.5H0M17.5 0v17.5H0' fill='none' stroke='%23c2a25f'/%3E%3Crect x='11' y='11' width='3' height='3' fill='%23c2a25f' transform='rotate(45 12.5 12.5)'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 
-html[data-space][data-world='cultivation'] body:not(.fitting-page) {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M0 300V190l120-70 90 50 120-110 120 100 110-50 140 90 120-110 130 80 130-50 120 60v120z' fill='%23dfe3d6'/%3E%3Cpath d='M0 300v-60l160-60 140 50 120-60 140 70 160-50 140 60 140-50 200 40v60z' fill='%23cfd8cc'/%3E%3C/svg%3E") bottom / 100% 220px no-repeat fixed,
-    var(--bg) !important;
+/* ---------- qi ribbons: thin solid strokes drifting across the clouds */
+html[data-space][data-world='cultivation'] body:not(.fitting-page)::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M-40 610C180 520 320 700 560 630S900 430 1120 500 1440 640 1660 540' stroke='%2378c4c2' stroke-width='1.4' opacity='.55'/%3E%3Cpath d='M-40 636C190 548 330 726 566 656S906 458 1126 526 1446 668 1660 566' stroke='%23c9a75c' stroke-width='.9' opacity='.6'/%3E%3Cpath d='M-40 300C220 360 380 220 620 270S1000 420 1260 330 1520 240 1660 290' stroke='%23b2a3d6' stroke-width='1' opacity='.42'/%3E%3Cpath d='M-40 320C226 382 386 244 626 292S1006 444 1266 352 1526 264 1660 312' stroke='%2378c4c2' stroke-width='.7' opacity='.4'/%3E%3Cpath d='M300 900C520 820 700 900 900 850S1240 760 1660 820' stroke='%23c9a75c' stroke-width='1.1' opacity='.45'/%3E%3C/g%3E%3C/svg%3E") center / cover no-repeat;
 }
 
-/* ---------- Cultivation: cinnabar seal stamps */
+/* ---------- type: ink serif, gold-leaf small caps */
+html[data-space][data-world='cultivation'] :is(h1, h2) {
+  color: var(--ink);
+  letter-spacing: 0.005em !important;
+}
+html[data-space][data-world='cultivation'] h1 {
+  font-weight: 500 !important;
+  line-height: 1.12 !important;
+}
+html[data-space][data-world='cultivation'] h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+html[data-space][data-world='cultivation'] .eyebrow {
+  font-family: var(--font-display) !important;
+  font-weight: 500;
+  color: var(--accent-2) !important;
+  letter-spacing: 0.34em !important;
+  text-transform: uppercase;
+}
+html[data-space][data-world='cultivation'] :is(.studio-intro, .explore-intro, .academy-intro, .onboarding, .boards-heading) .eyebrow::before {
+  content: '❀';
+  display: inline-block;
+  margin-right: 0.8em;
+  color: var(--cv-plum);
+  letter-spacing: 0;
+}
+/* Copy laid straight on the photo gets a soft cloud halo. */
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading, .section-title, .feed-meta, .academy-category-title, .academy-back, .back-link) :is(h1, h2, p, span, a),
+html[data-space][data-world='cultivation'] body:not(.fitting-page) .onboarding > :is(h1, p) {
+  text-shadow: var(--cv-halo) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading) p:not(.eyebrow),
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.feed-meta, .feed-meta p, .academy-category-title > span, .section-title > span) {
+  color: var(--ink-2) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.feed-meta, .academy-category-title > span, .section-title > span) {
+  font-family: var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+/* Small labels that can land on dark peaks sit on a paper strip. */
+html[data-space][data-world='cultivation'] body:not(.fitting-page) .feed-meta {
+  padding: 9px 14px;
+  background: var(--cv-paper);
+  border-top: 1px solid var(--cv-gold-soft);
+  border-bottom: 1px solid var(--cv-gold-soft);
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.academy-category-title > span, .section-title > span) {
+  padding: 6px 10px;
+  background: var(--cv-paper);
+  border: 1px solid var(--cv-gold-soft);
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.feed-meta, .academy-category-title, .section-title) :is(p, span) {
+  text-shadow: none !important;
+}
+
+/* ---------- header: rice-paper bar with a double gold rule */
+html[data-space][data-world='cultivation'] .site-header {
+  background: var(--cv-paper-hi) !important;
+  border-bottom: 1px solid var(--cv-gold) !important;
+  box-shadow: 0 3px 0 var(--cv-paper-hi), 0 4px 0 var(--cv-gold-soft) !important;
+}
+html[data-space][data-world='cultivation'] .site-brand {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+html[data-space][data-world='cultivation'] .site-brand svg {
+  color: var(--accent);
+}
+/* The plum-blossom seal: a crimson chop beside the wordmark. */
+html[data-space][data-world='cultivation'] .site-brand::after {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  font: 700 14px/1 var(--font-display) !important;
+  color: #fbefe6 !important;
+  background: var(--cv-crimson);
+  box-shadow: inset 0 0 0 1.5px var(--cv-crimson), inset 0 0 0 2.5px rgba(251, 239, 230, 0.75);
+}
+html[data-space][data-world='cultivation'] .site-nav-link {
+  font: 500 11px/1 var(--font-display) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+html[data-space][data-world='cultivation'] .site-nav-link:hover {
+  background: transparent !important;
+  color: var(--accent) !important;
+  border-color: var(--cv-gold-soft) !important;
+}
+html[data-space][data-world='cultivation'] .site-link {
+  font: 500 11px/1 var(--font-display) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+html[data-space][data-world='cultivation'] .site-link b {
+  background: var(--accent);
+  color: var(--on-accent);
+  letter-spacing: 0;
+}
+html[data-space][data-world='cultivation'] .space-pick {
+  border-color: var(--cv-gold-soft) !important;
+}
+
+/* ---------- primary buttons: jade lacquer in a gold-leaf frame */
 html[data-space][data-world='cultivation'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost), .site-nav-link[aria-current='page']),
 [data-world-scope='cultivation'] .world-sample {
-  background: var(--accent-2) !important;
-  color: var(--on-accent) !important;
-  border: 1px solid var(--accent-2) !important;
-  box-shadow: inset 0 0 0 3px var(--accent-2), inset 0 0 0 4px var(--on-accent) !important;
-  font-family: var(--font-display) !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.14em;
-}
-html[data-space][data-world='cultivation'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
   background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border: 1px solid var(--cv-gold) !important;
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3px rgba(234, 215, 163, 0.55), 0 2px 0 var(--cv-jade-deep) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  text-decoration: none !important;
+  transition: background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.15s;
+}
+html[data-space][data-world='cultivation'] :is(.onboard-next, .studio-primary, .academy-primary, .primary-link, .board-create-button) {
+  padding: 15px 30px !important;
+  font-size: 12px !important;
+}
+html[data-space][data-world='cultivation'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover:not(:disabled) {
+  background: var(--cv-jade-deep) !important;
+  color: var(--cv-gold-hi) !important;
+  border-color: var(--cv-gold-hi) !important;
+  box-shadow: inset 0 0 0 2px var(--cv-jade-deep), inset 0 0 0 3px var(--cv-gold), 0 2px 0 var(--cv-gold) !important;
+}
+html[data-space][data-world='cultivation'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 0 0 2px var(--cv-jade-deep), inset 0 0 0 3px var(--cv-gold) !important;
+}
+html[data-space][data-world='cultivation'] .site-nav-link[aria-current='page'] {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3px rgba(234, 215, 163, 0.55) !important;
+  padding: 0 16px;
+}
+
+/* ---------- secondary buttons: ivory with a gold hairline */
+html[data-space][data-world='cultivation'] :is(.body-card-wear, .body-card-emote, .studio-error button, .feed-empty button:not(.primary-link), .onboard-actions button:not(.onboard-next), .btn.ghost),
+[data-world-scope='cultivation'] .world-sample-alt {
+  background: var(--cv-paper-hi) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--cv-gold) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+html[data-space][data-world='cultivation'] :is(.body-card-wear, .body-card-emote, .studio-error button, .feed-empty button:not(.primary-link), .onboard-actions button:not(.onboard-next):not(:disabled), .btn.ghost):hover {
+  background: var(--surface-3) !important;
   border-color: var(--accent) !important;
-  box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 0 4px var(--on-accent) !important;
+}
+
+/* ---------- paper panels over the clouds: double gold rule and corner brackets */
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.onboard-form, .studio-upload, .studio-placeholder, .studio-loading, .quiz-panel, .academy-note),
+html[data-space][data-world='cultivation'] .body-card {
+  background:
+    var(--cv-c-tl) 7px 7px no-repeat,
+    var(--cv-c-tr) calc(100% - 7px) 7px no-repeat,
+    var(--cv-c-bl) 7px calc(100% - 7px) no-repeat,
+    var(--cv-c-br) calc(100% - 7px) calc(100% - 7px) no-repeat,
+    var(--cv-paper) !important;
+  border: 1px solid var(--cv-gold) !important;
+  box-shadow: inset 0 0 0 4px var(--cv-paper-hi), inset 0 0 0 5px var(--cv-gold-soft), 0 10px 0 -6px rgba(28, 39, 37, 0.07) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.onboard-form, .studio-upload, .quiz-panel) {
+  padding: clamp(24px, 3vw, 40px) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-placeholder, .studio-loading) {
+  padding: 64px 36px !important;
+  color: var(--ink-2) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) .studio-placeholder h2 {
+  color: var(--accent) !important;
+}
+/* Smaller tiles: plain paper with a single gold hairline. */
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-ideas article, .garment-summary > div, .discovery-card, .lesson-card, .world-choice, .scan-pieces li, .scan-body) {
+  background-color: var(--cv-paper) !important;
+  border: 1px solid var(--line) !important;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-ideas article, .discovery-card, .lesson-card, .world-choice):hover {
+  border-color: var(--cv-gold) !important;
+  box-shadow: inset 0 0 0 3px var(--cv-paper-hi), inset 0 0 0 4px var(--cv-gold-soft), 0 8px 0 -5px rgba(28, 39, 37, 0.08) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.upload-area, .studio-preferences, .analysis-notice, .analysis-warnings, .scan-results, .idea-preview, .lesson-card-top, .quiz-result, .lesson-completed) {
+  background-color: rgba(227, 234, 229, 0.72) !important;
+  border-color: var(--line) !important;
+}
+html[data-space][data-world='cultivation'] .body-card-head,
+html[data-space][data-world='cultivation'] .body-card-foot {
+  border-color: var(--cv-gold-soft) !important;
+}
+html[data-space][data-world='cultivation'] .body-card-head {
+  padding: 22px 26px 14px !important;
+}
+html[data-space][data-world='cultivation'] .body-card-head small {
+  color: var(--accent-2);
+  letter-spacing: 0.16em;
+}
+html[data-space][data-world='cultivation'] .body-card-view {
+  margin: 0 5px;
+}
+html[data-space][data-world='cultivation'] .body-card-foot {
+  padding: 12px 18px 16px !important;
+}
+html[data-space][data-world='cultivation'] .body-dock .body-card {
+  box-shadow: inset 0 0 0 4px var(--cv-paper-hi), inset 0 0 0 5px var(--cv-gold-soft), 6px 6px 0 var(--accent) !important;
+}
+html[data-space][data-world='cultivation'] .idea-number {
+  color: var(--accent-2);
+}
+
+/* ---------- form fields */
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-field select, .discovery-search) {
+  background-color: var(--cv-paper-hi) !important;
+  border: 1px solid var(--line) !important;
+}
+html[data-space][data-world='cultivation'] body:not(.fitting-page) :is(.studio-field select, .discovery-search):focus-within {
+  border-color: var(--accent) !important;
+}
+html[data-space][data-world='cultivation'] .studio-field {
+  color: var(--accent-2) !important;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- chips and choices */
+html[data-space][data-world='cultivation'] body:not(.fitting-page) .preference-choice {
+  background-color: var(--cv-paper) !important;
+  border-color: var(--line) !important;
 }
 html[data-space][data-world='cultivation'] :is(.preference-choice, .world-choice).selected {
-  border-color: var(--accent);
-  box-shadow: inset 4px 0 0 var(--accent-2);
+  background-color: var(--surface-3) !important;
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 0 1px var(--accent), inset 0 0 0 4px var(--surface-3), inset 0 0 0 5px var(--cv-gold) !important;
 }
-html[data-space][data-world='cultivation'] :is(.onboard-form, .studio-upload, .body-card) {
-  border-top: 3px double var(--accent) !important;
+html[data-space][data-world='cultivation'] :is(.category-chips button, .saved-filter) {
+  background-color: var(--cv-paper) !important;
+  font-family: var(--font-display) !important;
+  letter-spacing: 0.08em;
+}
+html[data-space][data-world='cultivation'] :is(.category-chips button.active, .saved-filter.active) {
+  background-color: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border-color: var(--cv-gold) !important;
+}
+html[data-space][data-world='cultivation'] .academy-categories a {
+  background: var(--cv-paper-hi) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--cv-gold);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transition: background-color 0.2s, color 0.2s;
+}
+html[data-space][data-world='cultivation'] .academy-categories a:hover {
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+}
+html[data-space][data-world='cultivation'] .academy-wallet span {
+  background: var(--cv-paper-hi) !important;
+  border-color: var(--cv-gold) !important;
+  letter-spacing: 0.08em;
+}
+html[data-space][data-world='cultivation'] .onboard-progress li.reached {
+  border-color: var(--cv-gold) !important;
+}
+
+/* ---------- Settings world-card sample */
+.world-sample-row[data-world-scope='cultivation'] {
+  background: var(--surface) !important;
+  border: 1px solid var(--cv-gold) !important;
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--cv-gold-soft);
+  padding: 13px 14px;
+}
+[data-world-scope='cultivation'] .world-sample {
+  padding: 10px 18px;
+  font-size: 10.5px;
+}
+[data-world-scope='cultivation'] .world-sample-alt {
+  padding: 9px 14px;
+  font-size: 10.5px;
+}
+
+@media (max-width: 600px) {
+  html[data-space][data-world='cultivation'] :is(.onboard-next, .studio-primary, .academy-primary, .primary-link, .board-create-button) {
+    padding: 14px 20px !important;
+    letter-spacing: 0.16em;
+  }
+  html[data-space][data-world='cultivation'] .site-nav-link {
+    letter-spacing: 0.12em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-space][data-world='cultivation'] * {
+    transition: none !important;
+  }
 }

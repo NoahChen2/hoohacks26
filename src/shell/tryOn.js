@@ -10,6 +10,9 @@ const KIND_SHAPES = {
   cami: { type: 'cami' },
   halter: { type: 'cami', neckline: 'halter', fit: 'relaxed', length: 'short' }, // flared halter
   vest: { type: 'vest' },
+  longsleeve: { type: 'longsleeve', sleeves: 'long' },
+  blouse: { type: 'blouse' },
+  crop: { type: 'crop', sleeves: 'long' },
   cardigan: { type: 'cardigan', sleeves: 'long' },
   hoodie: { type: 'hoodie' },
   jacket: { type: 'jacket' },
@@ -25,9 +28,12 @@ const DENIM_KINDS = new Set(['denim', 'jeans']);
 
 // Fabric the project calls for, where the drawing does not show it.
 const PROJECT_MATERIALS = {
-  'quilted-gilet': 'poly', 'linen-vest': 'linen', 'cropped-knit': 'wool', 'ribbon-cardigan': 'wool',
-  'shirt-wrap': 'woven', 'embroidered-collar': 'woven', 'tie-waist-shirt': 'woven', 'prairie-dress': 'woven',
-  'colorblock-hoodie': 'fleece', 'racing-jacket': 'poly', 'lace-cami': 'poly', 'pillowcase-blouse': 'woven',
+  'cream-hoodie-hem': 'fleece', 'cardigan-wrap-top': 'wool', 'college-hoodie-patches': 'fleece', 'dip-dyed-waffle-hoodie': 'cotton',
+  'crew-to-henley': 'wool', 'windbreaker-hood': 'poly', 'leather-racer-collar': 'poly', 'pleated-wide-trousers': 'wool', 'caped-wool-coat': 'wool',
+  'tulle-tier-skirt': 'poly', 'chino-cutoffs': 'woven', 'fleece-lined-puffer': 'poly', 'leggings-bralette': 'cotton', 'cropped-zip-hoodie': 'fleece', 'off-shoulder-stripe': 'woven',
+  'lace-bell-sleeves': 'cotton', 'empire-pintuck-blouse': 'woven', 'lace-plunge-top': 'cotton', 'thumbhole-thermal': 'cotton', 'lace-inset-blouse': 'woven',
+  'fair-isle-crop': 'cotton', 'pintuck-floral-shirt': 'woven', 'shirt-dress-tie': 'poly', 'twist-front-top': 'cotton',
+  'mock-neck-mini': 'cotton', 'floral-puff-mini': 'poly',
 };
 
 const COLOURS = {

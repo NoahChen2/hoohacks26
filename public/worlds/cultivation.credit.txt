@@ -1,0 +1,11 @@
+Chinese Cultivation world background (cultivation.jpg, cultivation-card.jpg)
+
+Title:   Dense fog over Huangshan (Unsplash)
+Author:  Wei Pan (weipanux) - https://unsplash.com/@weipanux
+Licence: CC0 1.0 Universal Public Domain Dedication (Commons LicenseShortName: "CC0")
+         https://creativecommons.org/publicdomain/zero/1.0/
+Source:  https://commons.wikimedia.org/wiki/File:Dense_fog_over_Huangshan_(Unsplash).jpg
+Original: https://unsplash.com/photos/R6mcsVqh1P8
+
+Changes: resized to 2400px / 720px wide; colour graded (lifted midtones, warm
+champagne highlights and jade-teal shadows) to read as a misty sunrise.

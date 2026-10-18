@@ -1,66 +1,372 @@
 /* Fashion Runway world theme (html[data-world='runway']). Owns only selectors scoped to
-   this world; shared mechanics live in ../worlds.css. */
+   this world; shared mechanics live in ../worlds.css.
+
+   Direction: a couture house invitation for a show in the Galerie des Glaces.
+   Ivory card stock, black ink, champagne-gold hairlines, Didone display type,
+   tracked small capitals. Flat colour only: no gradients anywhere. */
 
 html[data-space][data-world='runway'],
 [data-world-scope='runway'] {
-  --bg: #f7f1ec;
-  --surface: #ffffff;
-  --surface-2: #f1e4dc;
-  --surface-3: #e6d2c7;
-  --line: #c9b3a8;
-  --ink: #161113;
-  --ink-2: #3d3236;
-  --ink-3: #64565b;
-  --accent: #161113;
-  --accent-2: #8e4a3e;
-  --on-accent: #ffffff;
-  --danger: #b3261e;
-  --ok: #2f7d4f;
-  --warn: #9a6a00;
-  --loose-c: #2f5fa7;
-  --scrim: #161113;
-  --font-display: 'Bodoni Moda', 'Didot', serif;
+  --bg: #f5efe3;
+  --surface: #fffcf5;
+  --surface-2: #f3ecdd;
+  --surface-3: #e7dcc4;
+  --line: #cdb98f;
+  --ink: #15120e;
+  --ink-2: #3b342a;
+  --ink-3: #6a5f4e;
+  --accent: #15120e;
+  --accent-2: #8a6a2e;
+  --on-accent: #fbf6ea;
+  --danger: #a3291f;
+  --ok: #2f6a46;
+  --warn: #8a6200;
+  --loose-c: #2f4f8a;
+  --scrim: #15120e;
+  --font-display: 'Bodoni Moda', 'Didot', 'Bodoni 72', serif;
   --world-glyph: '✧';
+  --rw-gold: #b8975a;
+  --rw-gold-soft: #d9c49a;
+  --world-image: url('/worlds/runway.jpg');
+  --world-scrim: rgba(247, 242, 232, 0.5);
   color-scheme: light;
 }
 
-html[data-space][data-world='runway'] body:not(.fitting-page) {
-  background:
-    radial-gradient(ellipse 55% 60% at 50% -10%, #ffffff 0, transparent 70%) fixed,
-    var(--bg) !important;
+/* Keep the vanishing point (the far doorway) and the long parquet in frame. */
+html[data-space][data-world='runway']:has(> body:not(.fitting-page)) {
+  background-position: 50% 62%;
 }
 
-/* ---------- Fashion Runway: black-label editorial */
+/* ---------- typography: Didone display, tracked small capitals */
+html[data-space][data-world='runway'] :is(h1, h2) {
+  font-family: var(--font-display) !important;
+  font-weight: 400 !important;
+  font-style: normal;
+  letter-spacing: -0.015em;
+}
+html[data-space][data-world='runway'] :is(h1, h2) em {
+  font-style: italic;
+  color: var(--accent-2);
+}
+html[data-space][data-world='runway'] :is(.studio-intro, .explore-intro, .academy-intro) h1 {
+  line-height: 1.02;
+}
+/* Display lines that sit on the photo stay in black ink for contrast. */
+html[data-space][data-world='runway'] :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading, .project-not-found) h1 em {
+  color: var(--ink);
+}
+html[data-space][data-world='runway'] .eyebrow {
+  font-family: var(--font-body) !important;
+  font-weight: 600;
+  font-size: 10px !important;
+  letter-spacing: 0.42em !important;
+  color: var(--accent-2) !important;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* Eyebrows on the photo are set on an ivory plate. */
+html[data-space][data-world='runway'] :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading, .project-not-found) .eyebrow {
+  background: var(--surface);
+  padding: 9px 16px 9px 0;
+  color: var(--accent-2) !important;
+}
+html[data-space][data-world='runway'] .eyebrow::before {
+  content: '';
+  flex: 0 0 34px;
+  height: 1px;
+  background: var(--rw-gold);
+}
+html[data-space][data-world='runway'] .studio-placeholder .eyebrow {
+  justify-content: center;
+}
+html[data-space][data-world='runway'] .studio-placeholder .eyebrow::after {
+  content: '';
+  flex: 0 0 34px;
+  height: 1px;
+  background: var(--rw-gold);
+}
+
+/* ---------- header: ivory card stock with a double champagne rule */
+html[data-space][data-world='runway'] body .site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rw-gold);
+  box-shadow: 0 3px 0 var(--surface), 0 4px 0 var(--rw-gold-soft) !important;
+}
+html[data-space][data-world='runway'] .site-brand {
+  letter-spacing: 0.01em;
+}
+html[data-space][data-world='runway'] .site-brand::after {
+  color: var(--rw-gold);
+}
+html[data-space][data-world='runway'] .site-nav-link {
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.26em;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: transparent;
+  border-color: transparent;
+  transition: color 0.25s, box-shadow 0.25s;
+}
+html[data-space][data-world='runway'] .site-nav-link:hover {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 -1px 0 var(--rw-gold);
+}
+html[data-space][data-world='runway'] .site-nav-link[aria-current='page'] {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--ink) !important;
+  font-weight: 600;
+  box-shadow: inset 0 -1px 0 var(--ink), inset 0 -4px 0 var(--surface), inset 0 -5px 0 var(--rw-gold) !important;
+}
+
+/* ---------- primary buttons: black lacquer with an engraved gold keyline */
 html[data-space][data-world='runway'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)),
 [data-world-scope='runway'] .world-sample {
   background: var(--ink) !important;
-  color: var(--surface) !important;
+  color: var(--on-accent) !important;
   border: 1px solid var(--ink) !important;
+  box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 4px var(--rw-gold) !important;
   font-family: var(--font-body) !important;
   font-weight: 600 !important;
+  font-size: 11px !important;
   text-transform: uppercase;
-  letter-spacing: 0.28em;
-  transition: background 0.2s, color 0.2s;
+  letter-spacing: 0.3em;
+  text-decoration: none !important;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+}
+html[data-space][data-world='runway'] :is(.onboard-next, .studio-primary, .body-card-foot a, .academy-primary, .primary-link, .board-create-button) {
+  padding: 15px 26px !important;
+}
+html[data-space][data-world='runway'] .try-on-button {
+  letter-spacing: 0.24em;
 }
 html[data-space][data-world='runway'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
   background: var(--surface) !important;
   color: var(--ink) !important;
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--rw-gold) !important;
 }
-html[data-space][data-world='runway'] .site-nav-link {
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 12px;
+html[data-space][data-world='runway'] :is(.onboard-next, .studio-primary, .try-on-button, .academy-primary, .board-create-button, .btn:not(.ghost)):disabled {
+  opacity: 0.45;
 }
-html[data-space][data-world='runway'] .site-nav-link[aria-current='page'] {
+[data-world-scope='runway'] .world-sample {
+  padding: 11px 18px;
+  font-size: 10px !important;
+  letter-spacing: 0.28em;
+}
+[data-world-scope='runway'] .world-sample-alt {
+  border: 1px solid var(--rw-gold);
   background: transparent;
-  border-color: transparent;
+  color: var(--ink);
+  font: italic 400 13px/1 var(--font-display);
+  letter-spacing: 0.02em;
+  padding: 9px 14px;
+}
+.world-sample-row[data-world-scope='runway'] {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 5px var(--rw-gold-soft);
+  padding: 14px;
+}
+
+/* Secondary / quiet buttons: hairline champagne frame. */
+html[data-space][data-world='runway'] :is(.body-card-wear, .studio-error button, .photo-actions button, .feed-empty button) {
+  background: transparent !important;
+  border: 1px solid var(--rw-gold) !important;
   color: var(--ink) !important;
-  box-shadow: inset 0 -2px 0 var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 10px;
+  font-weight: 600;
 }
-html[data-space][data-world='runway'] :is(h1, h2) {
-  font-style: italic;
+html[data-space][data-world='runway'] :is(.body-card-wear, .studio-error button, .photo-actions button):hover {
+  background: var(--surface-2) !important;
 }
-html[data-space][data-world='runway'] :is(.preference-choice, .world-choice).selected {
-  border-color: var(--ink);
-  box-shadow: 4px 4px 0 var(--ink);
+
+/* ---------- cards over the salon: ivory stock, hairline frame inside a hairline frame */
+html[data-space][data-world='runway'] :is(.onboard-form, .studio-upload, .studio-placeholder, .studio-loading, .quiz-panel) {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  outline: 1px solid var(--rw-gold-soft);
+  outline-offset: -9px;
+  box-shadow: 0 0 0 4px rgba(255, 252, 245, 0.55) !important;
+}
+html[data-space][data-world='runway'] :is(.world-choice, .studio-ideas article, .body-card, .discovery-card, .lesson-card) {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: 0 0 0 4px rgba(255, 252, 245, 0.55) !important;
+}
+html[data-space][data-world='runway'] .body-dock .body-card {
+  box-shadow: 0 0 0 1px var(--rw-gold), 0 0 0 5px var(--surface) !important;
+}
+html[data-space][data-world='runway'] .body-card-head {
+  border-bottom: 1px solid var(--line);
+}
+html[data-space][data-world='runway'] .body-card-head strong {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+html[data-space][data-world='runway'] .body-card-head small,
+html[data-space][data-world='runway'] .body-card-foot > span {
+  font-family: var(--font-body);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 9px;
+  color: var(--ink-3);
+}
+html[data-space][data-world='runway'] .body-card-foot {
+  border-top-color: var(--line);
+}
+html[data-space][data-world='runway'] .studio-placeholder {
+  color: var(--ink-2);
+}
+html[data-space][data-world='runway'] .studio-placeholder > svg {
+  color: var(--rw-gold);
+}
+html[data-space][data-world='runway'] .upload-area {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  outline: 1px dashed var(--rw-gold-soft);
+  outline-offset: -7px;
+  color: var(--ink) !important;
+}
+html[data-space][data-world='runway'] .upload-area strong {
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+html[data-space][data-world='runway'] .studio-field {
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 10px;
+  font-weight: 600;
+}
+html[data-space][data-world='runway'] .studio-field :is(select, input) {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  background-color: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink);
+}
+html[data-space][data-world='runway'] .studio-field small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+html[data-space][data-world='runway'] .studio-preferences {
+  background: var(--surface-2) !important;
+  border-left: 1px solid var(--rw-gold) !important;
+}
+
+/* ---------- chips: hairline tags; the chosen one is printed in black */
+html[data-space][data-world='runway'] :is(.preference-choice, .category-chips button, .academy-categories a, .academy-wallet span) {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink-2) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 10px !important;
+  font-weight: 600;
+  transition: border-color 0.25s, color 0.25s, background 0.25s;
+}
+html[data-space][data-world='runway'] :is(.preference-choice, .category-chips button, .academy-categories a):hover {
+  border-color: var(--ink) !important;
+  color: var(--ink) !important;
+}
+html[data-space][data-world='runway'] :is(.preference-choice.selected, .category-chips button.active) {
+  background: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: var(--on-accent) !important;
+  box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px var(--rw-gold);
+}
+html[data-space][data-world='runway'] .world-choice.selected {
+  border-color: var(--ink) !important;
+  box-shadow: 0 0 0 1px var(--ink), 0 0 0 5px var(--surface), 0 0 0 6px var(--rw-gold) !important;
+}
+html[data-space][data-world='runway'] .world-choice {
+  color: var(--ink-2);
+}
+
+/* ---------- explore + academy details */
+html[data-space][data-world='runway'] .discovery-search {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+html[data-space][data-world='runway'] .discovery-card:hover {
+  box-shadow: 0 0 0 1px var(--rw-gold), 0 0 0 5px rgba(255, 252, 245, 0.7) !important;
+}
+html[data-space][data-world='runway'] .discovery-card h2 {
+  font-family: var(--font-display) !important;
+  font-weight: 400 !important;
+  font-size: 17px;
+  letter-spacing: 0;
+}
+html[data-space][data-world='runway'] .difficulty {
+  background: var(--surface);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  border: 1px solid var(--rw-gold-soft);
+}
+html[data-space][data-world='runway'] :is(.feed-meta, .discovery-controls, .academy-categories, .discovery-footer) {
+  border-color: var(--rw-gold);
+}
+html[data-space][data-world='runway'] .saved-filter {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 10px;
+  font-weight: 600;
+}
+html[data-space][data-world='runway'] .saved-filter.active {
+  border-color: var(--ink) !important;
+}
+html[data-space][data-world='runway'] :is(.feed-meta, .feed-meta p, .discovery-footer span, .academy-category-title > span) {
+  color: var(--ink);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+html[data-space][data-world='runway'] .lesson-card-top {
+  background: var(--surface-2) !important;
+  color: var(--ink) !important;
+  border-bottom: 1px solid var(--line);
+}
+html[data-space][data-world='runway'] .lesson-card-top svg {
+  color: var(--rw-gold);
+}
+html[data-space][data-world='runway'] .lesson-open {
+  color: var(--ink) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 10px;
+  border-bottom: 1px solid var(--rw-gold);
+  align-self: flex-start;
+  padding-bottom: 3px;
+}
+
+/* Copy that sits straight on the photo gets an ivory plate so it stays legible. */
+html[data-space][data-world='runway'] :is(.studio-intro, .explore-intro, .academy-intro) > p:not(.eyebrow),
+html[data-space][data-world='runway'] .explore-intro > div > p:not(.eyebrow) {
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink-2) !important;
+  padding: 10px 16px;
+  border-left: 1px solid var(--rw-gold);
+}
+
+html[data-space][data-world='runway'] ::selection {
+  background: var(--rw-gold-soft);
+  color: var(--ink);
 }

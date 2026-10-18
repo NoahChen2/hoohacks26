@@ -1,59 +1,320 @@
 /* Cyberpunk world theme (html[data-world='cyberpunk']). Owns only selectors scoped to
-   this world; shared mechanics live in ../worlds.css. */
+   this world; shared mechanics live in ../worlds.css.
+   Direction: a tech-couture boutique in a neon megacity at night. Black glass over a
+   real Shibuya street photo, chrome hairlines, one teal and one magenta neon, tracked
+   caps. No gradients: flat colour, the photo, hairlines and solid glows only. */
 
 html[data-space][data-world='cyberpunk'],
 [data-world-scope='cyberpunk'] {
-  --bg: #090b18;
-  --surface: #10142a;
-  --surface-2: #171c3a;
-  --surface-3: #222a52;
-  --line: #34407a;
-  --ink: #e9f6ff;
-  --ink-2: #b3c6e6;
-  --ink-3: #8394c4;
-  --accent: #5cf2d6;
-  --accent-2: #ff4fb0;
-  --on-accent: #090b18;
-  --danger: #ff5c7a;
-  --ok: #5cf2d6;
-  --warn: #ffe156;
-  --loose-c: #7f9cff;
-  --scrim: #04050c;
-  --font-display: 'Orbitron', 'Eurostile', sans-serif;
+  --bg: #050608;
+  --surface: #0b0d12;
+  --surface-2: #12151c;
+  --surface-3: #1c2029;
+  --line: #2b313d;
+  --ink: #eef3f7;
+  --ink-2: #b9c2cd;
+  --ink-3: #8b95a3;
+  --accent: #3ef2e0;
+  --accent-2: #ff5cb0;
+  --on-accent: #03080a;
+  --danger: #ff5a7d;
+  --ok: #4ff0c2;
+  --warn: #ffd36b;
+  --loose-c: #8eaaff;
+  --scrim: #020306;
+  --font-display: 'Michroma', 'Orbitron', 'Eurostile', sans-serif;
   --world-glyph: '⌘';
+  --world-image: url('/worlds/cyberpunk.jpg');
+  --world-scrim: rgba(3, 4, 8, 0.66);
+  /* world-only helpers */
+  --cp-glass: rgba(6, 8, 12, 0.74);
+  --cp-glass-hi: rgba(10, 13, 19, 0.86);
+  --cp-chrome: rgba(214, 226, 240, 0.16);
+  --cp-chrome-hi: rgba(214, 226, 240, 0.34);
+  --cp-teal-glow: rgba(62, 242, 224, 0.34);
+  --cp-pink-glow: rgba(255, 92, 176, 0.42);
   color-scheme: dark;
 }
 
-html[data-space][data-world='cyberpunk'] body:not(.fitting-page) {
-  background:
-    linear-gradient(rgba(92, 242, 214, 0.06) 1px, transparent 1px) 0 0 / 40px 40px,
-    linear-gradient(90deg, rgba(255, 79, 176, 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
-    var(--bg) !important;
+/* ---------- type: wide tech display, tracked caps */
+html[data-space][data-world='cyberpunk'] :is(h1, h2) {
+  text-transform: uppercase;
+  letter-spacing: 0.05em !important;
+  line-height: 1.16 !important;
+}
+html[data-space][data-world='cyberpunk'] h1 em {
+  font-style: normal;
+  color: var(--accent);
+  text-shadow: 0 0 22px var(--cp-teal-glow) !important;
+}
+html[data-space][data-world='cyberpunk'] .eyebrow {
+  color: var(--accent) !important;
+  letter-spacing: 0.32em !important;
+  text-transform: uppercase;
+}
+/* Copy laid straight on the photo gets a solid drop shadow for legibility. */
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading, .section-title, .feed-meta) :is(h1, h2, p, span),
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) .onboarding > :is(h1, p),
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) .onboarding > .onboard-progress :is(li, small, span) {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 18px rgba(0, 0, 0, 0.75) !important;
+}
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading) h1 em {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 22px var(--cp-teal-glow) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.studio-intro, .explore-intro, .academy-intro) h1 {
+  font-size: clamp(30px, 4.3vw, 56px) !important;
+}
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading) p:not(.eyebrow),
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) .onboarding > p:not(.eyebrow) {
+  color: var(--ink-2) !important;
+}
+/* Long copy that the base theme tints with accent-2 reads as chrome instead. */
+html[data-space][data-world='cyberpunk'] :is(.studio-field, .studio-preferences, .studio-status, .studio-placeholder p, .lesson-content section p, .lesson-visual figcaption, .academy-intro > p:last-of-type, .lesson-heading > p:not(.eyebrow), .quiz-explanation, .preference-choice, .world-choice, .material-list, .project-steps li, .analysis-warnings, .studio-project-dialog) {
+  color: var(--ink-2) !important;
 }
 
-/* ---------- Cyberpunk: cut-corner neon */
-html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost), .site-nav-link[aria-current='page']),
+/* ---------- header: black glass bar, a single neon hairline */
+html[data-space][data-world='cyberpunk'] body .site-header[class] {
+  background: rgba(4, 5, 8, 0.88) !important;
+  border-bottom: 1px solid var(--cp-chrome) !important;
+  box-shadow: 0 1px 0 rgba(62, 242, 224, 0.42), 0 14px 34px rgba(0, 0, 0, 0.45) !important;
+}
+html[data-space][data-world='cyberpunk'] .site-brand {
+  font-size: 19px !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+}
+html[data-space][data-world='cyberpunk'] .site-brand::after {
+  text-shadow: 0 0 12px var(--cp-pink-glow) !important;
+}
+html[data-space][data-world='cyberpunk'] .site-nav-link {
+  font: 500 10.5px/1 var(--font-mono) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+html[data-space][data-world='cyberpunk'] .site-nav-link:hover {
+  background: transparent !important;
+  border-color: var(--cp-chrome-hi) !important;
+}
+html[data-space][data-world='cyberpunk'] .site-nav-link[aria-current='page'] {
+  color: var(--accent) !important;
+  background: rgba(62, 242, 224, 0.07) !important;
+  border: 1px solid rgba(62, 242, 224, 0.62) !important;
+  box-shadow: 0 0 16px rgba(62, 242, 224, 0.22), inset 0 0 12px rgba(62, 242, 224, 0.1) !important;
+}
+html[data-space][data-world='cyberpunk'] .site-link {
+  font: 500 10.5px/1 var(--font-mono) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+html[data-space][data-world='cyberpunk'] .space-pick {
+  border-color: var(--cp-chrome) !important;
+}
+html[data-space][data-world='cyberpunk'] .space-choice {
+  background: rgba(6, 8, 12, 0.7);
+}
+
+/* ---------- primary buttons: neon slab in a chrome bezel */
+html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)),
 [data-world-scope='cyberpunk'] .world-sample {
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   background: var(--accent) !important;
   color: var(--on-accent) !important;
-  border: 0 !important;
+  border: 1px solid #b8fff7 !important;
+  box-shadow: 0 0 0 3px rgba(4, 6, 9, 0.92), 0 0 0 4px rgba(62, 242, 224, 0.45), 0 0 26px var(--cp-teal-glow) !important;
   font-family: var(--font-mono) !important;
   font-weight: 600 !important;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.2em;
+  text-decoration: none !important;
+  transition: background-color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
 }
-html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
-  background: var(--accent-2) !important;
+html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):is(:hover, :focus-visible):not(:disabled) {
+  background: #f3f7fa !important;
+  border-color: #ffffff !important;
+  color: #05070a !important;
+  box-shadow: 0 0 0 3px rgba(4, 6, 9, 0.92), 0 0 0 4px rgba(255, 92, 176, 0.75), 0 0 30px var(--cp-pink-glow) !important;
+  transform: translateY(-1px);
 }
-html[data-space][data-world='cyberpunk'] :is(.onboard-form, .studio-upload, .body-card) {
-  box-shadow: 5px 5px 0 var(--accent-2) !important;
+html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):active {
+  transform: translateY(0);
+}
+
+/* ---------- cards: black glass, chrome hairline, neon top edge */
+html[data-space][data-world='cyberpunk'] :is(.onboard-form, .world-choice, .studio-upload, .studio-placeholder, .studio-loading, .studio-ideas article, .body-card, .discovery-card, .lesson-card, .quiz-panel, .academy-note, .intro-note, .make-it-note, .analysis-notice, .analysis-warnings, .garment-summary > div, .scan-results, .feed-empty) {
+  background: var(--cp-glass) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.25) !important;
+  backdrop-filter: blur(18px) saturate(1.25) !important;
+  border: 1px solid var(--cp-chrome) !important;
+  border-top-color: rgba(62, 242, 224, 0.62) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 28px 60px -24px rgba(0, 0, 0, 0.85) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.studio-placeholder, .studio-loading, .academy-note) {
+  border-top-color: rgba(255, 92, 176, 0.62) !important;
+}
+html[data-space][data-world='cyberpunk'] .intro-note {
+  transform: none !important;
+  color: var(--ink) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.discovery-card, .lesson-card, .studio-ideas article, .world-choice) {
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+}
+html[data-space][data-world='cyberpunk'] :is(.discovery-card, .lesson-card, .studio-ideas article, .world-choice):hover {
+  border-color: var(--cp-chrome-hi) !important;
+  border-top-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px rgba(62, 242, 224, 0.18), 0 0 26px rgba(62, 242, 224, 0.12), 0 28px 60px -24px rgba(0, 0, 0, 0.9) !important;
+}
+/* Insets inside glass cards stay glass, not opaque blocks. */
+html[data-space][data-world='cyberpunk'] :is(.upload-area, .studio-preferences, .lesson-card-top, .lesson-visual, .quiz-result, .lesson-completed, .idea-preview, .quiz-explanation, .garment-preview img) {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: var(--cp-chrome) !important;
+}
+html[data-space][data-world='cyberpunk'] .lesson-card-top {
+  border-bottom: 1px solid var(--cp-chrome);
+  color: var(--ink) !important;
+}
+html[data-space][data-world='cyberpunk'] .lesson-card-top svg,
+html[data-space][data-world='cyberpunk'] .studio-placeholder > svg {
+  color: var(--accent-2);
+  filter: drop-shadow(0 0 8px var(--cp-pink-glow));
+}
+html[data-space][data-world='cyberpunk'] .studio-placeholder h2 {
+  color: var(--ink);
+}
+html[data-space][data-world='cyberpunk'] .idea-number {
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--cp-teal-glow) !important;
+}
+html[data-space][data-world='cyberpunk'] .idea-tags span,
+html[data-space][data-world='cyberpunk'] .academy-wallet span {
+  background: rgba(4, 6, 9, 0.8) !important;
+  border: 1px solid rgba(255, 92, 176, 0.45) !important;
+  color: var(--accent-2) !important;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+html[data-space][data-world='cyberpunk'] .difficulty,
+html[data-space][data-world='cyberpunk'] .project-labels {
+  background: rgba(4, 6, 9, 0.84) !important;
+  border: 1px solid var(--cp-chrome);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ---------- fields */
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) :is(select, textarea, input[type='text'], input[type='search'], input[type='email'], input[type='number'], .discovery-search):not(.discovery-search input) {
+  background: rgba(2, 3, 6, 0.72) !important;
+  border: 1px solid var(--cp-chrome) !important;
+  color: var(--ink);
+}
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) :is(select, textarea, input[type='text'], input[type='search'], input[type='email'], input[type='number']):focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(62, 242, 224, 0.2);
+}
+html[data-space][data-world='cyberpunk'] .discovery-search:focus-within {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(62, 242, 224, 0.2);
+}
+
+/* ---------- choices and chips: hairline until chosen, then lit */
+html[data-space][data-world='cyberpunk'] .preference-choice {
+  background: rgba(3, 4, 7, 0.62) !important;
+  border: 1px solid var(--cp-chrome) !important;
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+html[data-space][data-world='cyberpunk'] .preference-choice:hover {
+  border-color: var(--cp-chrome-hi) !important;
+  color: var(--ink) !important;
 }
 html[data-space][data-world='cyberpunk'] :is(.preference-choice, .world-choice).selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 0 16px rgba(92, 242, 214, 0.35);
+  border-color: var(--accent) !important;
+  background: rgba(62, 242, 224, 0.07) !important;
+  color: var(--ink) !important;
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 22px rgba(62, 242, 224, 0.24) !important;
 }
-html[data-space][data-world='cyberpunk'] :is(h1, h2) {
+html[data-space][data-world='cyberpunk'] .preference-choice span {
+  color: var(--accent) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.category-chips button, .saved-filter, .academy-categories a) {
+  background: rgba(3, 4, 7, 0.62) !important;
+  border: 1px solid var(--cp-chrome) !important;
+  color: var(--ink-2) !important;
+  font-family: var(--font-mono);
+  font-size: 10.5px !important;
   text-transform: uppercase;
-  letter-spacing: 0.04em !important;
+  letter-spacing: 0.16em;
+}
+html[data-space][data-world='cyberpunk'] :is(.category-chips button, .saved-filter, .academy-categories a):hover {
+  border-color: var(--cp-chrome-hi) !important;
+  color: var(--ink) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.category-chips button.active, .saved-filter.active) {
+  background: rgba(62, 242, 224, 0.08) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 0 16px rgba(62, 242, 224, 0.22);
+}
+html[data-space][data-world='cyberpunk'] .onboard-progress li.reached {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* ---------- fitting room overlays: drop the hard offset shadow for a soft lift */
+html[data-space][data-world='cyberpunk'] body.fitting-page :is(.sheet, .auth-card, .acct-menu) {
+  border: 1px solid var(--cp-chrome) !important;
+  border-top-color: rgba(62, 242, 224, 0.62) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 70px -20px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* ---------- body card */
+html[data-space][data-world='cyberpunk'] .body-card-head {
+  border-bottom: 1px solid var(--cp-chrome) !important;
+}
+html[data-space][data-world='cyberpunk'] .body-card-head strong {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 15px !important;
+}
+
+/* ---------- Settings world card sample */
+[data-world-scope='cyberpunk'].world-sample-row,
+[data-world-scope='cyberpunk'] .world-sample-row {
+  background: #050608;
+  border: 1px solid rgba(214, 226, 240, 0.16);
+  border-top-color: rgba(62, 242, 224, 0.62);
+}
+[data-world-scope='cyberpunk'] .world-sample {
+  font-size: 10px !important;
+  letter-spacing: 0.2em;
+}
+[data-world-scope='cyberpunk'] .world-sample-alt {
+  border: 1px solid rgba(255, 92, 176, 0.55);
+  color: var(--accent-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+/* ---------- phones: keep the wide display face inside the viewport */
+@media (max-width: 600px) {
+  html[data-space][data-world='cyberpunk'] h1 {
+    font-size: clamp(22px, 6.6vw, 30px) !important;
+    letter-spacing: 0.03em !important;
+  }
+  html[data-space][data-world='cyberpunk'] h2 {
+    font-size: clamp(17px, 5vw, 22px) !important;
+    letter-spacing: 0.03em !important;
+  }
+  html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)) {
+    letter-spacing: 0.14em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost), .discovery-card, .lesson-card, .studio-ideas article, .world-choice) {
+    transition: none;
+    transform: none !important;
+  }
 }

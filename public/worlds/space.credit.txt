@@ -1,0 +1,5 @@
+Andromeda galaxy 2023
+Author: Taavi Niittee
+License: CC0 1.0 Universal (Public Domain Dedication)
+Source: https://commons.wikimedia.org/wiki/File:Andromeda_galaxy_2023.jpg
+Cropped, resized and given a light contrast/saturation grade for ReThread (space.jpg, space-card.jpg).

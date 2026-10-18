@@ -8,7 +8,7 @@ test('discovery seeds have unique routes, bundled images and complete project de
   assert.ok(projects.length>=20);assert.equal(new Set(projects.map(p=>p.id)).size,projects.length);
   for(const p of projects){
     assert.match(p.id,/^[a-z0-9-]+$/);assert.ok(p.title&&p.username&&p.description);assert.ok(CATEGORIES.includes(p.aesthetic));assert.ok(p.likes>=0);assert.equal(p.steps.length,3);assert.ok(p.materials.length>=3);
-    for(const asset of [p.cover,p.avatar]){assert.ok(existsSync(`public${asset}`));assert.match(readFileSync(`public${asset}`,'utf8'),/^<svg/);}
+    for(const asset of [p.cover,p.avatar]){assert.ok(existsSync(`public${asset}`));if(p.photo&&asset===p.cover){assert.match(asset,/^\/explore\/photos\/[a-z0-9-]+\.jpg$/);assert.deepEqual([...readFileSync(`public${asset}`).subarray(0,3)],[0xff,0xd8,0xff]);}else assert.match(readFileSync(`public${asset}`,'utf8'),/^<svg/);}
   }
 });
 test('search combines terms, category and saved filters without mutating seeds',()=>{

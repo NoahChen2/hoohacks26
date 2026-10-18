@@ -1,59 +1,424 @@
 /* Fantasy RPG world theme (html[data-world='fantasy']). Owns only selectors scoped to
-   this world; shared mechanics live in ../worlds.css. */
+   this world; shared mechanics live in ../worlds.css.
+   Direction: a candlelit castle great hall set for a banquet. A real photo of the
+   great hall at Caerphilly Castle (CC0) sits behind aubergine velvet panels framed in
+   antique-gold hairlines; Cinzel engraved capitals, tracked small caps, gilded buttons
+   that turn to velvet on hover. No gradients: flat colour, the photo, hairlines and
+   solid shadows only. */
 
 html[data-space][data-world='fantasy'],
 [data-world-scope='fantasy'] {
-  --bg: #17111f;
-  --surface: #221a2e;
-  --surface-2: #2d2340;
-  --surface-3: #3b2e52;
-  --line: #5a4878;
-  --ink: #f3e9d2;
-  --ink-2: #d6c7a6;
-  --ink-3: #a8987c;
-  --accent: #e6c47e;
-  --accent-2: #e0896b;
-  --on-accent: #17111f;
-  --danger: #ff7a6b;
-  --ok: #9fd89b;
-  --warn: #e6c47e;
-  --loose-c: #9fb4ff;
-  --scrim: #0b0710;
-  --font-display: 'Cinzel', 'Trajan Pro', serif;
-  --world-glyph: '⚔';
+  --bg: #120b16;
+  --surface: #1c1121;
+  --surface-2: #26172c;
+  --surface-3: #37213d;
+  --line: #5f4a35;
+  --ink: #f4ead4;
+  --ink-2: #dccdac;
+  --ink-3: #b3a283;
+  --accent: #d4b26a;
+  --accent-2: #ebd39d;
+  --on-accent: #1a0f1c;
+  --danger: #f08b7b;
+  --ok: #a9d39b;
+  --warn: #e8c47c;
+  --loose-c: #aab8ee;
+  --scrim: #0a060c;
+  --font-display: 'Cinzel', 'Trajan Pro', 'Iowan Old Style', serif;
+  --world-glyph: '\269C';
+  --world-image: url('/worlds/fantasy.jpg');
+  --world-scrim: rgba(18, 9, 16, 0.5);
+  /* world-only helpers */
+  --fy-gold: #c9a55c;
+  --fy-gold-hi: #f1dfae;
+  --fy-gold-soft: rgba(212, 178, 106, 0.42);
+  --fy-gold-deep: #7d5f2a;
+  --fy-garnet: #7a1f33;
+  --fy-velvet: rgba(24, 13, 28, 0.93);
+  --fy-velvet-hi: rgba(20, 11, 24, 0.97);
+  --fy-velvet-lo: rgba(38, 22, 44, 0.86);
+  --fy-candle: 0 1px 0 rgba(8, 4, 10, 0.9), 0 0 2px rgba(8, 4, 10, 0.95), 0 0 20px rgba(8, 4, 10, 0.85), 0 0 42px rgba(8, 4, 10, 0.6);
+  /* gilt corner flourishes for velvet panels (solid strokes only) */
+  --fy-c-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath d='M.5 26V.5H26' fill='none' stroke='%23d4b26a'/%3E%3Cpath d='M4.5 18V4.5H18' fill='none' stroke='%23d4b26a' stroke-opacity='.55'/%3E%3Cpath d='M9 6.5 11.5 9 9 11.5 6.5 9z' fill='%23d4b26a'/%3E%3C/svg%3E");
+  --fy-c-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath d='M0 .5h25.5V26' fill='none' stroke='%23d4b26a'/%3E%3Cpath d='M8 4.5h13.5V18' fill='none' stroke='%23d4b26a' stroke-opacity='.55'/%3E%3Cpath d='M17 6.5 19.5 9 17 11.5 14.5 9z' fill='%23d4b26a'/%3E%3C/svg%3E");
+  --fy-c-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath d='M.5 0v25.5H26' fill='none' stroke='%23d4b26a'/%3E%3Cpath d='M4.5 8v13.5H18' fill='none' stroke='%23d4b26a' stroke-opacity='.55'/%3E%3Cpath d='M9 14.5 11.5 17 9 19.5 6.5 17z' fill='%23d4b26a'/%3E%3C/svg%3E");
+  --fy-c-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath d='M25.5 0v25.5H0' fill='none' stroke='%23d4b26a'/%3E%3Cpath d='M21.5 8v13.5H8' fill='none' stroke='%23d4b26a' stroke-opacity='.55'/%3E%3Cpath d='M17 14.5 19.5 17 17 19.5 14.5 17z' fill='%23d4b26a'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 
-html[data-space][data-world='fantasy'] body:not(.fitting-page) {
-  background:
-    radial-gradient(ellipse 70% 45% at 50% 0, #33254a 0, transparent 70%) fixed,
-    repeating-linear-gradient(45deg, transparent 0 22px, rgba(230, 196, 126, 0.035) 22px 23px),
-    var(--bg) !important;
+/* ---------- type: engraved capitals, tracked gold small caps */
+html[data-space][data-world='fantasy'] :is(h1, h2) {
+  color: var(--ink);
+  letter-spacing: 0.02em !important;
+}
+html[data-space][data-world='fantasy'] h1 {
+  font-weight: 500 !important;
+  line-height: 1.1 !important;
+}
+html[data-space][data-world='fantasy'] h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+html[data-space][data-world='fantasy'] .eyebrow {
+  font-family: var(--font-display) !important;
+  font-weight: 700;
+  color: var(--accent) !important;
+  letter-spacing: 0.34em !important;
+  text-transform: uppercase;
+}
+html[data-space][data-world='fantasy'] :is(.studio-intro, .explore-intro, .academy-intro, .onboarding, .boards-heading) .eyebrow::before {
+  content: '\2766';
+  display: inline-block;
+  margin-right: 0.9em;
+  color: var(--fy-gold);
+  letter-spacing: 0;
+  font-size: 1.25em;
+  vertical-align: -0.08em;
+}
+/* Copy laid straight on the photo gets a dark candle-smoke halo. */
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading, .section-title, .feed-meta, .academy-category-title, .academy-back, .back-link, .boards-heading) :is(h1, h2, p, span, a, em),
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .onboarding > :is(h1, p) {
+  text-shadow: var(--fy-candle) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-intro, .explore-intro, .academy-intro, .lesson-heading) p:not(.eyebrow),
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .onboarding > p {
+  color: var(--ink) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.feed-meta, .academy-category-title > span, .section-title > span) {
+  font-family: var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2) !important;
+}
+/* Small labels that can land on bright windows sit on a velvet strip. */
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .feed-meta {
+  padding: 9px 14px;
+  background: var(--fy-velvet);
+  border-top: 1px solid var(--fy-gold-soft);
+  border-bottom: 1px solid var(--fy-gold-soft);
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.academy-category-title > span, .section-title > span) {
+  padding: 6px 10px;
+  background: var(--fy-velvet);
+  border: 1px solid var(--fy-gold-soft);
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.feed-meta, .academy-category-title, .section-title) :is(p, span) {
+  text-shadow: none !important;
 }
 
-/* ---------- Fantasy RPG: gilded plates */
+/* ---------- header: a velvet valance with a double gilt rule */
+html[data-space][data-world='fantasy'] .site-header,
+html[data-space][data-world='fantasy'] body.fitting-page .site-header {
+  background: var(--fy-velvet-hi) !important;
+  border-bottom: 1px solid var(--fy-gold) !important;
+  box-shadow: 0 3px 0 var(--fy-velvet-hi), 0 4px 0 var(--fy-gold-soft) !important;
+}
+html[data-space][data-world='fantasy'] .site-brand {
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+html[data-space][data-world='fantasy'] .site-brand svg {
+  color: var(--accent);
+}
+html[data-space][data-world='fantasy'] .site-brand::after {
+  color: var(--accent) !important;
+  font-size: 18px !important;
+}
+html[data-space][data-world='fantasy'] .site-nav-link {
+  font: 700 11px/1 var(--font-display) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+html[data-space][data-world='fantasy'] .site-nav-link:hover {
+  background: transparent !important;
+  color: var(--fy-gold-hi) !important;
+  border-color: var(--fy-gold-soft) !important;
+}
+html[data-space][data-world='fantasy'] .site-link {
+  font: 700 11px/1 var(--font-display) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+html[data-space][data-world='fantasy'] .site-link b {
+  background: var(--accent);
+  color: var(--on-accent);
+  letter-spacing: 0;
+}
+html[data-space][data-world='fantasy'] .space-pick {
+  border-color: var(--fy-gold-soft) !important;
+}
+
+/* ---------- primary buttons: a gilt plate with an engraved inner line;
+   on hover it turns to velvet with gold lettering */
 html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost), .site-nav-link[aria-current='page']),
 [data-world-scope='fantasy'] .world-sample {
-  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
-  padding-left: 22px !important;
-  padding-right: 22px !important;
   background: var(--accent) !important;
   color: var(--on-accent) !important;
-  border: 0 !important;
+  border: 1px solid var(--fy-gold-hi) !important;
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3px rgba(26, 15, 28, 0.38), 0 2px 0 var(--fy-gold-deep) !important;
   font-family: var(--font-display) !important;
   font-weight: 700 !important;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.22em;
+  text-decoration: none !important;
+  transition: background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.15s;
 }
-html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
-  background: var(--accent-2) !important;
+html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .academy-primary, .primary-link, .board-create-button) {
+  padding: 15px 30px !important;
+  font-size: 12px !important;
 }
-html[data-space][data-world='fantasy'] :is(.onboard-form, .studio-upload, .body-card),
-[data-world-scope='fantasy'] {
-  outline: 1px solid var(--accent);
-  outline-offset: -6px;
+html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover:not(:disabled) {
+  background: var(--on-accent) !important;
+  color: var(--fy-gold-hi) !important;
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 0 2px var(--on-accent), inset 0 0 0 3px var(--fy-gold-soft), 0 2px 0 var(--accent) !important;
+}
+html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 0 0 2px var(--on-accent), inset 0 0 0 3px var(--accent) !important;
+}
+html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .academy-primary, .primary-link, .board-create-button):disabled {
+  opacity: 0.45;
+}
+html[data-space][data-world='fantasy'] .site-nav-link[aria-current='page'] {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3px rgba(26, 15, 28, 0.38) !important;
+  padding: 0 16px;
+}
+
+/* ---------- secondary buttons: velvet with a gold hairline */
+html[data-space][data-world='fantasy'] :is(.body-card-wear, .body-card-emote, .studio-error button, .feed-empty button:not(.primary-link), .onboard-actions button:not(.onboard-next), .btn.ghost),
+[data-world-scope='fantasy'] .world-sample-alt {
+  background: var(--fy-velvet-hi) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--fy-gold-soft) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+html[data-space][data-world='fantasy'] :is(.body-card-wear, .body-card-emote, .studio-error button, .feed-empty button:not(.primary-link), .onboard-actions button:not(.onboard-next):not(:disabled), .btn.ghost):hover {
+  background: var(--surface-3) !important;
+  color: var(--fy-gold-hi) !important;
+  border-color: var(--accent) !important;
+}
+html[data-space][data-world='fantasy'] .onboard-actions button:not(.onboard-next):disabled {
+  opacity: 0.4;
+}
+
+/* ---------- velvet panels over the hall: gilt frame, inner hairline, corner flourishes */
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.onboard-form, .studio-upload, .studio-placeholder, .studio-loading, .quiz-panel, .academy-note),
+html[data-space][data-world='fantasy'] .body-card {
+  background:
+    var(--fy-c-tl) 6px 6px no-repeat,
+    var(--fy-c-tr) calc(100% - 6px) 6px no-repeat,
+    var(--fy-c-bl) 6px calc(100% - 6px) no-repeat,
+    var(--fy-c-br) calc(100% - 6px) calc(100% - 6px) no-repeat,
+    var(--fy-velvet) !important;
+  border: 1px solid var(--fy-gold) !important;
+  outline: 0 !important;
+  box-shadow: inset 0 0 0 5px var(--fy-velvet-hi), inset 0 0 0 6px var(--fy-gold-soft), 10px 10px 0 rgba(8, 4, 10, 0.45) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.onboard-form, .studio-upload, .quiz-panel) {
+  padding: clamp(24px, 3vw, 40px) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-placeholder, .studio-loading) {
+  padding: 64px 36px !important;
+  color: var(--ink-2) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .studio-placeholder :is(h2, p) {
+  color: var(--ink) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .studio-placeholder h2 {
+  color: var(--accent) !important;
+}
+/* Smaller tiles: velvet with a single gold hairline that doubles on hover. */
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-ideas article, .garment-summary > div, .discovery-card, .lesson-card, .world-choice, .scan-pieces li, .scan-body) {
+  background-color: var(--fy-velvet) !important;
+  border: 1px solid var(--line) !important;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-ideas article, .discovery-card, .lesson-card, .world-choice):hover {
+  border-color: var(--fy-gold) !important;
+  box-shadow: inset 0 0 0 3px var(--fy-velvet-hi), inset 0 0 0 4px var(--fy-gold-soft), 8px 8px 0 rgba(8, 4, 10, 0.45) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.upload-area, .studio-preferences, .analysis-notice, .analysis-warnings, .scan-results, .idea-preview, .lesson-card-top, .quiz-result, .lesson-completed) {
+  background-color: var(--fy-velvet-lo) !important;
+  border-color: var(--line) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .upload-area {
+  border-color: var(--fy-gold-soft) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .lesson-card-top {
+  border-bottom: 1px solid var(--fy-gold-soft) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.lesson-card h2, .lesson-card h3, .lesson-card-top h2, .lesson-card-top h3) {
+  color: var(--accent) !important;
+}
+html[data-space][data-world='fantasy'] .body-card-head,
+html[data-space][data-world='fantasy'] .body-card-foot {
+  border-color: var(--fy-gold-soft) !important;
+}
+html[data-space][data-world='fantasy'] .body-card-head {
+  padding: 22px 26px 14px !important;
+}
+html[data-space][data-world='fantasy'] .body-card-head small {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.16em;
+}
+html[data-space][data-world='fantasy'] .body-card-view {
+  margin: 0 6px;
+}
+html[data-space][data-world='fantasy'] .body-card-foot {
+  padding: 12px 18px 18px !important;
+}
+html[data-space][data-world='fantasy'] .body-dock .body-card {
+  box-shadow: inset 0 0 0 5px var(--fy-velvet-hi), inset 0 0 0 6px var(--fy-gold-soft), 8px 8px 0 var(--fy-garnet) !important;
+}
+html[data-space][data-world='fantasy'] .idea-number {
+  color: var(--accent);
+}
+
+/* ---------- form fields */
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-field select, .discovery-search) {
+  background-color: var(--fy-velvet-hi) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) :is(.studio-field select, .discovery-search):focus-within {
+  border-color: var(--accent) !important;
+}
+html[data-space][data-world='fantasy'] .studio-field {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent) !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+html[data-space][data-world='fantasy'] .studio-field :is(select, small, p) {
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ---------- chips and choices */
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .preference-choice {
+  background-color: var(--fy-velvet-hi) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .preference-choice span {
+  color: var(--accent) !important;
+}
+html[data-space][data-world='fantasy'] body:not(.fitting-page) .preference-choice:hover {
+  border-color: var(--fy-gold) !important;
 }
 html[data-space][data-world='fantasy'] :is(.preference-choice, .world-choice).selected {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent), inset 0 0 0 4px var(--surface-2), inset 0 0 0 5px var(--accent);
+  background-color: var(--surface-3) !important;
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 0 1px var(--accent), inset 0 0 0 4px var(--surface-3), inset 0 0 0 5px var(--accent) !important;
+  color: var(--fy-gold-hi) !important;
+}
+html[data-space][data-world='fantasy'] :is(.category-chips button, .saved-filter) {
+  background-color: var(--fy-velvet-hi) !important;
+  border-color: var(--fy-gold-soft) !important;
+  color: var(--ink-2) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+html[data-space][data-world='fantasy'] :is(.category-chips button, .saved-filter):hover {
+  border-color: var(--accent) !important;
+  color: var(--fy-gold-hi) !important;
+}
+html[data-space][data-world='fantasy'] :is(.category-chips button.active, .saved-filter.active) {
+  background-color: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border-color: var(--fy-gold-hi) !important;
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3px rgba(26, 15, 28, 0.38) !important;
+}
+html[data-space][data-world='fantasy'] .academy-categories a {
+  background: var(--fy-velvet-hi) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--fy-gold-soft);
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+html[data-space][data-world='fantasy'] .academy-categories a:hover {
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border-color: var(--fy-gold-hi);
+}
+html[data-space][data-world='fantasy'] .academy-wallet span {
+  background: var(--fy-velvet-hi) !important;
+  border-color: var(--fy-gold-soft) !important;
+  color: var(--ink-2) !important;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+html[data-space][data-world='fantasy'] .onboard-progress li {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-2) !important;
+  text-shadow: var(--fy-candle) !important;
+}
+html[data-space][data-world='fantasy'] .onboard-progress li > span {
+  background: var(--fy-velvet-hi);
+  border-color: var(--fy-gold-soft) !important;
+  text-shadow: none !important;
+}
+html[data-space][data-world='fantasy'] .onboard-progress li.reached {
+  border-color: var(--accent) !important;
+  color: var(--fy-gold-hi) !important;
+}
+html[data-space][data-world='fantasy'] .onboard-step .step-number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+/* ---------- Settings world-card sample */
+.world-sample-row[data-world-scope='fantasy'] {
+  background: var(--surface) !important;
+  border: 1px solid var(--fy-gold) !important;
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--fy-gold-soft);
+  padding: 13px 14px;
+}
+[data-world-scope='fantasy'] .world-sample {
+  padding: 10px 18px;
+  font-size: 10.5px;
+}
+[data-world-scope='fantasy'] .world-sample-alt {
+  padding: 9px 14px;
+  font-size: 10.5px;
+}
+
+@media (max-width: 600px) {
+  html[data-space][data-world='fantasy'] :is(.onboard-next, .studio-primary, .academy-primary, .primary-link, .board-create-button) {
+    padding: 14px 20px !important;
+    letter-spacing: 0.16em;
+  }
+  html[data-space][data-world='fantasy'] .site-nav-link {
+    letter-spacing: 0.12em;
+  }
+  html[data-space][data-world='fantasy'] .eyebrow {
+    letter-spacing: 0.24em !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-space][data-world='fantasy'] * {
+    transition: none !important;
+  }
 }

@@ -15,8 +15,10 @@ const bodies={
   apron:'M124 94 L196 94 L203 158 L233 179 L233 313 L87 313 L87 179 L117 158 Z',
 };
 const shirt='M105 83 L139 72 Q160 96 181 72 L215 83 L257 139 L221 167 L208 148 L214 289 Q160 299 106 289 L112 148 L99 167 L63 139 Z';
-for(const [index,p] of projects.entries()){
-  const [bg,cloth,trim]=palettes[index%palettes.length],h=p.height;
+for(const p of projects){
+  if(p.photo)continue; // covered by a temporary photo in public/explore/photos
+  // p.art is the palette for the project's seed index; creatorIndex keeps that index's parity.
+  const index=p.creatorIndex,{bg,cloth,trim}=p.art,h=p.height;
   const kind=p.kind;const d=bodies[kind]||shirt;
   const long=['shirt','wrap','jacket','cardigan','hoodie'].includes(kind);
   const sleeve=long?`<path d="M107 94 L75 120 L50 252 L86 263 L111 156 M213 94 L245 120 L270 252 L234 263 L209 156" fill="${cloth}" stroke="#29261e" stroke-opacity=".32" stroke-width="2"/>`:'';

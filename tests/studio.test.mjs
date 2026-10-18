@@ -56,3 +56,20 @@ test('with a Gemini key the photo is analyzed live by Gemini, trimmed to the sch
  await assert.rejects(analyzeClothing(input,{env:{GEMINI_API_KEY:'g'},fetchImpl:async()=>reply(tooHard)}),e=>e.status===502&&/experience/.test(e.message));
  await assert.rejects(analyzeClothing(input,{env:{GEMINI_API_KEY:'g'},fetchImpl:async()=>reply({garmentType:'x'})}),e=>e.status===502);
 });
+test('a scanned outfit gets ideas for every piece, each tied to the piece it remakes',async()=>{
+ const pieces=[{type:'jacket',name:'Navy blazer'},{type:'tshirt',name:'White tee'},{type:'jeans',name:'Blue jeans'},{type:'skirt',name:'Plaid skirt'}];
+ const input=parseAnalysisRequest({...body(),pieces});
+ assert.throws(()=>parseAnalysisRequest({...body(),pieces:[{type:'cape',name:'x'}]}));
+ const demo=demoAnalysis(input).analysis.projects;
+ assert.equal(demo.length,4);assert.deepEqual(demo.map(p=>p.piece),[0,1,2,3]);assert.match(demo[2].title,/Blue jeans/);
+ const analysis=demoAnalysis(input).analysis;let sent;
+ const answer={...analysis,projects:analysis.projects.map((p,i)=>({...p,piece:i===3?9:p.piece}))};
+ const result=await analyzeClothing(input,{env:{GEMINI_API_KEY:'g'},fetchImpl:async(url,init)=>{sent=JSON.parse(init.body);return {ok:true,status:200,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(answer)}]}}]})};}});
+ const prompt=JSON.parse(sent.contents[0].parts[0].text);
+ assert.equal(prompt.ideasWanted,4);assert.deepEqual(prompt.pieces[2],{piece:2,type:'jeans',name:'Blue jeans'});
+ const projects=sent.generationConfig.responseSchema.properties.projects;
+ assert.equal(projects.minItems,4);assert.equal(projects.maxItems,4);assert.equal(projects.items.properties.piece.type,'INTEGER');
+ assert.match(sent.systemInstruction.parts[0].text,/at least one idea for every piece/);
+ assert.deepEqual(result.analysis.projects.map(p=>p.piece),[0,1,2,0],'an unknown piece falls back to the main garment');
+ assert.equal(demoAnalysis(parseAnalysisRequest(body())).analysis.projects.length,3,'a single garment still gets three ideas');
+});

@@ -69,6 +69,11 @@ html[data-world] .site-brand::after {
 .world-preview[style*='--world-card'] i {
   display: none;
 }
+.world-preview[style*='--world-card'] > b {
+  padding: 5px 8px;
+  background: rgba(12, 10, 9, 0.78);
+  color: #f6f1e7;
+}
 .world-preview[style*='--world-card'] > span {
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55) !important;
 }

@@ -1,3 +1,5 @@
 All SVG cover illustrations and avatar illustrations in this directory are original ReThread demo artwork created for this repository. Dedicated to the public domain under CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
-No photographs, proprietary character assets, or external image services are used.
+No proprietary character assets or external image services are used.
 Project stories, usernames, and engagement numbers are fictional demo content.
+
+Exception: photos/*.jpg are temporary example photos used as placeholders during development. They are not original artwork, are not covered by the CC0 dedication above, and should be replaced before any public release.
