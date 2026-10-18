@@ -52,6 +52,10 @@
   font: 600 32px/1 var(--font-display);
   color: var(--ink);
 }
+.board-you small {
+  font-size: 11px;
+  color: var(--ink-3);
+}
 .board-name-form {
   display: flex;
   flex-wrap: wrap;

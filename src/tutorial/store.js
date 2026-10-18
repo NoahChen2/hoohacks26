@@ -9,6 +9,8 @@ const validId=id=>typeof id==='string'&&/^[a-z0-9-]{1,100}$/.test(id);
 function parse(storage,key){const value=storage.getItem(key);return value===null?null:JSON.parse(value);}
 function write(storage,key,value){try{storage.setItem(key,JSON.stringify(value));}catch{throw Error('Browser storage is unavailable or full. Your change was not saved.');}}
 function entries(storage,prefix){const values=[];try{for(let i=0;i<storage.length;i++){const key=storage.key(i);if(key?.startsWith(prefix))try{const value=parse(storage,key);if(value)values.push({key,value});}catch{/* Ignore a damaged entry, preserving it on disk. */}}}catch{/* Read-only empty fallback. */}return values;}
+// Tells the page (the account's leaderboard sync, src/ui/account.js) that XP went up.
+const announceXp=()=>globalThis.dispatchEvent?.(new globalThis.Event('rethread:xp'));
 const keyFor=(prefix,id)=>{if(!validId(id))throw Error('Invalid project identifier.');return prefix+id;};
 export async function saveGeneratedProject(storage,project,{mode='live',warnings=[],garmentId=null}={}){
  const payload=ProjectSchema.parse(project),source=mode==='demo'?'demo':'live';
@@ -39,7 +41,7 @@ export function awardProjectCompletion(storage,project,{now=new Date().toISOStri
  const progress=loadProgress(storage,project);
  if(!project.steps.length||progress.steps.length!==project.steps.length)throw Error('Finish every tutorial step before completing the project.');
  const record={version:1,projectId:project.id,title:project.title,completedAt:now,xp:COMPLETION_REWARD.xp,currency:COMPLETION_REWARD.currency,reuse:{garmentId:validId(project.garmentId)?project.garmentId:project.id,count:1,basis:'User-confirmed garment reuse'},source:project.source||'seeded'};
- write(storage,key,record);return {awarded:true,record,totals:getRewardSummary(storage)};
+ write(storage,key,record);announceXp();return {awarded:true,record,totals:getRewardSummary(storage)};
 }
 export function loadLessonCompletion(storage,id){try{const value=parse(storage,keyFor(LESSON_COMPLETION_PREFIX,id));return value?.version===1&&value.lessonId===id&&value.xp===50&&value.currency===20?value:null;}catch{return null;}}
 export function awardLessonCompletion(storage,lesson,{score,total,now=new Date().toISOString()}){
@@ -48,7 +50,7 @@ export function awardLessonCompletion(storage,lesson,{score,total,now=new Date()
  try{existing=parse(storage,key);}catch{throw Error('The lesson completion record could not be read. No reward was changed.');}
  if(existing){if(existing.version!==1||existing.lessonId!==lesson.id||existing.xp!==50||existing.currency!==20)throw Error('The existing lesson record is invalid and was left untouched.');return {awarded:false,record:existing,totals:getRewardSummary(storage)};}
  const record={version:1,lessonId:lesson.id,title:lesson.title,completedAt:now,score,total,xp:LESSON_REWARD.xp,currency:LESSON_REWARD.currency};
- write(storage,key,record);return {awarded:true,record,totals:getRewardSummary(storage)};
+ write(storage,key,record);announceXp();return {awarded:true,record,totals:getRewardSummary(storage)};
 }
 export function getRewardSummary(storage){
  const completions=entries(storage,COMPLETION_PREFIX).filter(({key,value:v})=>v.version===1&&validId(v.projectId)&&key===COMPLETION_PREFIX+v.projectId&&v.xp===100&&v.currency===40&&v.reuse?.count===1).map(x=>x.value);

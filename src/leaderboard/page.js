@@ -4,7 +4,7 @@ import './style.css';
 import { siteHeader, installShell, pageTitle } from '../shell/shell.js';
 import { getSupabase, supabaseEnabled } from '../supabase.js';
 import { escape } from '../explore/ui.js';
-import { syncXp, loadLeaderboard, missingTable, TOP } from './data.js';
+import { syncXp, loadLeaderboard, missingTable, TOP, POST_XP } from './data.js';
 
 document.title = pageTitle('Leaderboard');
 document.body.classList.add('discovery-page', 'leaderboard-page');
@@ -12,7 +12,7 @@ document.body.innerHTML = `${siteHeader('leaderboard')}<main class="board-main">
 installShell();
 const main = document.querySelector('main');
 
-const intro = `<p class="eyebrow">EVERY MAKER, ONE SCOREBOARD</p><h1>Leaderboard</h1><p class="board-intro">Earn XP by passing Academy lessons and finishing projects. Your XP is added here whenever you open ReThread signed in.</p>`;
+const intro = `<p class="eyebrow">EVERY MAKER, ONE SCOREBOARD</p><h1>Leaderboard</h1><p class="board-intro">Earn XP by passing Academy lessons, finishing projects and posting to Explore (${POST_XP} XP a post). Lesson and project XP is added whenever you use ReThread signed in.</p>`;
 
 function notice(text) {
   main.innerHTML = `${intro}<p class="board-notice">${text}</p>`;
@@ -27,13 +27,13 @@ async function show(user) {
   if (!user) return notice('Sign in to see the global leaderboard. Use <strong>Sign in</strong> at the top of the page.');
   main.innerHTML = `${intro}<p class="board-notice" role="status">Loading the leaderboard…</p>`;
   try {
-    const me = await syncXp(user);
-    const { rows, mine } = await loadLeaderboard({ id: user.id, user_id: user.id, ...me });
+    await syncXp(user);
+    const { rows, mine } = await loadLeaderboard(user);
     const listed = rows.some((entry) => entry.user_id === user.id);
     main.innerHTML = `${intro}
       <section class="board-you" aria-label="Your place">
         <div><span>Your place</span><strong>#${mine.rank}</strong></div>
-        <div><span>Your XP</span><strong>${mine.xp.toLocaleString()}</strong></div>
+        <div><span>Your XP</span><strong>${mine.xp.toLocaleString()}</strong>${mine.posts ? `<small>incl. ${mine.posts} ${mine.posts === 1 ? 'post' : 'posts'} × ${POST_XP}</small>` : ''}</div>
         <form class="board-name-form" novalidate>
           <label>Your name on the leaderboard<input name="username" value="${escape(mine.username)}" maxlength="30" required autocomplete="nickname" pattern="[a-z0-9._]{2,30}" /></label>
           <button type="submit">Save name</button>

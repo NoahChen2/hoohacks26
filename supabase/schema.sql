@@ -159,3 +159,28 @@ create policy "insert own leaderboard row" on public.leaderboard
 drop policy if exists "update own leaderboard row" on public.leaderboard;
 create policy "update own leaderboard row" on public.leaderboard
   for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Leaderboard totals: XP reported by the browser plus 25 XP per Explore post
+-- (src/leaderboard/data.js POST_XP). Posts count from the table, so they score
+-- for everyone, on any device, including posts made before the leaderboard.
+-- security_invoker applies each table's own read rules to whoever asks.
+create or replace view public.leaderboard_totals with (security_invoker = true) as
+select
+  coalesce(l.user_id, p.user_id)          as user_id,
+  coalesce(l.username, p.username)        as username,
+  coalesce(l.xp, 0) + 25 * coalesce(p.posts, 0) as xp,
+  coalesce(p.posts, 0)                    as posts,
+  coalesce(l.updated_at, p.first_post)    as updated_at
+from public.leaderboard l
+full join (
+  select user_id,
+         count(*)::int as posts,
+         min(created_at) as first_post,
+         (array_agg(username order by created_at desc))[1] as username
+  from public.posts
+  where user_id is not null
+  group by user_id
+) p on p.user_id = l.user_id;
+
+revoke all on public.leaderboard_totals from anon;
+grant select on public.leaderboard_totals to authenticated;

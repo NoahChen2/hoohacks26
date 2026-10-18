@@ -1,11 +1,15 @@
-// Global XP leaderboard in the Supabase `leaderboard` table (supabase/schema.sql).
-// XP is earned and stored in this browser (src/tutorial/store.js); signed-in
-// users copy it up so everyone can be ranked together.
+// Global XP leaderboard (supabase/schema.sql). Lesson and project XP is earned
+// and stored in this browser (src/tutorial/store.js); signed-in users copy it to
+// the `leaderboard` table. Explore posts score in the database itself.
 import { getSupabase } from '../supabase.js';
 import { getRewardSummary } from '../tutorial/store.js';
 import { USERNAME, suggestUsername } from '../explore/posts.js';
 
 const TABLE = 'leaderboard';
+// Browser XP plus Explore posts, ranked by the `leaderboard_totals` view.
+const TOTALS = 'leaderboard_totals';
+// XP per Explore post. The view in supabase/schema.sql uses the same number.
+export const POST_XP = 25;
 // The same public name people use when posting to Explore.
 const NAME_KEY = 'rethread.explore.username';
 export const TOP = 50;
@@ -57,18 +61,21 @@ export async function syncXp(user, { username } = {}) {
 }
 
 // The top players, ranked so equal XP shares a place, plus the user's own place.
-export async function loadLeaderboard(me) {
+export async function loadLeaderboard(user) {
   const supabase = await getSupabase();
-  const { data, error } = await supabase.from(TABLE).select('user_id,username,xp').order('xp', { ascending: false }).order('updated_at', { ascending: true }).limit(TOP);
+  const { data: own, error: ownError } = await supabase.from(TOTALS).select('user_id,username,xp,posts').eq('user_id', user.id).maybeSingle();
+  if (ownError) throw ownError;
+  const me = own || { user_id: user.id, username: savedName(user), xp: 0, posts: 0 };
+  const { data, error } = await supabase.from(TOTALS).select('user_id,username,xp').order('xp', { ascending: false }).order('updated_at', { ascending: true }).limit(TOP);
   if (error) throw error;
   let place = 0;
   const rows = data.map((row, i) => {
     if (i === 0 || row.xp !== data[i - 1].xp) place = i + 1;
     return { ...row, rank: place };
   });
-  const listed = rows.find((row) => row.user_id === me.id);
-  if (listed) return { rows, mine: listed };
-  const { count, error: rankError } = await supabase.from(TABLE).select('user_id', { count: 'exact', head: true }).gt('xp', me.xp);
+  const listed = rows.find((row) => row.user_id === user.id);
+  if (listed) return { rows, mine: { ...listed, posts: me.posts } };
+  const { count, error: rankError } = await supabase.from(TOTALS).select('user_id', { count: 'exact', head: true }).gt('xp', me.xp);
   if (rankError) throw rankError;
   return { rows, mine: { ...me, rank: (count || 0) + 1 } };
 }

@@ -42,6 +42,20 @@ export function initAccount(el) {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden' && pushTimer) flush();
   });
+  // XP earned in this tab (src/tutorial/store.js) or another one goes straight to the leaderboard.
+  window.addEventListener('rethread:xp', syncLeaderboard);
+  window.addEventListener('storage', (event) => {
+    if (/^rethread\.(tutorial|academy)\.completion\./.test(event.key || '')) syncLeaderboard();
+  });
+}
+
+// Put this browser's XP on the global leaderboard.
+function syncLeaderboard() {
+  if (!user) return;
+  const u = user;
+  import('../leaderboard/data.js')
+    .then(({ syncXp }) => syncXp(u))
+    .catch((error) => console.warn('[ReThread leaderboard]', error));
 }
 
 async function handleAuth(event, session) {
@@ -62,10 +76,7 @@ async function enterAccount(u) {
   loading = true;
   setStatus('loading');
   closeModal();
-  // Put this browser's XP on the global leaderboard.
-  import('../leaderboard/data.js')
-    .then(({ syncXp }) => syncXp(u))
-    .catch((error) => console.warn('[ReThread leaderboard]', error));
+  syncLeaderboard();
   // show this account's cached copy straight away, then reconcile with the server
   const guestSnapshot = wasGuest ? snapshot() : null;
   const cached = useStorage(u.id);
