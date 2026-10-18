@@ -1,0 +1,241 @@
+/* Account chip, menu and sign-in dialog in the site header on every page.
+   The Fitting Room styles these itself (src/style.css + theme.css). */
+
+.acct-menu a.acct-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+body:not(.fitting-page) .account {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+body:not(.fitting-page) .acct {
+  position: relative;
+}
+body:not(.fitting-page) .account .btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+body:not(.fitting-page) .account .btn:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+body:not(.fitting-page) .account .btn.ghost {
+  width: 100%;
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+body:not(.fitting-page) .account .btn.ghost:hover {
+  background: var(--surface-3);
+}
+body:not(.fitting-page) .account .btn.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+body:not(.fitting-page) .acct-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 3px 3px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 500 12px/1 var(--font-body);
+  cursor: pointer;
+}
+body:not(.fitting-page) .acct-chip.muted {
+  padding: 7px 10px;
+  color: var(--ink-3);
+  cursor: default;
+}
+body:not(.fitting-page) .acct .avatar {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+body:not(.fitting-page) .acct-status {
+  color: var(--ink-2);
+}
+body:not(.fitting-page) .sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+body:not(.fitting-page) .sync-dot.saved {
+  background: var(--ok);
+}
+body:not(.fitting-page) .sync-dot.saving,
+body:not(.fitting-page) .sync-dot.loading {
+  background: var(--warn);
+}
+body:not(.fitting-page) .sync-dot.error,
+body:not(.fitting-page) .sync-dot.nodb {
+  background: var(--danger);
+}
+body:not(.fitting-page) .acct-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 8px 8px 0 var(--accent-2);
+  color: var(--ink);
+  z-index: 50;
+}
+body:not(.fitting-page) .acct-menu[hidden] {
+  display: none;
+}
+body:not(.fitting-page) .acct-email {
+  font-weight: 600;
+  font-size: 13px;
+  word-break: break-all;
+}
+body:not(.fitting-page) .acct-line {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+body:not(.fitting-page) .acct-line.error,
+body:not(.fitting-page) .acct-line.nodb {
+  color: var(--danger);
+}
+@media (max-width: 600px) {
+  body:not(.fitting-page) .acct-status {
+    display: none;
+  }
+}
+
+/* Sign-in dialog */
+body:not(.fitting-page) .auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--scrim) 80%, transparent);
+}
+body:not(.fitting-page) .auth-card {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 26px 26px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 8px 8px 0 var(--accent-2);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+body:not(.fitting-page) .auth-brand {
+  font: 400 24px/1 var(--font-display);
+}
+body:not(.fitting-page) .auth-card h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+}
+body:not(.fitting-page) .auth-sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+body:not(.fitting-page) .auth-card .lbl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+body:not(.fitting-page) .auth-card .lbl[hidden] {
+  display: none;
+}
+body:not(.fitting-page) .auth-card .lbl input {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 14px var(--font-body);
+}
+body:not(.fitting-page) .auth-card .lbl input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+body:not(.fitting-page) .auth-msg {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  border: 1px solid currentColor;
+}
+body:not(.fitting-page) .auth-msg[hidden] {
+  display: none;
+}
+body:not(.fitting-page) .auth-msg.error {
+  color: var(--danger);
+}
+body:not(.fitting-page) .auth-msg.info {
+  color: var(--ok);
+}
+body:not(.fitting-page) .auth-submit {
+  height: 40px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 13px/1 var(--font-body);
+  cursor: pointer;
+}
+body:not(.fitting-page) .auth-submit:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+body:not(.fitting-page) .auth-submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+body:not(.fitting-page) .auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+body:not(.fitting-page) .auth-card .linkish {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: 12.5px var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+}
+body:not(.fitting-page) .auth-card .linkish[hidden] {
+  display: none;
+}
+body:not(.fitting-page) .auth-card .linkish:hover {
+  color: var(--ink);
+}
+body:not(.fitting-page) .auth-card .linkish.guest {
+  align-self: center;
+  color: var(--ink-3);
+}

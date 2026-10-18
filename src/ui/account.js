@@ -3,11 +3,13 @@
 import { getSupabase, supabaseEnabled } from '../supabase.js';
 import { subscribe, snapshot, replaceState, useStorage, guestData } from '../state.js';
 import { escapeHtml } from './escape.js';
+import './account.css';
 
 const TABLE = 'user_data';
 const SKIP = new Set(['tab', 'reset', 'goto:upcycle']);
 
 let user = null;
+let ready = false; // the stored session has been read
 let status = 'idle'; // idle | loading | saving | saved | error | nodb
 let statusMsg = '';
 let loading = false;
@@ -22,10 +24,16 @@ export function initAccount(el) {
   }
   render();
 
-  getSupabase().then((supabase) => supabase.auth.onAuthStateChange((event, session) => {
-    // Supabase advises against awaiting its own calls inside this callback.
-    setTimeout(() => handleAuth(event, session), 0);
-  }));
+  getSupabase()
+    .then((supabase) => supabase.auth.onAuthStateChange((event, session) => {
+      // Supabase advises against awaiting its own calls inside this callback.
+      setTimeout(() => handleAuth(event, session), 0);
+    }))
+    .catch((error) => {
+      console.error('[ReThread auth]', error);
+      ready = true;
+      render();
+    });
 
   subscribe((reason) => {
     if (!user || loading || SKIP.has(reason)) return;
@@ -38,6 +46,7 @@ export function initAccount(el) {
 
 async function handleAuth(event, session) {
   const next = session?.user || null;
+  ready = true;
   if (next?.id === user?.id) {
     if (next) user = next;
     render();
@@ -53,6 +62,10 @@ async function enterAccount(u) {
   loading = true;
   setStatus('loading');
   closeModal();
+  // Put this browser's XP on the global leaderboard.
+  import('../leaderboard/data.js')
+    .then(({ syncXp }) => syncXp(u))
+    .catch((error) => console.warn('[ReThread leaderboard]', error));
   // show this account's cached copy straight away, then reconcile with the server
   const guestSnapshot = wasGuest ? snapshot() : null;
   const cached = useStorage(u.id);
@@ -130,6 +143,13 @@ const STATUS_TEXT = {
 
 function render() {
   if (!root) return;
+  // The profile link is for signed-in accounts.
+  document.querySelectorAll('[data-account-link]').forEach((link) => (link.hidden = !user));
+  if (!ready) {
+    // Until the stored session is read, show nothing rather than a Sign in that flickers away.
+    root.innerHTML = '';
+    return;
+  }
   if (!user) {
     root.innerHTML = `<button class="btn small" id="acct-signin">Sign in</button>`;
     root.querySelector('#acct-signin').addEventListener('click', () => openModal('signin'));
@@ -146,6 +166,7 @@ function render() {
       <div class="acct-menu" id="acct-menu" hidden>
         <div class="acct-email">${escapeHtml(email)}</div>
         <div class="acct-line ${status}">${statusMsg ? escapeHtml(statusMsg) : status === 'saved' ? 'Your closet is saved to your account.' : STATUS_TEXT[status]}</div>
+        <a class="btn small ghost acct-board" href="/leaderboard">Leaderboard</a>
         <button class="btn small ghost" id="acct-sync">Sync now</button>
         <button class="btn small ghost danger" id="acct-out">Sign out</button>
       </div>

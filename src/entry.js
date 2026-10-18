@@ -15,6 +15,8 @@ if (/^\/learn\/?$/.test(location.pathname)) {
   return import('./learn/page.js');
 } else if (/^\/studio\/?$/.test(location.pathname)) {
   return import('./studio/page.js');
+} else if (/^\/leaderboard\/?$/.test(location.pathname)) {
+  return import('./leaderboard/page.js');
 } else if (/^\/(onboarding|settings)\/?$/.test(location.pathname)) {
   return import('./explore/onboarding.js');
 } else if (/^\/(explore|profile)\/?$/.test(location.pathname) || /^\/project(?:\/|$)/.test(location.pathname)) {

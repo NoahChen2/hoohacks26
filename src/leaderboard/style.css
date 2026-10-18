@@ -1,0 +1,167 @@
+.board-main {
+  max-width: 760px;
+  margin: auto;
+  padding: 50px 28px 65px;
+}
+.board-main h1 {
+  font: 600 clamp(36px, 5vw, 58px) / 1.08 var(--font-display);
+  letter-spacing: -1.6px;
+  margin: 0 0 18px;
+}
+.board-main h2 {
+  font: 500 28px var(--font-display);
+  margin: 36px 0 14px;
+}
+.board-intro {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--ink-2);
+  max-width: 600px;
+}
+.board-notice {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.board-you {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 24px;
+  align-items: end;
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 8px 8px 0 var(--accent-2);
+}
+.board-you > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.board-you span {
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.board-you strong {
+  font: 600 32px/1 var(--font-display);
+  color: var(--ink);
+}
+.board-name-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  justify-self: end;
+}
+.board-name-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.board-name-form input {
+  width: 180px;
+  padding: 9px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 13px var(--font-body);
+}
+.board-name-form button {
+  height: 37px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 12px var(--font-body);
+  cursor: pointer;
+}
+.board-name-form button:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+.board-form-msg {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+.board-form-msg:empty {
+  display: none;
+}
+.board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.board-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.board-row.is-you {
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.board-rank {
+  font: 600 18px var(--font-display);
+  color: var(--ink-3);
+}
+.board-row:nth-child(-n + 3) .board-rank {
+  color: var(--accent);
+}
+.board-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board-name small {
+  margin-left: 6px;
+  padding: 2px 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 10px var(--font-mono);
+  text-transform: uppercase;
+}
+.board-xp {
+  font: 500 13px var(--font-mono);
+  color: var(--ink-2);
+}
+.board-gap {
+  padding: 6px 14px;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 640px) {
+  .board-main {
+    padding: 32px 16px 40px;
+  }
+  .board-you {
+    grid-template-columns: 1fr 1fr;
+  }
+  .board-name-form {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+  .board-name-form label,
+  .board-name-form input {
+    flex: 1;
+    width: 100%;
+  }
+  .board-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    padding: 12px 10px;
+  }
+}

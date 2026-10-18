@@ -9,12 +9,11 @@ import { renderBodyPanel } from './ui/bodyPanel.js';
 import { renderClosetPanel } from './ui/closetPanel.js';
 import { renderUpcyclePanel, previewEvents, setPreview } from './ui/upcyclePanel.js';
 import { GARMENT_TYPES } from './state.js';
-import { initAccount } from './ui/account.js';
 import { escapeHtml } from './ui/escape.js';
 import { wireEmoteButton } from './ui/emoteButton.js';
 
 document.body.classList.add('fitting-page');
-document.getElementById('site-header').outerHTML = siteHeader('fitting', { account: true });
+document.getElementById('site-header').outerHTML = siteHeader('fitting');
 installShell();
 
 const panel = document.getElementById('panel');
@@ -259,4 +258,3 @@ applyOpts();
 renderCaption();
 const initialTab = location.hash.slice(2).split('/')[0];
 switchTab(PANELS[initialTab] ? initialTab : PANELS[state.tab] ? state.tab : 'body', { fromRoute: true });
-initAccount(document.getElementById('account'));

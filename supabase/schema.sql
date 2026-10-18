@@ -134,3 +134,28 @@ drop policy if exists "upload own post images" on storage.objects;
 create policy "upload own post images" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Leaderboard: each signed-in user's XP from Academy lessons and finished
+-- projects. Signed-in users can read every row; each user writes only their own.
+-- XP is reported by the browser, so this is a friendly scoreboard, not a secure one.
+create table if not exists public.leaderboard (
+  user_id    uuid        primary key default auth.uid() references auth.users (id) on delete cascade,
+  username   text        not null check (username ~ '^[a-z0-9._]{2,30}$'),
+  xp         int         not null default 0 check (xp between 0 and 1000000),
+  updated_at timestamptz not null default now()
+);
+create index if not exists leaderboard_xp_idx on public.leaderboard (xp desc);
+
+alter table public.leaderboard enable row level security;
+
+drop policy if exists "signed-in users read the leaderboard" on public.leaderboard;
+create policy "signed-in users read the leaderboard" on public.leaderboard
+  for select to authenticated using (true);
+
+drop policy if exists "insert own leaderboard row" on public.leaderboard;
+create policy "insert own leaderboard row" on public.leaderboard
+  for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists "update own leaderboard row" on public.leaderboard;
+create policy "update own leaderboard row" on public.leaderboard
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
