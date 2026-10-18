@@ -236,9 +236,9 @@ export function createScene(container, { characterAsset = null, quality = detect
     }
     const { geometry } = body, { position, normal, basePosition } = geometry.attributes;
     morphBody(base.attributes.position.array, base.regions, from, { model: measuredModel, sampler }, basePosition.array);
-    vertexNormals(basePosition.array, geometry.index.array, normal.array);
     position.array.set(basePosition.array);
-    applyPresentation(geometry, measuredModel, settings.proportions);
+    applyPresentation(geometry, measuredModel, settings.proportions, { normals: false });
+    vertexNormals(position.array, geometry.index.array, normal.array);
     position.needsUpdate = normal.needsUpdate = basePosition.needsUpdate = true;
     // Bounds only feed draw sorting (culling is off for the posed figure).
     if (!geometry.boundingSphere) geometry.computeBoundingSphere();

@@ -1,11 +1,26 @@
 // Presentation-only deformation. Canonical centimetre measurements and fit math
 // never pass through this module. Apply the same map to body AND clothes.
+
+// Stylized leg length: the rendered crotch sits this fraction of stature below
+// the measured inseam, and the torso lengthens so stature is unchanged. The
+// leg-to-torso slider adjusts around it. Appearance only; fit uses the inseam.
+export const LEG_STYLE = .045;
+
+const hipHalfWidth = new WeakMap();
+const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
 export function presentationPoint(x, y, z, model, proportions) {
   const p = proportions, H = model.lm.H, t = y / H;
   const bump = (center, width) => Math.exp(-(((t - center) / width) ** 2));
-  const legShift = H * .035 * (p.legRatio - p.torsoLength * .55);
-  const crotch = model.lm.crotchY;
-  const influence = y <= crotch ? y / crotch : Math.max(0, (model.lm.neckBaseY - y) / (model.lm.neckBaseY - crotch));
+  const legShift = H * (.035 * (p.legRatio - p.torsoLength * .55) - LEG_STYLE);
+  const crotch = model.lm.crotchY, neck = model.lm.neckBaseY;
+  const influenceAt = h => h <= crotch ? h / crotch : Math.max(0, (neck - h) / (neck - crotch));
+  // Arms hang from the shoulder: they move with it rather than stretching with
+  // the torso (hands beside the thighs would otherwise follow the legs).
+  let hips = hipHalfWidth.get(model);
+  if (hips === undefined) hipHalfWidth.set(model, hips = model.profileAt(model.lm.hipY).rx);
+  const arm = y < model.lm.shoulderY ? smooth(hips + 1.5, hips + 5, Math.abs(x)) : 0;
+  const influence = influenceAt(y) + (influenceAt(model.jointR.y) - influenceAt(y)) * arm;
   const newY = y + legShift * influence;
   const shoulder = 1 + p.shoulderBreadth * .10 * bump(.79, .065);
   const full = 1 + p.fullness * .10 * bump(.61, .20);
@@ -19,7 +34,7 @@ export function presentationPoint(x, y, z, model, proportions) {
   newX = side * armX + (newX - side * armX) * armScale;
   newZ *= armScale;
   if (y < model.lm.hipY) {
-    const midlineWeight = Math.min(1, Math.abs(x) / (model.lm.legX * .75));
+    const midlineWeight = Math.min(1, Math.abs(x) / (model.lm.legX * .75)) * (1 - arm);
     const scale = 1 + (p.thighVolume * .16 * bump(.40, .09) + p.calfVolume * .23 * bump(.20, .06)) * midlineWeight;
     const axis = side * model.lm.legX;
     newX = axis + (newX - axis) * scale;
@@ -28,15 +43,13 @@ export function presentationPoint(x, y, z, model, proportions) {
   return [newX, newY, newZ];
 }
 
-// All cosmetic sliders at zero map every point to itself.
-export const isNeutralPresentation = p => !(p.shoulderBreadth || p.torsoLength || p.legRatio || p.upperArmVolume || p.thighVolume || p.calfVolume || p.fullness);
-
-export function applyPresentation(geometry, model, proportions) {
-  if (isNeutralPresentation(proportions)) return geometry;
+// `normals: false` skips the per-vertex normal Jacobian for callers that rebuild
+// normals from the presented positions anyway (cheaper for the welded body).
+export function applyPresentation(geometry, model, proportions, { normals: transformNormals = true } = {}) {
   const positions = geometry.attributes.position;
   // Finite-difference Jacobian transforms smooth implicit normals, retaining the
   // continuity across marching-cubes triangles instead of creating faceted normals.
-  const normals = geometry.attributes.normal;
+  const normals = transformNormals ? geometry.attributes.normal : null;
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
     const point = presentationPoint(x, y, z, model, proportions);
