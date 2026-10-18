@@ -1,3 +1,4 @@
+import { renderCommunityPanel, initCommunityNavigation } from './ui/communityPanel.js';
 import { state, emit, subscribe, selectedGarment } from './state.js';
 import { createScene } from './scene.js';
 import { fitWord } from './model.js';
@@ -6,6 +7,16 @@ import { renderClosetPanel } from './ui/closetPanel.js';
 import { renderUpcyclePanel, previewEvents, setPreview } from './ui/upcyclePanel.js';
 import { GARMENT_TYPES } from './state.js';
 import { initAccount } from './ui/account.js';
+import { disposeCharacterScenes } from './avatar/lifecycle.js';
+import { installInteractionEffects } from './avatar/interactionEffects.js';
+import './visual-system.css';
+
+function syncRealm() {
+ const index={cultivation:0,garden:1,fantasy:2,runway:3,cyber:4}[state.progression.theme]||0;
+ document.body.dataset.realm=state.progression.theme;
+ document.body.style.setProperty('--realm-x',`${index%3*50}%`);document.body.style.setProperty('--realm-y',`${Math.floor(index/3)*100}%`);
+}
+syncRealm();installInteractionEffects(()=>state.progression);
 
 const panel = document.getElementById('panel');
 const caption = document.getElementById('stage-caption');
@@ -13,11 +24,16 @@ const scene = createScene(document.getElementById('viewport'));
 
 let preview = null; // { g, label }
 
-const PANELS = { body: renderBodyPanel, closet: renderClosetPanel, upcycle: renderUpcyclePanel };
+function renderLazyCharacterPanel(el) {
+  el.innerHTML='<p role="status">Opening your character pavilion…</p>';
+  import('./avatar/pavilion.js').then(({renderCharacterPanel})=>{if(state.tab==='character')renderCharacterPanel(el);});
+}
+const PANELS = { body: renderBodyPanel, closet: renderClosetPanel, upcycle: renderUpcyclePanel, community: renderCommunityPanel, character:renderLazyCharacterPanel };
 
 function switchTab(tab) {
+  disposeCharacterScenes(panel);
   state.tab = tab;
-  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab || tab==='character'&&b.dataset.tab==='community'));
   panel.scrollTop = 0;
   PANELS[tab](panel);
   emit('tab');
@@ -65,8 +81,9 @@ previewEvents.addEventListener('preview', (e) => {
 });
 
 subscribe((reason) => {
+  syncRealm();
   if (reason === 'goto:upcycle') return switchTab('upcycle');
-  if (reason === 'tab' || reason === 'tools') return;
+  if (['tab','tools','avatar','avatar-preference','progression','reward'].includes(reason)) return;
   if (reason === 'select' || reason === 'garment') preview = null;
   if (reason === 'reset') switchTab(state.tab);
   syncScene();
@@ -95,3 +112,5 @@ applyOpts();
 renderCaption();
 switchTab(state.tab && PANELS[state.tab] ? state.tab : 'body');
 initAccount(document.getElementById('account'));
+
+initCommunityNavigation(switchTab);

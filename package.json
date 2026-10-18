@@ -6,13 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/progression.test.js tests/avatar.test.js tests/illustration.test.js",
+    "test:browser": "node tests/browser-flow.mjs",
+    "test:worlds": "node tests/world-presentation.mjs",
+    "test:avatar": "node tests/avatar-browser.mjs",
+    "typecheck": "tsc --allowJs --checkJs --noEmit --target es2022 --module esnext --moduleResolution bundler src/avatar/effects.js",
+    "test:illustration": "node tests/illustration-browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "typescript": "^7.0.2",
     "vite": "^5.4.10"
   }
 }

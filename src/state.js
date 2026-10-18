@@ -1,3 +1,4 @@
+import { migrateProgress } from './progression.js';
 // Central app state with localStorage persistence and a tiny pub/sub.
 
 const KEY = 'restitch.v1';
@@ -162,6 +163,7 @@ function load(key = storageKey) {
 }
 
 export const state = load() || initialState();
+state.progression = migrateProgress(state.progression ? {...state.progression,avatar:state.progression.avatar||state.avatar,inventory:state.progression.inventory||state.inventory} : {xp:state.xp,currency:state.currency,avatar:state.avatar,inventory:state.inventory});
 const subs = new Set();
 
 export function subscribe(fn) {
@@ -177,6 +179,7 @@ function persistLocal() {
 
 let saveTimer;
 export function emit(reason = 'change') {
+  persistLocal();
   subs.forEach((fn) => fn(reason));
   clearTimeout(saveTimer);
   saveTimer = setTimeout(persistLocal, 250);
@@ -190,7 +193,7 @@ export function snapshot() {
 
 export function replaceState(data) {
   const tab = state.tab;
-  const next = { ...initialState(), ...data, tab };
+  const next = { ...initialState(), ...data, tab, progression: migrateProgress(data.progression || state.progression) };
   Object.keys(state).forEach((k) => delete state[k]);
   Object.assign(state, next);
   persistLocal();

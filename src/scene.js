@@ -12,7 +12,7 @@ const MARGIN = 12;
 const PPC = 6; // px per cm
 
 export function createScene(container) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -22,7 +22,7 @@ export function createScene(container) {
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#efe9df');
+  scene.background = null;
   scene.fog = new THREE.Fog('#efe9df', 6, 14);
 
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
