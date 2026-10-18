@@ -35,7 +35,7 @@ export function renderBodyPanel(el) {
       </div>
       <p>Builds set editable measurement values. Manual edits always take precedence.</p>
     </section>
-    <div class="body-preview-note"><strong>Procedural body preview</strong><span>One continuous surface; no rigged character asset is installed. Anatomy and bust distribution are approximations, not a body scan. Detailed faces and hair are outside this review.</span></div>
+    <div class="body-preview-note"><strong>Your fitting model</strong><span>Use your tape measurements for fit and cutting guides. This adjustable model is an approximate preview; your illustrated maker character lives in the Character tab.</span></div>
     <h3 class="body-subheading">Fit measurements <small>cm</small></h3>
     <div class="presets" aria-label="Clothing size starting points">${Object.keys(BODY_PRESETS)
       .map((k) => `<button class="pill" data-preset="${k}" aria-pressed="${character.sizePreset===k}">${k}</button>`)

@@ -13,24 +13,25 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <header class="topbar">
+    <a class="skip-link" href="#main-content">Skip to workspace</a><header class="topbar">
       <div class="brand">
         <span class="logo">✂</span>
         <span class="name">ReStitch</span>
         <span class="tag">upcycle studio</span>
       </div>
-      <nav class="tabs" id="tabs">
+      <nav class="tabs" id="tabs" aria-label="Main navigation">
         <button disabled data-tab="body" class="active"><b>1</b> Body</button>
         <button disabled data-tab="closet"><b>2</b> Closet</button>
-        <button disabled data-tab="upcycle"><b>3</b> Upcycle</button><button disabled data-tab="community">Ranks &amp; schools</button>
+        <button disabled data-tab="upcycle"><b>3</b> Upcycle</button><button disabled data-tab="community">Ranks &amp; schools</button><button disabled data-tab="character">Character</button>
       </nav>
       <div class="account" id="account"></div>
     </header>
 
-    <main class="layout">
-      <aside class="panel" id="panel"></aside>
+    <div class="studio-journey" aria-label="Your making journey"><div><span class="journey-kicker">A second life for every thread</span><strong id="journey-title">Make it fit. Make it yours.</strong><span id="journey-description">Measure your fit, rework your clothes, and grow your maker story.</span></div><a class="journey-progress" href="#/character" id="journey-progress" aria-label="View character progress">Your maker journey</a></div>
+    <main class="layout" id="main-content">
+      <aside class="panel" id="panel" tabindex="-1"><p role="status">Opening your studio?</p></aside>
 
-      <section class="stage">
+      <section class="stage" aria-label="Interactive garment fitting preview">
         <div id="viewport"></div>
         <div class="stage-toolbar">
           <label class="chip"><input type="checkbox" id="tg-body" checked /> Body</label>
@@ -51,7 +52,7 @@
     </main>
 
     <div class="overlay" id="overlay" hidden>
-      <div class="sheet" id="sheet"></div>
+      <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="project-title" tabindex="-1"></div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

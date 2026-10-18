@@ -12,7 +12,8 @@
     "test:worlds": "node tests/world-presentation.mjs",
     "test:avatar": "node tests/avatar-browser.mjs",
     "typecheck": "tsc --noEmit && tsc --ignoreConfig --allowJs --checkJs --noEmit --target es2022 --module esnext --moduleResolution bundler src/avatar/effects.js",
-    "test:illustration": "node tests/illustration-browser.mjs"
+    "test:illustration": "node tests/illustration-browser.mjs",
+    "test:workspace": "node tests/workspace-browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",

@@ -1,3 +1,4 @@
+import { escapeHtml as esc } from './rankCrest.js';
 import { completeProject, WORLDS, SCHOOLS } from '../progression.js';
 import { rankProgress } from './communityPanel.js';
 import { ITEM_BY_ID } from '../avatar/items.js';
@@ -23,7 +24,7 @@ export function renderUpcyclePanel(el) {
     </div>
     <div class="pick-row">${state.garments
       .map(
-        (x) => `<button class="g-mini ${x.id === g?.id ? 'active' : ''}" data-id="${x.id}" title="${x.name}">${flatSVG(x, { width: 44, pad: 5, flaws: false })}<span>${x.name}</span></button>`
+        (x) => `<button class="g-mini ${x.id === g?.id ? 'active' : ''}" data-id="${x.id}" title="${esc(x.name)}">${flatSVG(x, { width: 44, pad: 5, flaws: false })}<span>${esc(x.name)}</span></button>`
       )
       .join('')}</div>
     <section class="sec">
@@ -56,7 +57,7 @@ export function renderUpcyclePanel(el) {
 function renderResults(box) {
   const g = selectedGarment();
   if (!g) {
-    box.innerHTML = '<p class="muted">Add something to your closet first.</p>';
+    box.innerHTML = '<div class="empty-state"><h3>Your next project starts with a piece.</h3><p>Add a garment to your closet to see ideas tailored to its fabric and your fit.</p><a class="btn" href="#/closet">Add a garment</a></div>';
     return;
   }
   const { ctx, list } = suggest(g, state.body, state.garments, state.tools);
@@ -66,7 +67,7 @@ function renderResults(box) {
   const needs = list.filter((r) => r.missing.length);
   box.innerHTML = `
     <section class="sec fit">
-      <h3>How “${g.name}” fits you</h3>
+      <h3>How “${esc(g.name)}” fits you</h3>
       <div class="fit-meta">${GARMENT_TYPES[g.type].label} · ${MATERIALS[g.material].label} · ${PATTERN_LABELS[g.pattern]}${g.stains ? ' · stain' : ''}${g.holes ? ' · hole' : ''}</div>
       ${fit
         .map(([label, ease, word, cls]) => {
@@ -137,8 +138,8 @@ export function openSheet(r) {
   sheet.innerHTML = `
     <header class="sheet-head">
       <div>
-        <div class="eyebrow">${p.icon} Custom plan for “${g.name}”</div>
-        <h2>${p.title}</h2>
+        <div class="eyebrow">${p.icon} Custom plan for “${esc(g.name)}”</div>
+        <h2 id="project-title">${p.title}</h2>
         <div class="c-meta">${['', 'Easy', 'Medium', 'Advanced'][p.difficulty]} · ${p.time} · ${toolsNeeded}</div>
       </div>
       <div class="sheet-actions">
@@ -182,8 +183,19 @@ export function openSheet(r) {
     feedback.insertAdjacentHTML('beforeend',`<p class="cosmetic-next">${nextTier<8?`${THRESHOLDS[nextTier]-progress.xp} XP to your next free cosmetic: ${ITEM_BY_ID[`${progress.theme}-milestone-${nextTier}`].name}`:'All free rank cosmetics unlocked.'}</p>`);
     if(result.rankUp) import('../avatar/BreakthroughDialog.js').then(({showBreakthrough})=>{if(state.progression===progress)showBreakthrough(progress,result);});
   });
+  const opener = document.activeElement;
   overlay.hidden = false;
-  const close = () => (overlay.hidden = true);
+  sheet.focus();
+  const close = () => { overlay.hidden = true; if (opener?.isConnected) opener.focus(); };
+  overlay.onkeydown = event => {
+    if (event.key === 'Escape') { event.stopPropagation(); close(); }
+    if (event.key === 'Tab') {
+      const controls = [...sheet.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(el => el.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+  };
   sheet.querySelector('#sh-close').addEventListener('click', close);
   sheet.querySelector('#sh-print').addEventListener('click', () => window.print());
   sheet.querySelector('#sh-prev')?.addEventListener('click', () => {
