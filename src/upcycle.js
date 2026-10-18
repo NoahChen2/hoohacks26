@@ -6,6 +6,7 @@ import { GARMENT_TYPES, MATERIALS, TOOLS } from './state.js';
 import { bodyModel, perim } from './model.js';
 import { flatSVG, topLandmarks, bottomLandmarks, skirtLandmarks, flawSpots, rectShape, polyShape, circleShape } from './flats.js';
 import { PATTERN_LABELS } from './patterns.js';
+import { escapeHtml } from './ui/escape.js';
 
 // ---------------------------------------------------------------- helpers
 
@@ -190,7 +191,7 @@ P.push({
     return [
       {
         title: 'Measure & mark',
-        text: `Lay the ${g.name.toLowerCase()} flat, front up, smoothing out wrinkles. From the top of the shoulder seam (where it meets the collar) measure ${fmt(cut)} straight down. Mark this at both sides and the centre, then join the marks with chalk or pins.${allow ? ` That includes ${fmt(allow)} for the hem.` : ''}<br><em>${patternTip(g)}</em>`,
+        text: `Lay the ${escapeHtml(g.name.toLowerCase())} flat, front up, smoothing out wrinkles. From the top of the shoulder seam (where it meets the collar) measure ${fmt(cut)} straight down. Mark this at both sides and the centre, then join the marks with chalk or pins.${allow ? ` That includes ${fmt(allow)} for the hem.` : ''}<br><em>${patternTip(g)}</em>`,
         svg: flatSVG(g, {
           overlays: [
             { type: 'dim', a: [dimX, 0], b: [dimX, cut], text: lbl(cut), dx: 5, dy: 0 },
@@ -509,7 +510,7 @@ P.push({
     if (!c.g.stains && !c.g.holes) return null;
     let score = 50 + (c.g.holes ? 25 : 10);
     const why = [c.g.holes ? 'This patches the hole so it won’t grow, and makes the repair a design feature.' : 'This covers the stain with a decorative patch.'];
-    if (c.donor) why.push(`Patch fabric: your “${c.donor.name}” (${PATTERN_LABELS[c.donor.pattern].toLowerCase()}) contrasts nicely.`);
+    if (c.donor) why.push(`Patch fabric: your “${escapeHtml(c.donor.name)}” (${PATTERN_LABELS[c.donor.pattern].toLowerCase()}) contrasts nicely.`);
     return { score, why };
   },
   steps(c) {
@@ -526,7 +527,7 @@ P.push({
     return [
       {
         title: 'Cut the patch',
-        text: `From ${c.donor ? `your “${c.donor.name}”` : 'a scrap of sturdy fabric'}, cut a circle ${fmt(r * 2)} across, which overlaps the damage by at least 2 cm all round.${c.g.holes ? ` Also cut a slightly larger backing piece (${fmt(r * 2 + 2)}) to go inside.` : ''}`,
+        text: `From ${c.donor ? `your “${escapeHtml(c.donor.name)}”` : 'a scrap of sturdy fabric'}, cut a circle ${fmt(r * 2)} across, which overlaps the damage by at least 2 cm all round.${c.g.holes ? ` Also cut a slightly larger backing piece (${fmt(r * 2 + 2)}) to go inside.` : ''}`,
         svg: flatSVG(donor, { shape: circleShape(r), pad: 3, overlays: [{ type: 'dim', a: [-r, r + 1.5], b: [r, r + 1.5], text: lbl(r * 2), size: 1.4, dy: 1.6 }] }),
       },
       {
@@ -750,7 +751,7 @@ P.push({
     if (c.fit.chest >= 3 && c.fit.waist >= 0) return null;
     const { wA } = this.widths(c);
     const why = [`It's ${c.fit.chest < 0 ? lbl(-c.fit.chest) + ' too small' : 'very snug'} at the chest. Adding ${lbl(wA)}-wide panels to each side gives you room to move.`];
-    if (c.donor) why.push(`Panel fabric: your “${c.donor.name}” for a two-tone look.`);
+    if (c.donor) why.push(`Panel fabric: your “${escapeHtml(c.donor.name)}” for a two-tone look.`);
     return { score: 50 + Math.min(40, -c.fit.chest * 4 + 10), why };
   },
   steps(c) {
@@ -781,7 +782,7 @@ P.push({
       },
       {
         title: 'Cut two panels',
-        text: `From ${c.donor ? `your “${c.donor.name}”` : 'contrast fabric'}, cut 2 tapered panels: ${fmt(wA + 3)} wide at the top, ${fmt(wH + 3)} at the bottom and ${fmt(panelH)} tall. That includes ${fmt(1.5)} seam allowance on each long side. ${patternTip(donor)}`,
+        text: `From ${c.donor ? `your “${escapeHtml(c.donor.name)}”` : 'contrast fabric'}, cut 2 tapered panels: ${fmt(wA + 3)} wide at the top, ${fmt(wH + 3)} at the bottom and ${fmt(panelH)} tall. That includes ${fmt(1.5)} seam allowance on each long side. ${patternTip(donor)}`,
         svg: flatSVG(donor, {
           shape: trap,
           pad: 5,

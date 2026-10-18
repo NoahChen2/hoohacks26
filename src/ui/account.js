@@ -1,7 +1,8 @@
 // Login / account UI + cloud sync of the user's body, closet and tools to Supabase.
 
-import { supabase } from '../supabase.js';
+import { getSupabase, supabaseEnabled } from '../supabase.js';
 import { subscribe, snapshot, replaceState, useStorage, guestData } from '../state.js';
+import { escapeHtml } from './escape.js';
 
 const TABLE = 'user_data';
 const SKIP = new Set(['tab', 'reset', 'goto:upcycle']);
@@ -15,16 +16,16 @@ let root;
 
 export function initAccount(el) {
   root = el;
-  if (!supabase) {
-    root.innerHTML = '<span class="acct-chip muted" title="Add Supabase keys to .env.local to enable accounts">Guest · saved on this device</span>';
+  if (!supabaseEnabled) {
+    root.innerHTML = '<span class="acct-chip muted" title="Guest mode: your changes are saved in this browser. Cloud accounts are unavailable.">Guest · saved on this device</span>';
     return;
   }
   render();
 
-  supabase.auth.onAuthStateChange((event, session) => {
+  getSupabase().then((supabase) => supabase.auth.onAuthStateChange((event, session) => {
     // Supabase advises against awaiting its own calls inside this callback.
     setTimeout(() => handleAuth(event, session), 0);
-  });
+  }));
 
   subscribe((reason) => {
     if (!user || loading || SKIP.has(reason)) return;
@@ -57,7 +58,7 @@ async function enterAccount(u) {
   const cached = useStorage(u.id);
   if (cached) replaceState(cached);
 
-  const { data, error } = await supabase.from(TABLE).select('data').eq('user_id', u.id).maybeSingle();
+  const { data, error } = await (await getSupabase()).from(TABLE).select('data').eq('user_id', u.id).maybeSingle();
   if (error) {
     loading = false;
     return failed(error);
@@ -99,7 +100,7 @@ async function push() {
   pushTimer = null;
   if (!user) return;
   setStatus('saving');
-  const { error } = await supabase.from(TABLE).upsert({ user_id: user.id, data: snapshot(), updated_at: new Date().toISOString() });
+  const { error } = await (await getSupabase()).from(TABLE).upsert({ user_id: user.id, data: snapshot(), updated_at: new Date().toISOString() });
   if (error) return failed(error);
   setStatus('saved');
 }
@@ -159,7 +160,7 @@ function render() {
   root.querySelector('#acct-sync').addEventListener('click', flush);
   root.querySelector('#acct-out').addEventListener('click', async () => {
     if (pushTimer) await push();
-    await supabase.auth.signOut();
+    await (await getSupabase()).auth.signOut();
   });
 }
 
@@ -230,14 +231,14 @@ function openModal(mode = 'signin') {
     btn.textContent = 'Please wait…';
     try {
       if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await (await getSupabase()).auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } });
+        const { data, error } = await (await getSupabase()).auth.signUp({ email, password, options: { emailRedirectTo: location.origin } });
         if (error) throw error;
         if (!data.session) show(`Check ${email} for a confirmation link, then sign in.`, 'info');
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+        const { error } = await (await getSupabase()).auth.resetPasswordForEmail(email, { redirectTo: location.origin });
         if (error) throw error;
         show(`If an account exists for ${email}, a reset link is on its way.`, 'info');
       }
@@ -265,8 +266,4 @@ function friendly(err) {
   if (/already registered/i.test(m)) return 'That email already has an account. Try signing in.';
   if (/rate limit/i.test(m)) return 'Too many attempts. Wait a minute and try again.';
   return m;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
