@@ -18,3 +18,7 @@ body { --realm-x:0%; --realm-y:0%; background:#0b1724; }
 .interaction-canvas { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none !important; z-index:2147483000; }
 .rank-list .character-portrait { border-radius:14px; filter:drop-shadow(0 2px 5px #05101c30); }
 @media(prefers-reduced-motion:reduce) { .topbar .tabs button { transition:none; } }
+
+/* Keep project and account dialogs above the studio panels. */
+#overlay { z-index: 100; }
+.auth-overlay { z-index: 110; }
