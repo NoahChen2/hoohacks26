@@ -1,7 +1,7 @@
 import {loadPreferences} from './explore/preferences.js';
 async function bootPage(){
 if(location.pathname==='/'){
-  location.replace(`/explore${location.search}${location.hash}`);
+  location.replace(`/settings${location.search}${location.hash}`);
   return;
 }
 if (/^\/studio\/?$/.test(location.pathname)) {
