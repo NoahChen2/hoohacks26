@@ -70,6 +70,24 @@ test('identify endpoint: demo without a key, validated live output, honest error
   assert.equal(res.status,405);
 });
 
+test('the AI scan estimates the wearer’s body, and only when someone is wearing the clothes',async()=>{
+  const reply=(body)=>async()=>({ok:true,status:200,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(body)}]}}]})});
+  const tee={type:'tshirt',name:'White tee',color:'#ffffff',color2:'#ffffff',pattern:'solid',material:'cotton',fit:'regular',length:'regular',sleeves:'short',stains:false,holes:false};
+  let sent;
+  const worn=await identifyClothing({imageDataUrl:PNG},{env:{GEMINI_API_KEY:'k'},fetchImpl:async(url,init)=>{sent=JSON.parse(init.body);return reply({garments:[tee],body:{visible:true,frame:'male',build:'athletic',size:'L',height:250,skin:'umber',hair:'curls',hairColor:'black'},notes:''})();}});
+  assert.deepEqual(sent.generationConfig.responseSchema.required,['garments','body','notes']);
+  assert.ok(sent.generationConfig.responseSchema.properties.body.properties.size.enum.includes('3XL'));
+  assert.deepEqual(worn.body,{frame:'male',build:'athletic',size:'L',height:205,skin:'umber',hair:'curls',hairColor:'black'},'height is clamped to the supported range');
+  assert.ok(sent.generationConfig.responseSchema.properties.body.properties.skin.enum.includes('espresso'));assert.match(sent.systemInstruction.parts[0].text,/skin tone \(porcelain #fbe0cf/);
+  const noHair=await identifyClothing({imageDataUrl:PNG},{env:{GEMINI_API_KEY:'k'},fetchImpl:reply({garments:[tee],body:{visible:true,frame:'male',build:'athletic',size:'L',height:180,skin:'umber',hair:'afro-puffs',hairColor:'black'},notes:''})});
+  assert.equal(noHair.body,null,'an unknown hairstyle drops the estimate');
+  assert.match(worn.notice,/3D body/);
+  const flat=await identifyClothing({imageDataUrl:PNG},{env:{GEMINI_API_KEY:'k'},fetchImpl:reply({garments:[tee],body:{visible:false,frame:'neutral',build:'average',size:'M',height:170,skin:'sand',hair:'crop',hairColor:'dark-brown'},notes:''})});
+  assert.equal(flat.body,null,'flat lays leave the body alone');assert.match(flat.notice,/left as it is/);
+  const odd=await identifyClothing({imageDataUrl:PNG},{env:{GEMINI_API_KEY:'k'},fetchImpl:reply({garments:[tee],body:{visible:true,frame:'robot',build:'average',size:'M',height:170,skin:'sand',hair:'crop',hairColor:'dark-brown'},notes:''})});
+  assert.equal(odd.body,null,'an estimate outside the schema is dropped, the garments kept');assert.equal(odd.garments.length,1);
+});
+
 test('Gemini free tier scans the photo, falls back to the lite model when rate limited, and repairs colours',async()=>{
   const calls=[];
   const reply=(status,body)=>({ok:status<300,status,json:async()=>body});

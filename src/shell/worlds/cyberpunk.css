@@ -1,0 +1,59 @@
+/* Cyberpunk world theme (html[data-world='cyberpunk']). Owns only selectors scoped to
+   this world; shared mechanics live in ../worlds.css. */
+
+html[data-space][data-world='cyberpunk'],
+[data-world-scope='cyberpunk'] {
+  --bg: #090b18;
+  --surface: #10142a;
+  --surface-2: #171c3a;
+  --surface-3: #222a52;
+  --line: #34407a;
+  --ink: #e9f6ff;
+  --ink-2: #b3c6e6;
+  --ink-3: #8394c4;
+  --accent: #5cf2d6;
+  --accent-2: #ff4fb0;
+  --on-accent: #090b18;
+  --danger: #ff5c7a;
+  --ok: #5cf2d6;
+  --warn: #ffe156;
+  --loose-c: #7f9cff;
+  --scrim: #04050c;
+  --font-display: 'Orbitron', 'Eurostile', sans-serif;
+  --world-glyph: '⌘';
+  color-scheme: dark;
+}
+
+html[data-space][data-world='cyberpunk'] body:not(.fitting-page) {
+  background:
+    linear-gradient(rgba(92, 242, 214, 0.06) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgba(255, 79, 176, 0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    var(--bg) !important;
+}
+
+/* ---------- Cyberpunk: cut-corner neon */
+html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost), .site-nav-link[aria-current='page']),
+[data-world-scope='cyberpunk'] .world-sample {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border: 0 !important;
+  font-family: var(--font-mono) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+html[data-space][data-world='cyberpunk'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
+  background: var(--accent-2) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.onboard-form, .studio-upload, .body-card) {
+  box-shadow: 5px 5px 0 var(--accent-2) !important;
+}
+html[data-space][data-world='cyberpunk'] :is(.preference-choice, .world-choice).selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 16px rgba(92, 242, 214, 0.35);
+}
+html[data-space][data-world='cyberpunk'] :is(h1, h2) {
+  text-transform: uppercase;
+  letter-spacing: 0.04em !important;
+}

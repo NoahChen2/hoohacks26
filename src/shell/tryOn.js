@@ -2,31 +2,32 @@
 // sized for the saved body, so it can be previewed on the 3D figure in place.
 import { scannedGarments } from '../tryon/outfitStore.js';
 
-// Project kinds that map onto a wearable 3D garment; bags and aprons do not.
-const KIND_TO_TYPE = {
-  denim: 'cami', cami: 'cami', halter: 'crop', vest: 'vest',
-  cardigan: 'cardigan', hoodie: 'hoodie', jacket: 'jacket',
-  wrap: 'buttonup', shirt: 'buttonup', tee: 'tshirt',
-  skirt: 'skirt', jeans: 'jeans', trousers: 'jeans', dress: 'dress',
+// Each project kind as its cover illustration draws it
+// (scripts/generate-explore-assets.mjs), in garmentFromSpec's words. Bags and
+// aprons are not worn on the body.
+const KIND_SHAPES = {
+  denim: { type: 'cami', neckline: 'strapless', fit: 'fitted', length: 'cropped' }, // laced corset top
+  cami: { type: 'cami' },
+  halter: { type: 'cami', neckline: 'halter', fit: 'relaxed', length: 'short' }, // flared halter
+  vest: { type: 'vest' },
+  cardigan: { type: 'cardigan', sleeves: 'long' },
+  hoodie: { type: 'hoodie' },
+  jacket: { type: 'jacket' },
+  wrap: { type: 'buttonup', sleeves: 'long' },
+  shirt: { type: 'buttonup', sleeves: 'long' },
+  tee: { type: 'tshirt', sleeves: 'short' },
+  skirt: { type: 'skirt', length: 'long' }, // A-line to the knee
+  jeans: { type: 'jeans' },
+  trousers: { type: 'jeans', material: 'woven', pattern: 'solid' },
+  dress: { type: 'dress', sleeves: 'short', fit: 'fitted', length: 'short' }, // fitted bodice, A-line skirt
 };
+const DENIM_KINDS = new Set(['denim', 'jeans']);
 
-// Cut and print details each project calls for, in garmentFromSpec's words.
-const PROJECT_DETAILS = {
-  'denim-corset': { length: 'cropped', fit: 'fitted' },
-  'cargo-mini': { length: 'cropped' },
-  'lace-cami': { length: 'short' },
-  'shirt-wrap': { fit: 'oversized' },
-  'scarf-halter': { sleeves: 'none', length: 'cropped', pattern: 'floral' },
-  'bandana-top': { sleeves: 'none', length: 'cropped', pattern: 'polka' },
-  'ruffle-skirt': { length: 'long', pattern: 'floral' },
-  'cropped-knit': { length: 'cropped', fit: 'fitted' },
-  'colorblock-hoodie': { fit: 'oversized' },
-  'prairie-dress': { pattern: 'floral', sleeves: 'short' },
-  'quilted-gilet': { material: 'poly' },
-  'linen-vest': { material: 'linen' },
-  'pillowcase-blouse': { length: 'short' },
-  'clean-hem-trousers': { material: 'woven' },
-  'racing-jacket': { pattern: 'vstripes' },
+// Fabric the project calls for, where the drawing does not show it.
+const PROJECT_MATERIALS = {
+  'quilted-gilet': 'poly', 'linen-vest': 'linen', 'cropped-knit': 'wool', 'ribbon-cardigan': 'wool',
+  'shirt-wrap': 'woven', 'embroidered-collar': 'woven', 'tie-waist-shirt': 'woven', 'prairie-dress': 'woven',
+  'colorblock-hoodie': 'fleece', 'racing-jacket': 'poly', 'lace-cami': 'poly', 'pillowcase-blouse': 'woven',
 };
 
 const COLOURS = {
@@ -40,22 +41,38 @@ const COLOURS = {
 };
 
 // AI Studio ideas wear the garments scanned from their photo.
-export const canTryOn = (project) => Boolean(KIND_TO_TYPE[project.kind]) || (!!project.garmentId && scannedGarments(project.garmentId).length > 0);
+export const canTryOn = (project) => Boolean(KIND_SHAPES[project.kind]) || (!!project.garmentId && scannedGarments(project.garmentId).length > 0);
+
+// The colour a piece of text names ("dye it navy", "with cream thread"), or null.
+export function namedColour(text = '') {
+  const lower = text.toLowerCase();
+  const hit = Object.keys(COLOURS).filter((word) => new RegExp(`\\b${word}\\b`).test(lower)).sort((a, b) => b.length - a.length)[0];
+  return hit ? COLOURS[hit] : null;
+}
 
 const colourFor = (name = '') => {
   const lower = name.toLowerCase();
   return COLOURS[lower] || Object.entries(COLOURS).find(([word]) => lower.includes(word))?.[1] || '#5d6d8a';
 };
 
+// The garment in the project's cover picture: same cloth colour, the trim
+// colour for its flowers (Cottagecore covers), denim for denim pieces.
 export function garmentSpecFromProject(project) {
-  const type = KIND_TO_TYPE[project.kind];
-  if (!type) {
+  const shape = KIND_SHAPES[project.kind];
+  if (!shape) {
     const scanned = project.garmentId ? scannedGarments(project.garmentId) : [];
     return scanned.length ? scanned : null;
   }
-  const denim = project.kind === 'denim' || project.kind === 'jeans' || /denim|jean/i.test(project.materials?.join(' ') || '');
-  const details = PROJECT_DETAILS[project.id] || {};
-  return { type, name: project.title, color: colourFor(project.color), pattern: denim ? 'denim' : 'solid', material: denim ? 'denim' : undefined, ...(details.pattern && { color2: '#f4efe6' }), ...details };
+  const denim = DENIM_KINDS.has(project.kind);
+  const floral = project.aesthetic === 'Cottagecore';
+  return {
+    name: project.title,
+    color: project.art?.cloth || colourFor(project.color),
+    ...(project.art?.trim && { color2: project.art.trim }),
+    pattern: floral ? 'floral' : denim ? 'denim' : 'solid',
+    material: denim ? 'denim' : PROJECT_MATERIALS[project.id],
+    ...shape,
+  };
 }
 
 // AI Studio garment types are free text ("Denim jacket", "T-shirt"...).

@@ -1,8 +1,13 @@
+import { SKIN_TONES, HAIR_STYLES, HAIR_COLORS } from './appearance.js';
 import type { BodyBuild, CharacterAppearance, CharacterCustomization, Measurements, VisualProportions } from './types.ts';
+
+export { SKIN_TONES, HAIR_STYLES, HAIR_COLORS };
 
 export const BUILD_LABELS: Record<BodyBuild, string> = {
   slim: 'Slim', average: 'Average', athletic: 'Athletic', muscular: 'Muscular', curvy: 'Curvy', plus: 'Plus-size',
 };
+// Muscle definition each build starts from.
+export const BUILD_MUSCLE: Record<BodyBuild, number> = { slim: 0.08, average: 0.15, athletic: 0.55, muscular: 0.9, curvy: 0.12, plus: 0.05 };
 export const PROPORTION_FIELDS = [
   ['shoulderBreadth', 'Shoulder breadth', -1, 1],
   ['torsoLength', 'Torso length', -1, 1],
@@ -14,44 +19,6 @@ export const PROPORTION_FIELDS = [
   ['fullness', 'Overall fullness', -1, 1],
 ] as const;
 
-// Skin tones from very light to very deep, as flat comic base colours.
-export const SKIN_TONES: { id: string; label: string; color: string }[] = [
-  { id: 'porcelain', label: 'Porcelain', color: '#fbe0cf' },
-  { id: 'ivory', label: 'Ivory', color: '#f6d0b1' },
-  { id: 'sand', label: 'Sand', color: '#f2bf98' },
-  { id: 'honey', label: 'Honey', color: '#e3a676' },
-  { id: 'olive', label: 'Olive', color: '#c99a66' },
-  { id: 'amber', label: 'Amber', color: '#ba7d4c' },
-  { id: 'bronze', label: 'Bronze', color: '#9d6439' },
-  { id: 'umber', label: 'Umber', color: '#7d4c2e' },
-  { id: 'espresso', label: 'Espresso', color: '#613a25' },
-  { id: 'ebony', label: 'Ebony', color: '#48291b' },
-];
-// Every style has its own canonical mesh; ids match HAIR_STYLE_IDS in canonical.js.
-export const HAIR_STYLES: { id: string; label: string }[] = [
-  { id: 'crop', label: 'Short crop' },
-  { id: 'bob', label: 'Bob' },
-  { id: 'long', label: 'Long' },
-  { id: 'ponytail', label: 'Ponytail' },
-  { id: 'bun', label: 'Top bun' },
-  { id: 'curls', label: 'Big curls' },
-  { id: 'braids', label: 'Braids' },
-  { id: 'mohawk', label: 'Mohawk' },
-  { id: 'buzz', label: 'Buzz cut' },
-  { id: 'bald', label: 'Bald' },
-];
-export const HAIR_COLORS: { id: string; label: string; color: string }[] = [
-  { id: 'black', label: 'Black', color: '#2a2631' },
-  { id: 'dark-brown', label: 'Dark brown', color: '#3a2418' },
-  { id: 'brown', label: 'Brown', color: '#6b4226' },
-  { id: 'auburn', label: 'Auburn', color: '#8c3a26' },
-  { id: 'ginger', label: 'Ginger', color: '#cf6a2e' },
-  { id: 'blonde', label: 'Blonde', color: '#e6bf62' },
-  { id: 'platinum', label: 'Platinum', color: '#efe6cc' },
-  { id: 'grey', label: 'Grey', color: '#a19fa8' },
-  { id: 'pink', label: 'Pink', color: '#f07fb2' },
-  { id: 'teal', label: 'Teal', color: '#2aa8a0' },
-];
 const DEFAULT_APPEARANCE: CharacterAppearance = { skin: 'sand', hair: null, hairColor: 'dark-brown' };
 
 // The concrete hairstyle: `appearance.hair`, or by body type when it is null

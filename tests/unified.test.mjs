@@ -2,8 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bodyModel } from '../src/character/measurements.js';
 import { CharacterGeometryService } from '../src/character/service.js';
+import { projects } from '../src/explore/projects.js';
+import { garmentFromSpec } from '../src/garments.js';
+import { buildGarment } from '../src/model.js';
 import { canTryOn, garmentSpecFromProject, garmentSpecFromAnalysis, sizeGarmentToBody } from '../src/shell/tryOn.js';
 
+const pick = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k]]));
 const M = { height: 172, chest: 96, underbust: 84, waist: 80, hips: 99, shoulder: 44, arm: 61, inseam: 79, neck: 38, thigh: 57 };
 const XL6 = { height: 172, chest: 172, underbust: 158, waist: 170, hips: 174, shoulder: 57, arm: 65, inseam: 76, neck: 56, thigh: 97 };
 
@@ -19,13 +23,43 @@ test('wearable Explore projects become garments sized to the saved body', () => 
   assert.equal(canTryOn(dress), true);
   assert.equal(canTryOn(bag), false);
   assert.equal(garmentSpecFromProject(bag), null);
-  assert.deepEqual(garmentSpecFromProject(dress), { type: 'dress', name: 'Prairie dress', color: '#d98a9a', pattern: 'solid', material: undefined });
+  // Without cover art, the colour name is used.
+  assert.equal(garmentSpecFromProject(dress).color, '#d98a9a');
   const tee = { chest: 108, waist: 106, hem: 106, length: 72, shoulder: 47 };
   const sized = sizeGarmentToBody(tee, XL6);
   assert.equal(sized.chest, 172 + 12);
   assert.equal(sized.waist, 170 + 26);
   assert.equal(sized.shoulder, 57 + 3);
   assert.deepEqual(sizeGarmentToBody(tee, M), tee);
+});
+
+test('Explore try-ons wear the colours and cut of their cover illustration', () => {
+  const byId = Object.fromEntries(projects.map((p) => [p.id, p]));
+  for (const p of projects) {
+    const spec = garmentSpecFromProject(p);
+    if (!spec) continue;
+    assert.equal(spec.color, p.art.cloth, p.id);
+    assert.equal(spec.color2, p.art.trim, p.id);
+    if (p.aesthetic === 'Cottagecore') assert.equal(spec.pattern, 'floral', p.id);
+  }
+  assert.equal(garmentFromSpec(garmentSpecFromProject(byId['prairie-dress']), M).sleeve > 10, true);
+  assert.deepEqual(pick(garmentSpecFromProject(byId['prairie-dress']), ['type', 'color', 'color2', 'pattern']), { type: 'dress', color: '#676e4a', color2: '#d6bc8b', pattern: 'floral' });
+  assert.deepEqual(pick(garmentSpecFromProject(byId['denim-corset']), ['type', 'neckline', 'pattern', 'material']), { type: 'cami', neckline: 'strapless', pattern: 'denim', material: 'denim' });
+  assert.equal(garmentFromSpec(garmentSpecFromProject(byId['scarf-halter']), M).neckline, 'halter');
+  assert.equal(garmentSpecFromProject(byId['patchwork-tote']), null);
+});
+
+test('strapless and halter tops are cut from the 3D cloth and the 2D flat', () => {
+  const area = (g) => {
+    const built = buildGarment(g, bodyModel(M));
+    return built.parts.reduce((n, p) => n + [p.geo].flat().reduce((m, geo) => m + (geo.index ? geo.index.count : 0), 0), 0);
+  };
+  const cami = garmentFromSpec({ type: 'cami' }, M);
+  const strapless = garmentFromSpec({ type: 'cami', neckline: 'strapless' }, M);
+  const halter = garmentFromSpec({ type: 'cami', neckline: 'halter' }, M);
+  assert.ok(area(strapless) < area(cami));
+  assert.ok(area(halter) < area(cami));
+  assert.equal(garmentFromSpec({ type: 'tshirt', neckline: 'strapless' }, M).neckline, undefined);
 });
 
 test('AI Studio garment text maps onto a 3D garment type', () => {

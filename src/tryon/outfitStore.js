@@ -2,6 +2,7 @@
 // fitting room. The fitting room adds them to whichever closet is active, so
 // they also reach a signed-in account's closet once it loads.
 import { GARMENT_TYPES } from '../garments.js';
+import { WearerSchema } from '../scan/schema.js';
 
 const INCOMING = 'restitch.incoming';
 const SCANS = 'restitch.scans';
@@ -45,6 +46,22 @@ export function takeIncoming() {
     localStorage.removeItem(INCOMING);
   } catch { /* storage unavailable */ }
   return list.filter(valid);
+}
+
+// A body estimate from a studio photo scan (see src/scan/schema.js). The
+// fitting room reshapes whichever body loads to it, like the queued garments.
+const INCOMING_BODY = 'restitch.incoming-body';
+export const queueBody = (estimate) => write(INCOMING_BODY, estimate);
+export function unqueueBody() {
+  try {
+    localStorage.removeItem(INCOMING_BODY);
+  } catch { /* storage unavailable */ }
+}
+/** Read and clear the queued body estimate, or null. */
+export function takeIncomingBody() {
+  const estimate = WearerSchema.safeParse(read(INCOMING_BODY, null));
+  unqueueBody();
+  return estimate.success ? estimate.data : null;
 }
 
 // Garments scanned from a studio photo, kept with the AI ideas made from it so

@@ -26,7 +26,11 @@ const seeds = [
   ['clean-hem-trousers','The trousers I finally reach for','alex.alters','Minimalist','Beginner','trousers','Stone','Give too-long thrifted trousers a clean, wearable hem while preserving the original shape.',['Try on with shoes and mark both finished lengths.','Allow a double-fold hem before trimming.','Press, pin, and sew with a blind or straight stitch.'],['Thrift trousers','Matching thread','Hem gauge'],189,1],
 ];
 export const CATEGORIES = ['For You','Streetwear','Y2K','Vintage','Minimalist','Cottagecore','Beginner'];
-export const projects = seeds.map(([id,title,username,aesthetic,difficulty,kind,color,description,steps,materials,likes,hours],index)=>({id,title,username,aesthetic,difficulty,kind,color,description,steps,materials,likes,hours,tags:[aesthetic,materials[0]],cover:`/explore/${id}.svg`,avatar:`/explore/creator-${index%8}.svg`,height:[460,560,490,610,520,570][index%6],creatorIndex:index%8}));
+// Illustration palettes [background, cloth, trim]. The cover SVGs
+// (scripts/generate-explore-assets.mjs) and the 3D try-on both use them, so the
+// garment on the body is the colour of the garment in the picture.
+export const ILLUSTRATION_PALETTES=[['#d9e1d4','#526b5b','#eee3c8'],['#efdbd8','#bd737d','#f7eee0'],['#e7dfd0','#676e4a','#d6bc8b'],['#e3e4d8','#d9be70','#fff5cf'],['#dfc8b5','#a3513b','#e4bfa0'],['#d9dfdd','#eeebe2','#899e98'],['#ddd0da','#704650','#d5afbd'],['#cad5dd','#435b7a','#a8b8c6']];
+export const projects = seeds.map(([id,title,username,aesthetic,difficulty,kind,color,description,steps,materials,likes,hours],index)=>({id,title,username,aesthetic,difficulty,kind,color,description,steps,materials,likes,hours,art:(([bg,cloth,trim])=>({bg,cloth,trim}))(ILLUSTRATION_PALETTES[index%ILLUSTRATION_PALETTES.length]),tags:[aesthetic,materials[0]],cover:`/explore/${id}.svg`,avatar:`/explore/creator-${index%8}.svg`,height:[460,560,490,610,520,570][index%6],creatorIndex:index%8}));
 export function filterProjects(query='',category='For You',savedOnly=false,saved=[]){
   const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   return projects.filter(p=>(category==='For You'||p.aesthetic===category||p.difficulty===category)&&(!savedOnly||saved.includes(p.id))&&terms.every(term=>[p.title,p.username,p.description,p.difficulty,...p.tags,...p.materials].join(' ').toLowerCase().includes(term)));

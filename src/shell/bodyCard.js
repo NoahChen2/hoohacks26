@@ -3,11 +3,12 @@
 // the card scrolls into view, and keeps the site-wide space style. Ideas can be
 // tried on in place (tryOnBody) without leaving the page.
 import { currentSpace } from './shell.js';
+import { wireEmoteButton } from '../ui/emoteButton.js';
 
 export function bodyCard({ title = 'Your fit model', note = 'Sized from your saved measurements', cta = 'Open Fitting Room', href = '/fitting#/body', className = '' } = {}) {
   return `<section class="body-card ${className}" data-body-card aria-label="${title}">
     <header class="body-card-head"><strong>${title}</strong><small data-body-note>${note}</small></header>
-    <div class="body-card-view"><div class="body-card-canvas"></div><div class="body-card-poster">Loading your 3D body…</div></div>
+    <div class="body-card-view"><div class="body-card-canvas"></div><div class="body-card-poster">Loading your 3D body…</div><button type="button" class="body-card-emote" data-body-emote hidden title="Play a random dance"><span aria-hidden="true">💃</span> Emote</button></div>
     <footer class="body-card-foot"><span data-body-summary>&nbsp;</span><button type="button" class="body-card-wear" data-body-wear hidden>Wear it in the Fitting Room</button><a href="${href}">${cta}</a></footer>
   </section>`;
 }
@@ -72,9 +73,15 @@ async function mount(card) {
   scene.setOptions({ showBody: true, showClothing: true, fitMap: false, spin: false, animate: !reduced });
   scene.resetCamera();
   card.querySelector('.body-card-poster')?.remove();
-  const shape = { feminine: 'Female', neutral: 'Neutral', masculine: 'Male' }[state.character.bodyPreset] || '';
-  const height = unit() === 'in' ? feetInches(state.body.height) : formatLength(state.body.height);
-  const summary = `${shape} · ${BUILD_LABELS[state.character.build] || 'Custom'} · ${height}`;
+  const emote = card.querySelector('[data-body-emote]');
+  wireEmoteButton(emote, scene);
+  if (emote) emote.hidden = false;
+  // Read live: a page can change the saved body (AI Studio's photo match).
+  const summary = () => {
+    const shape = { feminine: 'Female', neutral: 'Neutral', masculine: 'Male' }[state.character.bodyPreset] || '';
+    const height = unit() === 'in' ? feetInches(state.body.height) : formatLength(state.body.height);
+    return `${shape} · ${BUILD_LABELS[state.character.build] || 'Custom'} · ${height}`;
+  };
   const onSpace = (event) => scene.setStage(event.detail.space);
   window.addEventListener('spacechange', onSpace);
   const entry = {
@@ -83,24 +90,28 @@ async function mount(card) {
     trying: null,
     tried: [],
     showSummary() {
-      const text = entry.trying ? `Trying on: ${entry.trying}` : summary;
+      const text = entry.trying ? `Trying on: ${entry.trying}` : summary();
       const el = entry.card.querySelector('[data-body-summary]');
       if (el) el.textContent = text;
       const wear = entry.card.querySelector('[data-body-wear]');
       if (wear) wear.hidden = !entry.tried.length;
     },
-    // Specs (tryOn.js, photo scans) or finished garments, layered into the
-    // current outfit: each replaces whatever is worn in its slot.
+    // Specs (tryOn.js, photo scans) or finished garments, shown as the whole
+    // outfit: nothing from the saved outfit is added, even when the list has no
+    // bottoms or no top. A later piece replaces an earlier one in its slot. The
+    // body is re-read in case the page changed it since the card started.
     preview(items) {
       const garments = [items].flat().filter(Boolean).map((item) => (item.id && item.type ? item : garmentFromSpec(item, state.body)));
       if (!garments.length) return;
-      scene.setGarments(garments.reduce(dressOutfit, wornGarments()), { focus: garments.at(-1).id });
+      scene.setBody(state.body, state.character);
+      scene.setGarments(garments.reduce(dressOutfit, []), { focus: garments.at(-1).id });
       scene.flashReveal();
       entry.tried = garments;
       entry.trying = garments.map((g) => g.name).join(' + ');
       entry.showSummary();
     },
     reset() {
+      scene.setBody(state.body, state.character);
       scene.setGarments(wornGarments());
       entry.trying = null;
       entry.tried = [];
@@ -148,8 +159,8 @@ document.addEventListener('click', async (event) => {
   else button.textContent = 'Browser storage is unavailable';
 });
 
-// Show a garment spec (see tryOn.js), a garment, or a list of them as one
-// outfit on a visible body card, or on a docked viewer when no card is on
+// Show a garment spec (see tryOn.js), a garment, or a list of them as the
+// whole outfit on a visible body card, or on a docked viewer when no card is on
 // screen. Pass `card` to target a specific card.
 export async function tryOnBody(spec, { card } = {}) {
   if (!spec || (Array.isArray(spec) && !spec.length)) return;

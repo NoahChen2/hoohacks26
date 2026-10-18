@@ -42,3 +42,17 @@ test('live recommendations reject skill or equipment mismatches',async()=>{
   await assert.rejects(()=>analyzeClothing(input,{env:{OPENAI_API_KEY:'test-secret',OPENAI_VISION_MODEL:'configured-vision'},client:{responses:{parse:async()=>({status:'completed',output_parsed:output})}}}),e=>e.status===502);
  }
 });
+test('with a Gemini key the photo is analyzed live by Gemini, trimmed to the schema and checked against skill',async()=>{
+ const input=parseAnalysisRequest(body()),analysis=demoAnalysis(input).analysis;
+ const reply=answer=>({ok:true,status:200,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(answer)}]}}]})});
+ let sent;
+ const long={...analysis,garmentType:'Denim jacket',projects:[{...analysis.projects[0],title:'x'.repeat(300)},...analysis.projects.slice(1),analysis.projects[0]]};
+ const result=await analyzeClothing(input,{env:{GEMINI_API_KEY:'g',OPENAI_API_KEY:'ignored'},fetchImpl:async(url,init)=>{sent={url,body:JSON.parse(init.body)};return reply(long);}});
+ assert.equal(result.mode,'live');assert.equal(result.analysis.garmentType,'Denim jacket');
+ assert.equal(result.analysis.projects.length,3);assert.equal(result.analysis.projects[0].title.length,120);
+ assert.match(sent.url,/generativelanguage/);assert.match(sent.body.contents[0].parts[0].text,/Y2K/);assert.equal(sent.body.contents[0].parts[1].inline_data.mime_type,'image/png');
+ assert.equal(sent.body.generationConfig.responseSchema.properties.projects.minItems,3);
+ const tooHard={...analysis,projects:analysis.projects.map(p=>({...p,difficulty:'Advanced'}))};
+ await assert.rejects(analyzeClothing(input,{env:{GEMINI_API_KEY:'g'},fetchImpl:async()=>reply(tooHard)}),e=>e.status===502&&/experience/.test(e.message));
+ await assert.rejects(analyzeClothing(input,{env:{GEMINI_API_KEY:'g'},fetchImpl:async()=>reply({garmentType:'x'})}),e=>e.status===502);
+});

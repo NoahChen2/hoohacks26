@@ -1,6 +1,7 @@
 import { state, emit, subscribe, selectedGarment, wornGarments, addGarments } from './state.js';
 import { dressOutfit } from './garments.js';
-import { takeIncoming } from './tryon/outfitStore.js';
+import { takeIncoming, takeIncomingBody } from './tryon/outfitStore.js';
+import { bodyFromEstimate } from './scan/bodyEstimate.js';
 import { createScene } from './scene.js';
 import { currentSpace, installShell, siteHeader } from './shell/shell.js';
 import { fitWord } from './model.js';
@@ -10,6 +11,7 @@ import { renderUpcyclePanel, previewEvents, setPreview } from './ui/upcyclePanel
 import { GARMENT_TYPES } from './state.js';
 import { initAccount } from './ui/account.js';
 import { escapeHtml } from './ui/escape.js';
+import { wireEmoteButton } from './ui/emoteButton.js';
 
 document.body.classList.add('fitting-page');
 document.getElementById('site-header').outerHTML = siteHeader('fitting', { account: true });
@@ -30,7 +32,7 @@ try {
 } catch (error) {
   console.error('Could not start garment preview', error);
   document.getElementById('viewport').innerHTML = '<p class="preview-unavailable" role="status">The 3D preview could not start on this device. Your closet and project guides are still available.</p>';
-  scene = { setBody() {}, setGarment() {}, setGarments() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, setStage() {}, get checks() { return []; } };
+  scene = { setBody() {}, setGarment() {}, setGarments() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, setStage() {}, emote() { return null; }, get checks() { return []; } };
   document.querySelectorAll('.stage-toolbar input, .stage-toolbar button').forEach((control) => (control.disabled = true));
 }
 
@@ -193,6 +195,7 @@ subscribe((reason) => {
     // Pieces brought in from other pages also join an account's closet once it loads.
     const missing = imported.filter((g) => !state.garments.some((o) => o.id === g.id));
     if (missing.length) addGarments(missing);
+    if (importedBody) wearBody(importedBody);
     switchTab(state.tab);
   }
   syncScene();
@@ -218,6 +221,7 @@ motionPreference.addEventListener('change', (event) => {
   applyOpts();
 });
 document.getElementById('btn-reset-cam').addEventListener('click', () => scene.resetCamera());
+wireEmoteButton(document.getElementById('btn-emote'), scene);
 document.body.dataset.stage = stageTheme;
 window.addEventListener('spacechange', (event) => {
   stageTheme = event.detail.space;
@@ -230,7 +234,19 @@ document.addEventListener('keydown', (e) => {
 
 // --- boot
 // Garments scanned or tried on elsewhere (AI Studio, Explore) arrive dressed.
+// A body matched to a scanned photo reshapes the saved body (measurements and
+// character change in place: panels and the scene hold these objects).
+function wearBody(estimate) {
+  const { body, character } = bodyFromEstimate(estimate, state.body, state.character);
+  Object.assign(state.body, body);
+  Object.assign(state.character, character);
+}
 const imported = takeIncoming();
+const importedBody = takeIncomingBody();
+if (importedBody) {
+  wearBody(importedBody);
+  emit('body');
+}
 if (imported.length) {
   addGarments(imported);
   if (!location.hash.slice(2)) history.replaceState(null, '', '#/closet');

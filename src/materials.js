@@ -137,7 +137,7 @@ const BODY_ART = /* glsl */`
 uniform vec4 uHead;    // headY, headR, headZ, hair covers the nape
 uniform vec4 uHairline; // hairline levels (head radii): forehead, temples, side curtains, nape
 uniform vec4 uHairInfo; // curtains, ears covered, texture (0 straight, 1 curly, 2 buzz, 3 mohawk, 4 none), strip half-width
-uniform vec4 uSkinInfo; // deepness of the skin tone (0 light .. 1 deep)
+uniform vec4 uSkinInfo; // x: deepness of the skin tone (0 light .. 1 deep), y: 1 hides the sports top
 uniform vec4 uTrunkY;  // neckTopY, neckBaseY, shoulderY, chestY
 uniform vec4 uTrunkY2; // armpitY, waistY, hipY, crotchY
 uniform vec4 uTrunkX;  // shoulderHalf, chestHalf, waistHalf, hipHalf
@@ -277,7 +277,8 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
     if (front && fem < .5) col = mix(col, uLip * .85, fillIn(length(m - vec2(Cx * .52, chestY - 1.8)) - .55));
     if (!front) col = mix(col, skin * vec3(.75, .6, .6), fillIn(length(m - vec2(3.2, hipY + 5.)) - .4));
     // Sports top (feminine and neutral shapes) with straps; over the torso and back.
-    if (fem > .25) {
+    // Not under strapless or halter tops, where its straps would show.
+    if (fem > .25 && uSkinInfo.y < .5) {
       float top = front ? chestY + 3. + ax * .2 : chestY + 3.;
       float bottom = chestY - (front ? 8.5 : 6.);
       float strapX = mix(Cx * .40, Sx * .52, clamp((p.y - top) / (shoulderY + 3. - top), 0., 1.));
@@ -457,6 +458,11 @@ export function updateBodyArt(material, model, character) {
 // shader or rebuilds the mesh. Shadow and halftone tints follow the tone, so
 // deep tones shade toward a cool, saturated brown instead of muddy grey-black.
 const SHADE_DEEP = { shade: linear(.56, .48, .62), deep: linear(.32, .24, .38) };
+// Strapless and halter tops are worn without the painted sports top.
+export function setSportsTop(material, visible) {
+  material.userData.uniforms.uSkinInfo.value.y = visible ? 0 : 1;
+}
+
 export function updateBodyAppearance(material, { skin = SKIN.color, hair = '#3a2418' } = {}) {
   const u = material.userData.uniforms, tone = new THREE.Color(skin);
   material.color.copy(tone);
@@ -466,7 +472,7 @@ export function updateBodyAppearance(material, { skin = SKIN.color, hair = '#3a2
   const deepness = 1 - Math.max(0, Math.min(1, (lightness - .25) / .5));
   u.comicShade.value.copy(SKIN.shade).lerp(SHADE_DEEP.shade, deepness);
   u.comicDeep.value.copy(SKIN.deep).lerp(SHADE_DEEP.deep, deepness);
-  u.uSkinInfo.value.set(deepness, 0, 0, 0);
+  u.uSkinInfo.value.x = deepness;
   // Lips: a rosier, darker version of the tone.
   u.uLip.value.setRGB(srgb.r * .9, srgb.g * .63, srgb.b * .73, THREE.SRGBColorSpace);
 }

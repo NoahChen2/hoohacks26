@@ -4,13 +4,13 @@ import { meshCache } from './character/meshCache.js';
 import { applyPresentation, presentationPoint } from './character/presentation.js';
 import { createTorsoSampler, conformToCharacter } from './character/sections.js';
 import { addStage } from './stage.js';
-import { createRig } from './character/rig.js';
+import { createRig, DANCES, randomDance } from './character/rig.js';
 import { morphBody } from './character/morph.js';
 import { vertexNormals } from './character/finish.js';
 import { CANONICAL_MEASUREMENTS, canonicalCharacter } from './character/canonical.js';
 import { assertPreviewRange } from './character/measurements.js';
 import { detectQuality } from './quality.js';
-import { bodyMaterial, bodyOutlineMaterial, updateBodyArt, updateBodyAppearance, fabricGloss, comicMaterial, outlineMaterial, paintComicGrain, addCoverageMask, comicDot } from './materials.js';
+import { bodyMaterial, bodyOutlineMaterial, updateBodyArt, updateBodyAppearance, setSportsTop, fabricGloss, comicMaterial, outlineMaterial, paintComicGrain, addCoverageMask, comicDot } from './materials.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { bodyModel, buildGarment, fitWord, outfitEnvelope } from './model.js';
@@ -419,6 +419,29 @@ export function createScene(container, { characterAsset = null, quality = detect
         const [px, py] = toPx(-12, g.length - 26);
         ctx.strokeRect(px, py, 24 * PPC, 16 * PPC);
       }
+      if (g.neckline === 'strapless') {
+        // Corset: zigzag front lacing and topstitched boning seams.
+        const top = T.ad + 1, bottom = g.length - 3;
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#d6c09e';
+        ctx.lineWidth = 0.4 * PPC;
+        ctx.beginPath();
+        for (let y = top, i = 0; y <= bottom; y += 2.4, i++) {
+          const [x, py] = toPx(i % 2 ? 1.6 : -1.6, y);
+          if (i) ctx.lineTo(x, py);
+          else ctx.moveTo(x, py);
+        }
+        ctx.stroke();
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#e9dac0';
+        for (const x of [-9, -3.4, 3.4, 9]) {
+          ctx.beginPath();
+          ctx.moveTo(...toPx(x, top));
+          ctx.lineTo(...toPx(x * 1.12, bottom));
+          ctx.stroke();
+        }
+      }
       void T;
     }
     if (kind === 'bottom') {
@@ -561,6 +584,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     const target = outfit.find((g) => g.id === focus) || outfit.at(-1) || null;
     current.garment = target;
     current.garments = outfit;
+    updateUnderwear();
     garmentCoverage.set(0,-1,0);
     disposeGroup(garmentGroup);
     current.checks = [];
@@ -619,12 +643,20 @@ export function createScene(container, { characterAsset = null, quality = detect
   }
   const setGarment = (g) => setGarments(g ? [g] : [], { focus: g?.id });
 
+  // The painted sports top would show its straps above strapless or halter tops.
+  function updateUnderwear() {
+    const bare = opts.showClothing && (current.garments || []).some((g) => g.neckline === 'strapless' || g.neckline === 'halter');
+    setSportsTop(skinMat, !bare);
+    invalidate();
+  }
+
   function setOptions(o) {
     opts = { ...opts, ...o };
     invalidate();
     bodyGroup.visible = opts.showBody;
     garmentGroup.visible = opts.showClothing;
     coverage.value = opts.showClothing ? garmentCoverage : noCoverage;
+    updateUnderwear();
     garmentGroup.traverse((m) => {
       if (m.isMesh && !m.userData.outline) m.material = opts.fitMap ? m.userData.fit : m.userData.fabric;
     });
@@ -663,15 +695,18 @@ export function createScene(container, { characterAsset = null, quality = detect
   controls.addEventListener('change', invalidate);
   const clock = new THREE.Clock();
   let animationTime = 0, sinceFrame = 0, posed = false;
+  let emote = null; // { dance, time }
   renderer.setAnimationLoop(() => {
     const dt = clock.getDelta();
     if (document.hidden) return;
-    const animating = opts.animate && animatable && !!rig;
+    if (emote && (emote.time += dt) >= emote.dance.seconds) emote = null;
+    const dancing = !!emote && animatable && !!rig;
+    const animating = (opts.animate || dancing) && animatable && !!rig;
     const ambientSky = ambientMotion && sky.animated;
     const revealAge = performance.now() - revealStarted, revealing = revealAge < 700;
     revealLight.intensity = revealAge < 150 ? 7.5 * Math.sin((revealAge / 150) * Math.PI) : revealAge < 650 ? 1.8 * (1 - (revealAge - 150) / 500) : 0;
     if (opts.spin) stageGroup.rotation.y += dt * 0.6;
-    if (animating) animationTime += dt;
+    if (animating && opts.animate) animationTime += dt;
     controls.update();
     sinceFrame += dt;
     // Mobile animates the sky at 30 fps; the lowest tier keeps it still.
@@ -680,7 +715,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     if (ambientSky) sky.update(sinceFrame, clock.elapsedTime);
     sinceFrame = 0;
     if (rig) {
-      if (animating) rig.pose(animationTime);
+      if (animating) rig.pose(animationTime, { idle: opts.animate, emote: dancing ? emote : null });
       else rig.rest();
       posed = animating;
       renderer.domElement.dataset.pose = animating ? rig.clip : 'rest';
@@ -697,6 +732,14 @@ export function createScene(container, { characterAsset = null, quality = detect
     resetCamera,
     flashReveal() {
       revealStarted = performance.now();
+    },
+    // Plays a dance once, by name or at random, even with Animate off. Returns
+    // the dance ({ name, emoji, seconds }), or null when this body cannot be posed.
+    emote(name) {
+      if (!rig || !animatable) return null;
+      const dance = DANCES.find((d) => d.name === name) || randomDance();
+      emote = { dance, time: 0 };
+      return dance;
     },
     setStage(theme) {
       sky.dispose();

@@ -164,8 +164,8 @@ export function createRig(model, proportions, sampler) {
       mesh.boundingSphere = mesh.geometry.boundingSphere.clone();
       mesh.bind(rig.skeleton, mesh.matrixWorld);
     },
-    pose(time) { applyPose(rig, time); },
-    rest() { for (const name of BONES) bones[name].rotation.set(0, 0, 0); bones.hem.position.set(0, 0, 0); },
+    pose(time, options) { applyPose(rig, time, options); },
+    rest() { for (const name of BONES) bones[name].rotation.set(0, 0, 0); bones.hem.position.set(0, 0, 0); root.position.set(0, 0, 0); },
   };
   return rig;
 }
@@ -274,14 +274,237 @@ export const CLIPS = [
 ];
 const HOLD = 4.5, CROSSFADE = 1.1;
 
-function applyPose(rig, time) {
-  const cycle = CLIPS.length * HOLD, local = time % cycle, index = Math.floor(local / HOLD), into = local - index * HOLD;
-  const a = CLIPS[index], b = CLIPS[(index + 1) % CLIPS.length];
-  const mix = smooth(HOLD - CROSSFADE, HOLD, into), pa = a.pose(time), pb = b.pose(time);
-  for (const name of BONES) {
-    const ra = pa[name] || [0, 0, 0], rb = pb[name] || [0, 0, 0];
-    rig.bones[name].rotation.set(ra[0] + (rb[0] - ra[0]) * mix, ra[1] + (rb[1] - ra[1]) * mix, ra[2] + (rb[2] - ra[2]) * mix);
+// ----------------------------------------------------------------------- dances
+
+// One-shot emotes played over the idle cycle. Legs have no bones, so dances move
+// the root instead: `hop` lifts the whole figure (cm) and root rotations rock or
+// spin it about the feet. `lift` rides a top's hem up, as in Stretch. Root yaw
+// must be back at a whole turn before the dance blends out, or it unwinds.
+const TAU = Math.PI * 2;
+// A sine squashed toward ±1: moves that snap to a side and hold there.
+const pump = (t, rate, phase = 0) => Math.tanh(3 * Math.sin(t * rate + phase)) / Math.tanh(3);
+const hops = (t, rate, height) => height * Math.abs(Math.sin(t * rate));
+const turn = a => Math.atan2(Math.sin(a), Math.cos(a));
+const SIDES = { armL: 'armR', armR: 'armL', foreL: 'foreR', foreR: 'foreL' };
+// The same pose for the other side: swap limbs, reflect across the midline.
+function mirror(pose) {
+  const out = {};
+  for (const [key, value] of Object.entries(pose)) out[SIDES[key] || key] = Array.isArray(value) ? [value[0], -value[1], -value[2]] : value;
+  return out;
+}
+function blendPose(a, b, k) {
+  const out = {};
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const va = a[key] ?? (Array.isArray(b[key]) ? [0, 0, 0] : 0), vb = b[key] ?? (Array.isArray(a[key]) ? [0, 0, 0] : 0);
+    out[key] = Array.isArray(va) ? va.map((v, i) => v + (vb[i] - v) * k) : va + (vb - va) * k;
   }
-  rig.bones.hem.position.set(0, (a.lift || 0) * (1 - mix) + (b.lift || 0) * mix, 0);
-  rig.clip = mix < .5 ? a.name : b.name;
+  return out;
+}
+// Hits a new frame on every beat, snapping in over the first `snap` of it.
+function keyed(t, bpm, frames, snap = .3, loop = false) {
+  const b = t * bpm / 60, i = Math.floor(b), n = frames.length;
+  const at = k => frames[loop ? k % n : Math.min(k, n - 1)];
+  return blendPose(at(Math.max(i - 1, 0)), at(i), smooth(0, snap, b - i));
+}
+
+const DISCO_UP = { armR: [-.3, 0, 2.45], head: [-.28, -.35, .12], spine: [-.04, -.1, -.1], root: [0, 0, .04], lift: 3 };
+const DISCO_DOWN = { armR: [-.02, -2.1, .49], foreR: [-.34, 0, 0], head: [.28, .25, 0], spine: [.1, .15, .08], root: [0, 0, -.04] };
+const DISCO_HIP = { armL: [.25, 0, -.6], foreL: [-.35, 0, 1.25] };
+
+const ROBOT_READY = { armL: [0, 0, -.12], foreL: [-1.57, 0, 0], armR: [0, 0, .12], foreR: [-1.57, 0, 0] };
+const ROBOT_ZIGZAG = { armR: [0, 0, 1.45], foreR: [0, 0, 1.57], armL: [0, 0, -1.45], foreL: [0, 0, 1.57], head: [0, .55, 0], lift: 2 };
+
+// Right-arm moves; each beat of the Macarena does one, then the left mirrors it.
+const MAC_OUT = { armR: [-1.5, 0, .08], foreR: [0, 0, 0] };
+const MAC_SHOULDER = { armR: [-.07, -1.66, .86], foreR: [-1.98, 0, -.13] };
+const MAC_HEAD = { armR: [-.36, -.55, 2.45], foreR: [-2.63, 0, .77] };
+const MAC_HIP = mirror(DISCO_HIP);
+const MAC = [
+  { ...MAC_OUT, armL: [-.05, 0, -.08], foreL: [-.15, 0, 0] },
+  mirror(MAC_OUT),
+  MAC_SHOULDER,
+  mirror(MAC_SHOULDER),
+  { ...MAC_HEAD, lift: 2 },
+  { ...mirror(MAC_HEAD), lift: 4 },
+  { ...MAC_HIP, lift: 0 },
+  mirror(MAC_HIP),
+  { root: [0, 0, .08], spine: [0, 0, -.14], head: [0, 0, .1] },
+  { root: [0, 0, -.08], spine: [0, 0, .14], head: [0, 0, -.1] },
+  { root: [0, 0, .08], spine: [0, 0, -.14], head: [0, 0, .1] },
+  { root: [0, 0, 0], spine: [0, 0, 0], head: [-.2, 0, 0], armR: [-.2, 0, 2.3], foreR: [0, 0, 0], armL: [-.2, 0, -2.3], foreL: [0, 0, 0], lift: 5 },
+];
+// Each Macarena beat changes one arm; the rest of the pose carries over.
+for (let i = 1; i < MAC.length - 1; i++) MAC[i] = { ...MAC[i - 1], ...MAC[i] };
+
+// The bent arm crosses in front of the face, forearm parallel to the straight one.
+const DAB = { armR: [-.25, 0, 2.15], foreR: [0, 0, 0], armL: [-2.96, -.8, 1.21], foreL: [-.93, 0, 0], head: [.5, -.15, .35], spine: [.18, -.22, .1], lift: 3 };
+const DAB_READY = { armR: [-.3, 0, .2], foreR: [-1.1, 0, 0], armL: [-.3, 0, -.2], foreL: [-1.1, 0, 0], spine: [0, 0, 0] };
+
+// Arm poses solved against the body: hand and elbow land where named.
+const both = pose => ({ ...pose, ...mirror(pose) }); // a right-arm pose on both sides
+const CHEST = { armR: [.79, -1.8, -.07], foreR: [-2.74, 0, .21] };
+const CLAP = { armR: [.69, -1.73, .59], foreR: [-1.73, 0, .97] };
+const CLAP_OPEN = { armR: [-.26, -.85, .43], foreR: [-1.59, 0, 1.09] };
+const HANDS_MEET = { armR: [-.08, -1.75, 2.85], foreR: [-.52, 0, -.14] };
+const ON_HEAD = { armR: [-.2, -.33, 2.39], foreR: [-1.93, 0, .93] };
+const OVER_TOP = { armR: [.09, -1.74, 2.74], foreR: [-1.02, 0, -.27] };
+const FRET = mirror({ armR: [-.43, .36, .1], foreR: [-1.31, 0, -.14] });
+const STRUM = { armR: [.44, -1.7, -.33], foreR: [-1.86, 0, .59] };
+const CART = { armR: [-.19, -.83, .26], foreR: [-1.22, 0, .3] };
+const FISTS = { armR: [.23, -1.04, .29], foreR: [-2.12, 0, .14] };
+const FIST_LOW = { armR: [.46, -.28, 1.17], foreR: [-2.7, 0, .4] };
+const CLAW = { armR: [-.64, 0, .95], foreR: [-2.1, 0, 0] };
+const onBeat = (t, bpm, height) => hops(t, Math.PI * bpm / 60, height);
+
+const GORILLA_OUT = mirror({ armR: [-.5, -.2, .55], foreR: [-1.4, 0, .5] });
+const GORILLA = { ...CHEST, ...GORILLA_OUT, spine: [.25, -.1, 0], head: [-.25, 0, 0] };
+const REACH_CORD = { armR: [-.9, -.25, .1], foreR: [0, 0, 0], armL: [-.3, 0, -.15], foreL: [-.5, 0, 0], spine: [.45, -.2, 0], head: [.2, 0, 0] };
+const YANK = { ...REACH_CORD, armR: [.75, 0, .25], foreR: [-1.6, 0, 0], spine: [.05, .35, 0], head: [-.1, .2, 0] };
+const MOW = { ...both(CART), spine: [.12, 0, 0], head: [0, 0, 0] };
+const SHELF = { armR: [-.6, 0, 1.9], foreR: [0, 0, .2], head: [-.25, .3, 0], spine: [-.05, .15, 0] };
+const PUSH = { ...both(CART), spine: [.1, 0, 0], head: [0, 0, 0] };
+const EGYPT = { armR: [-.35, 0, 1.4], foreR: [0, 0, 1.57], armL: [-.15, 0, -1.4], foreL: [0, 0, 1.57], root: [0, .6, 0] };
+
+export const DANCES = [
+  { name: 'Floss', emoji: '🦷', seconds: 5, pose: t => {
+    const s = pump(t, 7.2);
+    return { armR: [.4 * s, 0, .22 + .56 * s], armL: [-.4 * s, 0, -.22 + .56 * s], foreR: [-.05, 0, 0], foreL: [-.05, 0, 0],
+      spine: [.04, .12 * s, -.14 * s], root: [0, 0, .05 * s], head: [0, -.15 * s, .12 * s], hop: hops(t, 7.2, 1.6) };
+  } },
+  { name: 'Funky Chicken', emoji: '🐔', seconds: 5.5, pose: t => {
+    const flap = .5 + .5 * pump(t, 11), peck = Math.max(0, Math.sin(t * 4.6)), tail = smooth(2.8, 3.2, t) * wave(t, 13, .09);
+    return { armR: [.65, -.21, .3 + .55 * flap], armL: [.65, .21, -.3 - .55 * flap], foreR: [-2.8, 0, -.2], foreL: [-2.8, 0, .2],
+      spine: [.22 + .08 * peck, wave(t, 2.3, .12), tail], head: [-.25 + .55 * peck, 0, wave(t, 2.3, .1)], root: [.04, 0, -tail * .6], hop: hops(t, 4.6, 2.2) };
+  } },
+  { name: 'Disco', emoji: '🪩', seconds: 5.4, pose: t => ({ ...DISCO_HIP, ...keyed(t, 112, [DISCO_UP, DISCO_DOWN], .25, true), hop: onBeat(t, 112, 1.5) }) },
+  { name: 'Tube Man', emoji: '🎈', seconds: 6, pose: t => ({
+    armR: [wave(t, 5.3, .6) + wave(t, 8.1, .3), wave(t, 3.7, .4), 1.5 + wave(t, 6.1, .9) + wave(t, 9.7, .3)],
+    armL: [wave(t, 4.7, .6, 1) + wave(t, 7.7, .3), wave(t, 3.1, .4, 2), -1.5 - wave(t, 5.6, .9, 2) - wave(t, 10.3, .3)],
+    foreR: [wave(t, 7.2, .8), 0, .4 + wave(t, 6.1, 1.1, 1)], foreL: [wave(t, 6.8, .8, 2), 0, -.4 - wave(t, 5.9, 1.1, 3)],
+    spine: [.05 + wave(t, 3.1, .18), wave(t, 2.3, .3), wave(t, 4.3, .22)], head: [wave(t, 5.5, .3), wave(t, 3.3, .5), wave(t, 6.6, .35)],
+    root: [wave(t, 2.7, .05), 0, wave(t, 3.4, .07)], hop: hops(t, 3.9, 2.5), lift: 5 }) },
+  { name: 'Robot', emoji: '🤖', seconds: 6.4, pose: t => keyed(t, 120, [
+    ROBOT_READY,
+    ROBOT_ZIGZAG,
+    mirror(ROBOT_ZIGZAG),
+    { ...ROBOT_READY, spine: [0, .45, 0], head: [0, -.45, 0] },
+    { ...ROBOT_READY, spine: [0, -.45, 0], head: [0, .45, 0] },
+    { armR: [-1.5, 0, .1], armL: [-1.5, 0, -.1], head: [.2, 0, .25] },
+    { armR: [-1.5, 0, .1], armL: [-1.5, 0, -.1], head: [.2, 0, -.25], root: [.04, 0, 0] },
+  ], .12, true) },
+  { name: 'Macarena', emoji: '💃', seconds: 7.4, pose: t => {
+    // A jump on the last beat.
+    const jump = smooth(0, 1, t * 105 / 60 - 11);
+    return { ...keyed(t, 105, MAC, .35), hop: 9 * Math.sin(Math.PI * jump) };
+  } },
+  { name: 'Dab', emoji: '😎', seconds: 4.6, pose: t => ({ ...keyed(t, 96, [DAB_READY, DAB, DAB, DAB_READY, mirror(DAB), mirror(DAB), DAB_READY], .18), hop: onBeat(t, 96, 2) }) },
+  { name: 'Spin Out', emoji: '🌀', seconds: 4.4, pose: t => {
+    const spin = smooth(.55, 2.7, t), ta = smooth(2.75, 3.05, t), wobble = wave(t, 9, .15) * (1 - ta);
+    const tPose = { armR: [-.1, 0, 1.45 + wobble], armL: [-.1, 0, -1.45 + wobble], head: [-.15, 0, wave(t, 5, .1)], spine: [-.04, 0, 0] };
+    const tada = { armR: [-.15, 0, 2.3], armL: [-.15, 0, -2.3], head: [-.3, 0, 0], spine: [-.08, 0, 0], lift: 4 };
+    return { ...blendPose(tPose, tada, ta), root: [0, turn(spin * 3 * TAU), 0], hop: 10 * Math.sin(Math.PI * spin) };
+  } },
+  { name: 'Raise the Roof', emoji: '🙌', seconds: 5, pose: t => {
+    const p = .5 + .5 * pump(t, TAU * 100 / 60);
+    return { ...both({ armR: [-.15, 0, 1.15 + .4 * p], foreR: [0, 0, 1.5 - .3 * p] }), spine: [-.05, 0, wave(t, 2.6, .06)], head: [-.15 * p, 0, 0], hop: onBeat(t, 100, 2), lift: 3 * p };
+  } },
+  { name: 'YMCA', emoji: '🔠', seconds: 6, pose: t => keyed(t, 126, [
+    { ...both({ armR: [-.1, 0, 2.4], foreR: [0, 0, 0] }), lift: 4 },
+    { ...both({ armR: [-.1, 0, 2.4], foreR: [0, 0, 0] }), lift: 4, head: [-.2, 0, 0] },
+    { ...both(ON_HEAD), lift: 4 },
+    { ...OVER_TOP, armL: [-.1, 0, -.9], foreL: [0, 0, -.6], spine: [0, 0, .12], lift: 4 },
+    { ...both(HANDS_MEET), lift: 5 },
+    { ...both(HANDS_MEET), lift: 5, head: [-.25, 0, 0] },
+  ], .3, true) },
+  { name: 'Sprinkler', emoji: '💦', seconds: 6, pose: t => ({
+    ...mirror(MAC_HEAD), armR: [-1.45, 0, .2], foreR: [0, 0, 0], lift: 2,
+    ...keyed(t, 240, [0, .15, .3, .45, .6, .3, 0, -.15, -.3, -.45, -.6, -.3].map(y => ({ root: [0, y, 0], spine: [0, y * .3, 0] })), .5, true),
+    hop: onBeat(t, 240, .8) }) },
+  { name: 'Shopping Cart', emoji: '🛒', seconds: 6.5, pose: t => keyed(t, 110, [PUSH, { ...PUSH, hop: 2 }, { ...PUSH, ...SHELF }, PUSH, { ...PUSH, hop: 2 }, { ...PUSH, ...mirror(SHELF) }], .3, true) },
+  { name: 'Lawnmower', emoji: '🌱', seconds: 6, pose: t => {
+    const running = smooth(3.4, 3.7, t);
+    return { ...keyed(t, 100, [REACH_CORD, YANK, REACH_CORD, YANK, REACH_CORD, YANK, MOW], .25), hop: running * hops(t, 31, .7), lift: 2 * running };
+  } },
+  { name: 'Swim', emoji: '🏊', seconds: 6, pose: t => {
+    // Four whole strokes, so both arms finish hanging; the left arm trails half a stroke.
+    const stroke = 4 * TAU * Math.min(1, Math.max(0, (t - .3) / 5.1));
+    const left = stroke + Math.PI * (smooth(.3, .9, t) + smooth(4.6, 5.3, t));
+    return { armR: [turn(stroke), 0, .3], armL: [turn(left), 0, -.3], spine: [.15, wave(stroke, 1, .2), 0],
+      head: [0, .5 * Math.max(0, Math.sin(stroke / 2)), 0], lift: 4 };
+  } },
+  { name: 'Hula', emoji: '🌺', seconds: 6, pose: t => ({
+    root: [wave(t, 6, .05), 0, wave(t, 6, .06, Math.PI / 2)], spine: [wave(t, 6, -.08), 0, wave(t, 6, -.1, Math.PI / 2)],
+    armR: [-.25, 0, 1.35 + wave(t, 3, .25)], foreR: [0, 0, wave(t, 3, .5, 1)], armL: [-.25, 0, -1.35 + wave(t, 3, .25, 1.4)], foreL: [0, 0, wave(t, 3, .5, 2.4)],
+    head: [0, wave(t, 1.5, .2), wave(t, 3, .1)], lift: 3 }) },
+  { name: 'Gorilla', emoji: '🦍', seconds: 4.8, pose: t => ({ ...keyed(t, 280, [GORILLA, mirror(GORILLA)], .3, true), root: [.03, 0, wave(t, 4.5, .05)], hop: hops(t, 4.5, 3) }) },
+  { name: 'Jumping Jacks', emoji: '⭐', seconds: 5.5, pose: t => {
+    const j = Math.abs(Math.sin(t * 4.2));
+    return { ...both({ armR: [-.1, 0, .1 + 2.6 * j], foreR: [0, 0, .2 * j] }), head: [-.1 * j, 0, 0], hop: 9 * j, lift: 5 * j };
+  } },
+  { name: 'Headbang', emoji: '🎸', seconds: 5.5, pose: t => {
+    const bang = .5 + .5 * pump(t, TAU * 150 / 60);
+    return { ...FRET, ...STRUM, foreR: [STRUM.foreR[0] + wave(t, 18, .35), 0, STRUM.foreR[2]],
+      head: [.1 + .45 * bang, 0, wave(t, 1.3, .1)], spine: [.15 + .15 * bang, -.2, 0], root: [.03, 0, 0], hop: onBeat(t, 150, 1.2) };
+  } },
+  { name: 'Pirouette', emoji: '🩰', seconds: 4.8, pose: t => {
+    const rise = smooth(.3, .8, t), spin = smooth(.7, 2.8, t), bow = smooth(3, 3.5, t);
+    const arms = blendPose(blendPose(both(CART), both(HANDS_MEET), rise), { armR: [-.3, 0, 1.2], foreR: [0, 0, 0], armL: [-.6, .4, -.3], foreL: [-1.2, 0, 0] }, bow);
+    return { ...arms, root: [0, turn(spin * 2 * TAU), 0], hop: 4 * rise * (1 - bow), spine: [.55 * bow, 0, 0], head: [-.15 * rise * (1 - bow) + .3 * bow, 0, 0], lift: 4 * rise * (1 - bow) };
+  } },
+  { name: 'Egyptian', emoji: '🏺', seconds: 5.5, pose: t => ({ ...keyed(t, 110, [
+    { ...EGYPT, head: [0, -.25, .15] },
+    { ...EGYPT, armR: [-.15, 0, 1.4], armL: [-.35, 0, -1.4], head: [0, -.25, -.15] },
+  ], .3, true), hop: onBeat(t, 110, 1) }) },
+  { name: 'Clap Along', emoji: '👏', seconds: 5, pose: t => ({ ...keyed(t, 128, [both(CLAP_OPEN), both(CLAP)], .25, true), head: [wave(t, TAU * 64 / 60, .12), 0, 0], hop: onBeat(t, 64, 1.5) }) },
+  { name: 'Cabbage Patch', emoji: '🥬', seconds: 5.5, pose: t => {
+    const c = Math.cos(t * 7) * .25, s = Math.sin(t * 7) * .25;
+    return { ...both({ armR: [FISTS.armR[0] + c, FISTS.armR[1] + s, FISTS.armR[2]], foreR: FISTS.foreR }), spine: [.05, .8 * s, 0], root: [0, 0, .16 * c], hop: hops(t, 7, 1.5) };
+  } },
+  { name: 'Fist Pump', emoji: '✊', seconds: 5, pose: t => ({ ...DISCO_HIP,
+    ...keyed(t, 128, [{ ...FIST_LOW, head: [0, 0, 0] }, { armR: [-.2, 0, 2.6], foreR: [0, 0, 0], head: [-.2, 0, 0], lift: 3 }], .2, true), hop: onBeat(t, 64, 3) }) },
+  { name: 'Zombie', emoji: '🧟', seconds: 6, pose: t => ({
+    armR: [-1.45 + wave(t, 1.3, .12), 0, .15], foreR: [-.1 + wave(t, 1.7, .15), 0, 0], armL: [-1.45 + wave(t, 1.3, .12, 2), 0, -.15], foreL: [-.1 + wave(t, 1.6, .15, 1), 0, 0],
+    head: [.25 + wave(t, 1.1, .12), wave(t, .7, .35), wave(t, .9, .3)], spine: [.12, wave(t, .8, .15), wave(t, 1.1, .08)],
+    root: [0, 0, .07 * pump(t, 2.2)], hop: hops(t, 2.2, 1.2), lift: 3 }) },
+  { name: 'Bunny Hop', emoji: '🐰', seconds: 5, pose: t => {
+    const up = Math.abs(Math.sin(t * 3.5));
+    return { ...both(ON_HEAD), spine: [.15, 0, 0], head: [.15 - .25 * up, 0, 0], root: [0, 0, wave(t, 1.75, .04)], hop: 7 * up, lift: 4 };
+  } },
+  { name: 'Shimmy', emoji: '✨', seconds: 5, pose: t => ({
+    ...both({ armR: [-.35, 0, .7], foreR: [-.9, 0, .3] }), spine: [-.1 + wave(t, 1.2, .08), wave(t, 26, .12), 0], head: [-.1, wave(t, 26, -.08), wave(t, 1.2, .1)],
+    root: [0, 0, wave(t, 1.2, .04)], hop: hops(t, 13, .6) }) },
+  { name: 'Thriller', emoji: '🎃', seconds: 5.5, pose: t => ({ ...both(CLAW), ...keyed(t, 116, [
+    { root: [0, 0, .07], spine: [.1, .2, -.1], head: [0, .3, .15] },
+    { root: [0, 0, -.07], spine: [.1, -.2, .1], head: [0, -.3, -.15] },
+  ], .2, true), hop: onBeat(t, 116, 1) }) },
+];
+
+let lastDance = null;
+export function randomDance() {
+  const pool = DANCES.filter(d => d !== lastDance);
+  return (lastDance = pool[Math.floor(Math.random() * pool.length)]);
+}
+
+// `emote` is { dance, time }: seconds since it began. Without `idle` the dance
+// plays over the rest pose.
+function applyPose(rig, time, { idle = true, emote = null } = {}) {
+  let pose = {}, clip = 'rest';
+  if (idle) {
+    const cycle = CLIPS.length * HOLD, local = time % cycle, index = Math.floor(local / HOLD), into = local - index * HOLD;
+    const a = CLIPS[index], b = CLIPS[(index + 1) % CLIPS.length], mix = smooth(HOLD - CROSSFADE, HOLD, into);
+    pose = blendPose({ ...a.pose(time), lift: a.lift || 0 }, { ...b.pose(time), lift: b.lift || 0 }, mix);
+    clip = mix < .5 ? a.name : b.name;
+  }
+  if (emote) {
+    const { dance, time: t } = emote, k = smooth(0, .3, t) * (1 - smooth(dance.seconds - .45, dance.seconds, t));
+    pose = blendPose(pose, dance.pose(t), k);
+    if (k > .5) clip = dance.name;
+  }
+  for (const name of BONES) {
+    const r = pose[name] || [0, 0, 0];
+    rig.bones[name].rotation.set(r[0], r[1], r[2]);
+  }
+  rig.bones.hem.position.set(0, pose.lift || 0, 0);
+  rig.root.position.set(0, pose.hop || 0, 0);
+  rig.clip = clip;
 }

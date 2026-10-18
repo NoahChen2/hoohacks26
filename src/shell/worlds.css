@@ -1,0 +1,103 @@
+/* World themes. The world chosen in Settings (html[data-world], set in
+   src/shell/shell.js) re-skins the space tokens from theme.css. Each world
+   lives in its own file under ./worlds/ and owns only selectors scoped to
+   html[data-world='<id>'] or [data-world-scope='<id>'].
+
+   A world file sets, on html[data-space][data-world='<id>'], [data-world-scope='<id>']:
+     the colour tokens (--bg … --scrim), --font-display, --world-glyph,
+     --world-image   url() of its full-screen photo (public/worlds/<id>.jpg)
+     --world-scrim   a flat colour laid over the photo so text stays legible
+   No gradients: photos and flat colour only.
+
+   Primary buttons across pages:
+   .onboard-next .studio-primary .try-on-button .body-card-foot a
+   .academy-primary .primary-link .board-create-button .btn:not(.ghost) */
+
+@import './worlds/cultivation.css';
+@import './worlds/fairy.css';
+@import './worlds/fantasy.css';
+@import './worlds/runway.css';
+@import './worlds/cyberpunk.css';
+@import './worlds/space.css';
+@import './worlds/furry.css';
+
+/* Fonts a sample uses unless its world names its own. */
+[data-world-scope] {
+  --font-display: 'Gloock', 'Iowan Old Style', serif;
+  --font-body: 'Familjen Grotesk', 'Segoe UI', sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, monospace;
+}
+
+/* ---------- full-screen world photo (the fitting room keeps its 3D stage)
+   The photo sits on the root so the flat scrim (body::before) can lie
+   between it and the page. */
+html[data-space][data-world]:has(> body:not(.fitting-page)) {
+  background: var(--world-image, none) center / cover no-repeat fixed var(--bg);
+}
+html[data-space][data-world] body:not(.fitting-page) {
+  background: transparent !important;
+}
+html[data-space][data-world] body:not(.fitting-page)::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--world-scrim, transparent);
+  pointer-events: none;
+}
+
+/* World glyph after the brand name. */
+html[data-world] .site-brand::after {
+  content: var(--world-glyph);
+  font: 400 17px/1 var(--font-display);
+  color: var(--accent-2);
+}
+
+/* Header world picker: flat two-colour swatches, only the current one is labelled. */
+.space-choice[data-world-choice] i {
+  background: var(--swatch-a) !important;
+  box-shadow: inset 0 -5px 0 var(--swatch-b);
+}
+.space-choice[data-world-choice]:not([aria-pressed='true']) span {
+  display: none;
+}
+
+/* ---------- Settings world cards: the world's photo as the preview */
+.world-preview[style*='--world-card'] {
+  background: var(--world-dark) var(--world-card) center / cover no-repeat !important;
+}
+.world-preview[style*='--world-card'] i {
+  display: none;
+}
+.world-preview[style*='--world-card'] > span {
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* ---------- samples on the Settings world cards */
+.world-sample-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.world-sample {
+  display: inline-block;
+  padding: 9px 16px;
+  font: 600 11px/1 var(--font-body);
+  background: var(--accent-2);
+  color: var(--on-accent);
+}
+.world-sample-alt {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  font: 500 11px/1 var(--font-body);
+  color: var(--accent);
+}
+@media (max-width: 600px) {
+  .world-sample-row { padding: 9px; gap: 8px; }
+  .world-sample-alt { display: none; }
+}

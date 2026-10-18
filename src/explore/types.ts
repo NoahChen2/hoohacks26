@@ -23,6 +23,6 @@ export interface OnboardingPreferences {
   aesthetics: string[];
   skill: "" | "Beginner" | "Intermediate" | "Advanced";
   tools: string[];
-  world: "cultivation" | "fairy" | "fantasy" | "runway" | "cyberpunk";
+  world: "cultivation" | "fairy" | "fantasy" | "runway" | "cyberpunk" | "space" | "furry";
   status: "draft" | "completed" | "skipped";
 }

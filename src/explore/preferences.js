@@ -4,10 +4,12 @@ export const SKILLS=['Beginner','Intermediate','Advanced'];
 export const TOOLS=['Needle and thread','Sewing machine','Fabric scissors','Iron','Measuring tape','None yet'];
 export const WORLDS=[
   {id:'cultivation',name:'Chinese Cultivation',description:'Mountain sanctuaries, floating clouds, and a path of patient craft.',rank:'Outer Disciple',symbol:'山',colors:['#283e42','#bad1bc']},
-  {id:'fairy',name:'Fairy Garden',description:'A woodland workshop filled with flowers and little possibilities.',rank:'Seedling Stitcher',symbol:'✿',colors:['#496343','#e4c9d9']},
+  {id:'fairy',name:'Fairy Garden',description:'An enchanted forest path strung with fireflies, moss, and bluebells.',rank:'Seedling Stitcher',symbol:'✿',colors:['#14251a','#f3d58a']},
   {id:'fantasy',name:'Fantasy RPG',description:'Set out from a candlelit guild with your next creation in hand.',rank:'Crafting Apprentice',symbol:'⚔',colors:['#49365c','#e6c47e']},
   {id:'runway',name:'Fashion Runway',description:'A spotlight, a fresh silhouette, and your own point of view.',rank:'Emerging Designer',symbol:'✧',colors:['#593d47','#f2d8c9']},
   {id:'cyberpunk',name:'Cyberpunk',description:'Neon city nights meet inventive, future-facing reworks.',rank:'Thread Runner',symbol:'⌘',colors:['#252d51','#71e7d1']},
+  {id:'space',name:'Outer Space',description:'An orbital atelier drifting between planets, stitched by starlight.',rank:'Star Cadet',symbol:'✦',colors:['#0a0920','#9ff3ff']},
+  {id:'furry',name:'Furry Academy',description:'Ink-and-watercolour beasts, pressed blazers, and bold editorial type.',rank:'Fresh Cub',symbol:'❦',colors:['#b5122b','#f4efe6']},
 ];
 export const defaultPreferences=()=>({version:1,aesthetics:[],skill:'',tools:[],world:'cultivation',status:'draft'});
 export function normalizePreferences(value){

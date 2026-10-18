@@ -159,6 +159,8 @@ export function garmentFromSpec(spec = {}, body = null) {
   if (typeof spec.name === 'string' && spec.name.trim()) g.name = spec.name.trim().slice(0, 60);
   if (HEX.test(spec.color || '')) g.color = spec.color.toLowerCase();
   if (HEX.test(spec.color2 || '')) g.color2 = spec.color2.toLowerCase();
+  // Sleeveless cuts can be strapless (corsets, bandeaus) or halter-neck.
+  if (['tank', 'cami', 'vest', 'slipdress'].includes(type) && ['strapless', 'halter'].includes(spec.neckline)) g.neckline = spec.neckline;
   if (MATERIALS[spec.material]) g.material = spec.material;
   if (PATTERNS.includes(spec.pattern)) g.pattern = spec.pattern;
   // Denim twill is only a default for denim; black trousers stay plain.

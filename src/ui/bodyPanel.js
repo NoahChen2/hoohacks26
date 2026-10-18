@@ -26,9 +26,8 @@ const GROUPS = [
 const FRAMES = [['female', 'Female'], ['neutral', 'Neutral'], ['male', 'Male']];
 const PANES = [['measure', 'Measure'], ['shape', 'Shape'], ['access', 'Access'], ['look', 'Look']];
 const MATERNITY = [['none', 'None'], ['first', '1st tri'], ['second', '2nd tri'], ['third', '3rd tri']];
-const MUSCLE = { slim: 0.08, average: 0.15, athletic: 0.55, muscular: 0.9, curvy: 0.12, plus: 0.05 };
 
-const { BUILD_LABELS, PROPORTION_FIELDS, buildStartingPoint } = settings;
+const { BUILD_LABELS, BUILD_MUSCLE: MUSCLE, PROPORTION_FIELDS, buildStartingPoint } = settings;
 // Appearance lists are read off the module namespace so the panel still loads
 // if the appearance options are not exported yet.
 const appearanceLists = () => ({

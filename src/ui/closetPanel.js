@@ -1,5 +1,6 @@
 import { state, emit, GARMENT_TYPES, MATERIALS, PATTERNS, garmentFields, defaultGarment, selectedGarment, garmentFromSpec, STARTER_PIECES, isWorn, setWorn, addGarments } from '../state.js';
 import { scanPhoto } from '../scan/scan.js';
+import { describeEstimate } from '../scan/bodyEstimate.js';
 import { flatSVG, flatViewBox } from '../flats.js';
 import { PATTERN_LABELS, svgPattern } from '../patterns.js';
 import { escapeHtml } from './escape.js';
@@ -17,7 +18,7 @@ export function renderClosetPanel(el) {
     </div>
     <section class="closet-scan">
       <label class="btn scan-photo">Scan clothes from a photo<input type="file" id="scan-photo" accept="image/jpeg,image/png,image/webp" hidden/></label>
-      <p class="scan-msg" id="scan-msg" role="status" aria-live="polite">Every garment found in the photo is added to your closet and dressed on the 3D body. With a server Gemini key the photo is sent to Google Gemini (on its free tier, Google may use it to improve its products); otherwise it is scanned on this device.</p>
+      <p class="scan-msg" id="scan-msg" role="status" aria-live="polite">Every garment found in the photo is added to your closet and dressed on the 3D body. When someone is wearing them, the AI scan also matches the 3D body to them. With a server Gemini key the photo is sent to Google Gemini (on its free tier, Google may use it to improve its products); otherwise it is scanned on this device.</p>
     </section>
     <div class="closet-list" id="closet-list"></div>
     <details class="starter-rail">
@@ -72,21 +73,43 @@ function bindScan(el) {
     label.classList.add('busy');
     msg.textContent = 'Scanning your photo for clothes…';
     try {
-      const { garments, notice, mode } = await scanPhoto(file, { body: state.body });
+      const { garments, notice, mode, wearer } = await scanPhoto(file, { body: state.body, character: state.character });
       if (!garments.length) {
         msg.textContent = notice || 'No clothes were found in that photo. Try one with the garment clearly in view.';
         return;
       }
+      // The body changes before the garments go on, so they fit the new shape.
+      const before = wearer && { body: { ...state.body }, character: JSON.parse(JSON.stringify(state.character)) };
+      if (wearer) setBody(wearer);
       addGarments(garments);
       emit('select');
       rerender();
       msg.textContent = `${mode === 'live' ? 'AI scan' : 'On-device scan'}: added and wearing ${garments.map((g) => g.name).join(', ')}. ${notice}`;
+      if (wearer) {
+        const undo = document.createElement('button');
+        undo.type = 'button';
+        undo.className = 'scan-undo';
+        undo.textContent = 'Keep my previous body';
+        undo.addEventListener('click', () => {
+          setBody(before);
+          undo.remove();
+          msg.append(' Your previous body is back; the scanned clothes stay sized to the photo.');
+        });
+        msg.append(` Body: ${describeEstimate(wearer.estimate)}. `, undo);
+      }
     } catch (error) {
       msg.textContent = error.message || 'The photo could not be scanned.';
     } finally {
       label.classList.remove('busy');
     }
   });
+}
+
+// Measurements and character settings change in place: other modules hold these objects.
+function setBody({ body, character }) {
+  Object.assign(state.body, body);
+  Object.assign(state.character, character);
+  emit('body');
 }
 
 function thumb(g) {

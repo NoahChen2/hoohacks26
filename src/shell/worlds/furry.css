@@ -1,0 +1,24 @@
+/* Furry world theme (html[data-world='furry']). Owns only selectors scoped to
+   this world; shared mechanics live in ../worlds.css. */
+
+html[data-space][data-world='furry'],
+[data-world-scope='furry'] {
+  --bg: #f4efe6;
+  --surface: #fbf8f2;
+  --surface-2: #ece4d6;
+  --surface-3: #dccfba;
+  --line: #b9a98f;
+  --ink: #1c1a1a;
+  --ink-2: #3d3734;
+  --ink-3: #635a54;
+  --accent: #b5122b;
+  --accent-2: #5a1f4f;
+  --on-accent: #ffffff;
+  --danger: #b5122b;
+  --ok: #2f7d6a;
+  --warn: #8a6a12;
+  --loose-c: #2f5fa7;
+  --scrim: #1c1a1a;
+  --world-glyph: '❦';
+  color-scheme: light;
+}

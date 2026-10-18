@@ -127,6 +127,13 @@ export function ringSurface(rings, opts = {}) {
     let x = 0, y = 0, z = 0;
     for (const v of k) { x += pos[v * 3]; y += pos[v * 3 + 1]; z += pos[v * 3 + 2]; }
     x = Math.abs(x / k.length); y /= k.length; z /= k.length;
+    // Halter: an open back, and in front a band narrowing up to the neck.
+    const halter = armhole.halter;
+    if (halter) {
+      if (y <= armhole.y) return false;
+      const t = Math.min(1, (y - armhole.y) / (halter.top - armhole.y));
+      return z < -1 || x > halter.base + (halter.neck - halter.base) * t;
+    }
     if (y > armhole.y && x > armhole.x) return true;
     const neck = armhole.neck;
     if (!neck || x >= neck.x) return false;
@@ -402,10 +409,16 @@ export function buildGarment(g, M, { under = null, open = false } = {}) {
     // Sleeveless cuts keep straps as wide as the flat's shoulder line (2D and 3D agree).
     // Their necklines follow the flat too: a scoop (a V on vests) as deep as the
     // flat's neck curve (0.8 × collar), shallower at the back.
-    const armhole = strappy ? {
-      y: lm.armpitY + 1, x: Math.max(g.shoulder / 2, T.nw + 1.5),
-      neck: { top: topY + 1, x: T.nw, front: T.collar * 0.8, back: T.collar * 0.3, v: g.type === 'vest' },
-    } : null;
+    // Sleeveless necklines: straps (default), strapless (a corset or bandeau
+    // edge just under the armpits) or a halter band to the neck.
+    const neckline = strappy && ['strapless', 'halter'].includes(g.neckline) ? g.neckline : null;
+    const armhole = !strappy ? null
+      : neckline === 'strapless' ? { y: lm.armpitY - 1.5, x: 0 }
+      : neckline === 'halter' ? { y: lm.armpitY - 3, x: 0, halter: { top: topY + 1, base: T.nw + 2, neck: M.neckR + 1.4 } }
+      : {
+        y: lm.armpitY + 1, x: Math.max(g.shoulder / 2, T.nw + 1.5),
+        neck: { top: topY + 1, x: T.nw, front: T.collar * 0.8, back: T.collar * 0.3, v: g.type === 'vest' },
+      };
     parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: !strappy, neckDrop: strappy ? 0 : neckDrop, open: opening, armhole }), region: 'torso' });
     envelope.torso.push(torsoSamples(rings));
     const ringAt = (y) => rings.reduce((best, r) => (Math.abs(r.c.y - y) < Math.abs(best.c.y - y) ? r : best), rings[0]);

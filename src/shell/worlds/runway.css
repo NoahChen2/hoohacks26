@@ -1,0 +1,66 @@
+/* Fashion Runway world theme (html[data-world='runway']). Owns only selectors scoped to
+   this world; shared mechanics live in ../worlds.css. */
+
+html[data-space][data-world='runway'],
+[data-world-scope='runway'] {
+  --bg: #f7f1ec;
+  --surface: #ffffff;
+  --surface-2: #f1e4dc;
+  --surface-3: #e6d2c7;
+  --line: #c9b3a8;
+  --ink: #161113;
+  --ink-2: #3d3236;
+  --ink-3: #64565b;
+  --accent: #161113;
+  --accent-2: #8e4a3e;
+  --on-accent: #ffffff;
+  --danger: #b3261e;
+  --ok: #2f7d4f;
+  --warn: #9a6a00;
+  --loose-c: #2f5fa7;
+  --scrim: #161113;
+  --font-display: 'Bodoni Moda', 'Didot', serif;
+  --world-glyph: '✧';
+  color-scheme: light;
+}
+
+html[data-space][data-world='runway'] body:not(.fitting-page) {
+  background:
+    radial-gradient(ellipse 55% 60% at 50% -10%, #ffffff 0, transparent 70%) fixed,
+    var(--bg) !important;
+}
+
+/* ---------- Fashion Runway: black-label editorial */
+html[data-space][data-world='runway'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)),
+[data-world-scope='runway'] .world-sample {
+  background: var(--ink) !important;
+  color: var(--surface) !important;
+  border: 1px solid var(--ink) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  transition: background 0.2s, color 0.2s;
+}
+html[data-space][data-world='runway'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+}
+html[data-space][data-world='runway'] .site-nav-link {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 12px;
+}
+html[data-space][data-world='runway'] .site-nav-link[aria-current='page'] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink) !important;
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+html[data-space][data-world='runway'] :is(h1, h2) {
+  font-style: italic;
+}
+html[data-space][data-world='runway'] :is(.preference-choice, .world-choice).selected {
+  border-color: var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}

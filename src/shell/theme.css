@@ -235,9 +235,6 @@ html[data-space] :focus-visible {
   height: 12px;
   border: 1px solid var(--ink-3);
 }
-.space-choice[data-space-choice='celestial'] i { background: linear-gradient(180deg, #0a0920 0 50%, #e04ad8 50% 70%, #9ff3ff 70%); }
-.space-choice[data-space-choice='night'] i { background: linear-gradient(180deg, #0c1520 0 50%, #e8a65a 50% 70%, #8fd8c8 70%); }
-.space-choice[data-space-choice='daylight'] i { background: linear-gradient(180deg, #faf8f3 0 50%, #2f6463 50% 70%, #a74629 70%); }
 .space-choice[aria-pressed='true'] {
   background: var(--accent);
   color: var(--on-accent);
@@ -448,13 +445,18 @@ html[data-space] .discovery-page img {
 }
 .body-card-foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   padding: 10px 14px;
   border-top: 1px solid var(--line);
   font: 500 11px/1.4 var(--font-mono);
   color: var(--ink-2);
+}
+.body-card-foot > span {
+  flex: 1 1 100%;
+  min-width: 0;
 }
 .body-card-foot a {
   padding: 8px 12px;
@@ -491,6 +493,28 @@ html[data-space] .discovery-page img {
 .body-card-canvas {
   position: absolute;
   inset: 0;
+}
+.body-card-emote {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.body-card-emote[hidden] {
+  display: none;
+}
+.body-card-emote:hover,
+.body-card-emote.is-dancing {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .body-card-canvas canvas {
   display: block;

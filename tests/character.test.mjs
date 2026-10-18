@@ -7,7 +7,7 @@ import { smoothSurface, vertexNormals, bakeOcclusion } from '../src/character/fi
 import { morphRegions, morphBody } from '../src/character/morph.js';
 import { CANONICAL_MEASUREMENTS, canonicalCharacter } from '../src/character/canonical.js';
 import { createTorsoSampler, conformToCharacter } from '../src/character/sections.js';
-import { createRig, CLIPS } from '../src/character/rig.js';
+import { createRig, CLIPS, DANCES, randomDance } from '../src/character/rig.js';
 import { presentationPoint, applyPresentation } from '../src/character/presentation.js';
 import { defaultCharacter, normalizeCharacter, buildStartingPoint, BUILD_LABELS } from '../src/character/settings.ts';
 import { inspectCharacterAsset, applyCharacterMorphs, disposeCharacterAsset } from '../src/character/assets.ts';
@@ -148,6 +148,28 @@ test('rigged clothing inherits skin weights, clears the skin and never binds a t
   }
   for(const clip of CLIPS){rig.pose(CLIPS.indexOf(clip)*4.5+2);for(const bone of Object.values(rig.bones))assert.ok(Number.isFinite(bone.rotation.x+bone.rotation.y+bone.rotation.z));}
   rig.rest();for(const bone of Object.values(rig.bones))assert.equal(bone.rotation.x+bone.rotation.y+bone.rotation.z,0);
+});
+
+test('dances stay finite, start and end at rest, and never unwind a spin',()=>{
+  const m=bodyModel(BODY_PRESETS['Medium (M)']),c=normalizeCharacter({bodyPreset:'feminine'});
+  const rig=createRig(m,c.proportions,createTorsoSampler(m,c));rig.attach(new THREE.Group());
+  assert.ok(DANCES.length>=20,'a large pool to pick from');
+  assert.equal(new Set(DANCES.map(d=>d.name)).size,DANCES.length,'names are unique');
+  const at=(dance,time)=>rig.pose(0,{idle:false,emote:{dance,time}});
+  for(const dance of DANCES){
+    for(let t=0;t<=dance.seconds;t+=.05){at(dance,t);for(const bone of Object.values(rig.bones))assert.ok(Number.isFinite(bone.rotation.x+bone.rotation.y+bone.rotation.z+bone.position.y),dance.name);}
+    for(const t of [0,dance.seconds]){
+      at(dance,t);
+      for(const bone of Object.values(rig.bones))assert.ok(Math.abs(bone.rotation.x)+Math.abs(bone.rotation.y)+Math.abs(bone.rotation.z)<1e-9,`${dance.name} at rest at ${t}s`);
+      assert.ok(Math.abs(rig.root.position.y)<1e-9&&Math.abs(rig.bones.hem.position.y)<1e-9);
+    }
+    // Yaw is back near zero (a whole turn) before the dance blends out.
+    assert.ok(Math.abs(dance.pose(dance.seconds-.45).root?.[1]||0)<.8,`${dance.name} finishes its turn`);
+    at(dance,dance.seconds/2);assert.equal(rig.clip,dance.name);
+  }
+  rig.pose(1,{emote:{dance:DANCES[0],time:DANCES[0].seconds/2}});assert.equal(rig.clip,DANCES[0].name,'plays over the idle cycle');
+  rig.rest();assert.equal(rig.root.position.y,0);
+  for(let i=0,last=null;i<50;i++){const d=randomDance();assert.notEqual(d,last,'never the same dance twice in a row');last=d;}
 });
 
 test('morphing the canonical body tracks target stature, calibrated torso sections and joints',()=>{

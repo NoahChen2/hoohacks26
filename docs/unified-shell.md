@@ -6,11 +6,20 @@ pages) shares one header, one name (**ReThread**) and one space style.
 ## Shell (`src/shell/`)
 
 - `shell.js`: `siteHeader(active, { savedCount, account })` returns the header
-  markup; `installShell()` binds the space picker. `entry.js` imports it first,
-  so `html[data-space]` is set before any page renders. The space style is the
-  same setting as the 3D stage backdrop (`localStorage['restitch.stage']`:
-  `celestial` | `night` | `daylight`). Changing it fires a `spacechange` window
-  event; the Fitting Room and body cards switch their 3D stage on it.
+  markup; `installShell()` binds the header world picker. `entry.js` imports it
+  first, so `html[data-world]` and `html[data-space]` are set before any page
+  renders. The theme follows the world saved in preferences
+  (`preferences.world`: `cultivation` | `fairy` | `fantasy` | `runway` |
+  `cyberpunk` | `space`), chosen in Settings step 4 or the header picker.
+  `WORLD_STAGE` maps each world to the base space and 3D stage backdrop
+  (`celestial` | `night` | `daylight`); `previewWorld()` tries one on without
+  saving. A stage change fires a `spacechange` window event; the Fitting Room
+  and body cards switch their 3D stage on it.
+- `worlds.css`: per-world tokens, fonts and backdrops layered over the space
+  tokens, plus each world's primary-button shape (Cultivation seal stamps,
+  Fairy pills, Fantasy gilded plates, Runway black labels, Cyberpunk cut
+  corners, Space orbit capsules). `[data-world-scope="<id>"]` applies a world's
+  tokens to one element, for the samples on the Settings world cards.
 - `theme.css`: per-space tokens (`--bg`, `--surface`, `--surface-2`,
   `--surface-3`, `--line`, `--ink`, `--ink-2`, `--ink-3`, `--accent`,
   `--accent-2`, `--on-accent`, `--danger`, `--ok`, `--warn`, `--scrim`) and the
@@ -35,6 +44,15 @@ pages) shares one header, one name (**ReThread**) and one space style.
   (`garmentSpecFromProject`) or an AI Studio analysis (`garmentSpecFromAnalysis`)
   into a garment and `sizeGarmentToBody` keeps the default garment's ease but
   follows the saved measurements.
+- Explore try-ons match their cover illustration. `ILLUSTRATION_PALETTES` in
+  `src/explore/projects.js` is shared by the SVG generator and the try-on
+  (`project.art.cloth` / `.trim`), so the 3D garment has the picture's cloth
+  colour, Cottagecore covers become a floral print in the trim colour, and each
+  project kind maps to the drawn cut (`KIND_SHAPES` in `tryOn.js`): a strapless
+  laced corset, halter tops, knee-length A-line skirts, a short-sleeve A-line
+  dress. Sleeveless garments take `neckline: 'strapless' | 'halter'` in
+  `model.js` (3D cut) and `flats.js` (2D flat); the painted sports top is
+  hidden under them. A try-on takes off the layers that would cover it.
 - Speed: built canonical body meshes are stored in IndexedDB
   (`src/character/meshCache.js`) under a version hash of every file in
   `src/character/` (Vite virtual module `virtual:body-mesh-version`), so a

@@ -54,9 +54,14 @@ export function topLandmarks(g) {
 function topPath(g) {
   const L = topLandmarks(g);
   const right = [];
-  right.push([L.nw, 0], L.S);
+  // Strapless tops start at the underarm line; halters at a narrow neck band.
+  const neckline = ['tank', 'cami', 'vest', 'slipdress'].includes(g.type) ? g.neckline : null;
+  const neckX = neckline === 'strapless' ? L.A[0] : neckline === 'halter' ? L.nw * 0.6 : L.nw;
+  const neckY = neckline === 'strapless' ? L.A[1] - 3 : 0;
+  right.push([neckX, neckY]);
+  if (neckline !== 'strapless' && neckline !== 'halter') right.push(L.S);
   if (L.hasSleeves) right.push(L.E1, L.E2);
-  right.push(L.A);
+  if (neckline !== 'strapless') right.push(L.A);
   if (GARMENT_TYPES[g.type].kind === 'dress') {
     right.push(L.W, [L.W[0] + 2, L.W[1] + 12]);
   } else {
@@ -65,7 +70,7 @@ function topPath(g) {
   right.push(L.H);
   // build path: neck curve from left neck point through centre-front neck to right neck point
   const left = right.map(([x, y]) => [-x, y]).reverse();
-  let d = `M ${-L.nw} 0 Q 0 ${L.collar * 1.6} ${L.nw} 0 `;
+  let d = neckline === 'strapless' ? `M ${-neckX} ${neckY} L ${neckX} ${neckY} ` : `M ${-neckX} 0 Q 0 ${neckline === 'halter' ? 2 : L.collar * 1.6} ${neckX} 0 `;
   for (let i = 1; i < right.length; i++) d += `L ${right[i][0]} ${right[i][1]} `;
   d += `L ${-L.H[0]} ${L.H[1]} `;
   for (let i = 1; i < left.length; i++) d += `L ${left[i][0]} ${left[i][1]} `;
@@ -160,7 +165,7 @@ function details(g, shape) {
       s += `<line x1="${-L.H[0]}" y1="${L.length - 4}" x2="${L.H[0]}" y2="${L.length - 4}" ${st}/>`;
     }
     if (g.type === 'blouse') s += `<path d="M ${-L.nw} 0 Q 0 ${L.collar * 2.4} ${L.nw} 0" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".4" stroke-dasharray=".6 .6"/>`;
-    if (g.type === 'cami' || g.type === 'slipdress') for (const side of [-1, 1]) s += `<line x1="${side * (L.nw - 1)}" y1="0" x2="${side * (L.nw - 1)}" y2="-9" stroke="rgba(0,0,0,.55)" stroke-width=".5"/>`;
+    if ((g.type === 'cami' || g.type === 'slipdress') && !g.neckline) for (const side of [-1, 1]) s += `<line x1="${side * (L.nw - 1)}" y1="0" x2="${side * (L.nw - 1)}" y2="-9" stroke="rgba(0,0,0,.55)" stroke-width=".5"/>`;
     if (g.type === 'hoodie') {
       s += `<path d="M ${-L.nw - 1} 0 Q 0 -14 ${L.nw + 1} 0" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".5"/>`;
       s += `<rect x="-12" y="${L.length - 26}" width="24" height="16" rx="3" ${st}/>`;

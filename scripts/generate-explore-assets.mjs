@@ -1,8 +1,7 @@
 // Original fashion illustrations created for this repository. Regenerate: node scripts/generate-explore-assets.mjs
 import {writeFileSync,mkdirSync} from 'node:fs';
-import {projects} from '../src/explore/projects.js';
+import {projects,ILLUSTRATION_PALETTES as palettes} from '../src/explore/projects.js';
 mkdirSync('public/explore',{recursive:true});
-const palettes=[['#d9e1d4','#526b5b','#eee3c8'],['#efdbd8','#bd737d','#f7eee0'],['#e7dfd0','#676e4a','#d6bc8b'],['#e3e4d8','#d9be70','#fff5cf'],['#dfc8b5','#a3513b','#e4bfa0'],['#d9dfdd','#eeebe2','#899e98'],['#ddd0da','#704650','#d5afbd'],['#cad5dd','#435b7a','#a8b8c6']];
 const bodies={
   denim:'M111 100 Q160 118 209 100 L213 236 Q160 259 106 236 Z',
   jeans:'M100 63 L220 63 L233 153 L215 345 L167 345 L160 183 L151 345 L102 345 L87 153 Z',

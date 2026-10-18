@@ -1,0 +1,3 @@
+<!-- Dev-only screenshot helper (delete before shipping): opens Settings at the world step with ?w=<world> selected -->
+<style>body{margin:0}iframe{border:0;width:100vw;height:100vh}</style><iframe src="/settings"></iframe>
+<script>const w=new URLSearchParams(location.search).get('w')||'space';const f=document.querySelector('iframe');f.onload=()=>{const d=f.contentDocument;const picks=['Vintage','Beginner','Iron'];let n=0;const t=setInterval(()=>{const b=d.querySelector('.onboard-next');if(!b)return;if(n<3){d.querySelector(`[data-choice="${picks[n]}"]`).click();d.querySelector('.onboard-next').click();n++;}else{clearInterval(t);d.querySelector(`[data-choice="${w}"]`).click();d.querySelector(`[data-choice="${w}"]`).scrollIntoView({block:'center'});}},400);};</script>

@@ -1,0 +1,51 @@
+/* Outer Space world theme (html[data-world='space']). Owns only selectors scoped to
+   this world; shared mechanics live in ../worlds.css. */
+
+html[data-space][data-world='space'],
+[data-world-scope='space'] {
+  --bg: #0a0920;
+  --surface: #141238;
+  --surface-2: #1d1a4c;
+  --surface-3: #2a2563;
+  --line: #3d3785;
+  --ink: #f2f0ff;
+  --ink-2: #c3bdf0;
+  --ink-3: #9a93d6;
+  --accent: #9ff3ff;
+  --accent-2: #e04ad8;
+  --on-accent: #0a0920;
+  --world-glyph: '✦';
+  color-scheme: dark;
+}
+
+html[data-space][data-world='space'] body:not(.fitting-page) {
+  background:
+    radial-gradient(1px 1px at 24px 36px, #f2f0ff, transparent),
+    radial-gradient(1px 1px at 132px 88px, #9ff3ff, transparent),
+    radial-gradient(1.5px 1.5px at 210px 170px, #f2f0ff, transparent),
+    radial-gradient(1px 1px at 80px 210px, #e04ad8, transparent),
+    var(--bg) !important;
+  background-size: 260px 260px, 260px 260px, 260px 260px, 260px 260px, auto !important;
+}
+
+/* ---------- Outer Space: orbit capsules (nav stays as planets) */
+html[data-space][data-world='space'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)),
+[data-world-scope='space'] .world-sample {
+  border-radius: 999px !important;
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--accent-2) !important;
+  font-family: var(--font-mono) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+html[data-space][data-world='space'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
+  background: var(--accent-2) !important;
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--accent) !important;
+}
+html[data-space][data-world='space'] :is(.preference-choice, .body-card-wear, .space-choice, .space-pick),
+[data-world-scope='space'] .world-sample-alt {
+  border-radius: 999px !important;
+}

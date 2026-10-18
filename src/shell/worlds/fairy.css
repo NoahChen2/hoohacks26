@@ -1,0 +1,82 @@
+/* Fairy Garden world theme (html[data-world='fairy']). Owns only selectors scoped to
+   this world; shared mechanics live in ../worlds.css. */
+
+html[data-space][data-world='fairy'],
+[data-world-scope='fairy'] {
+  --bg: #0f1b14;
+  --surface: #15251b;
+  --surface-2: #1c3024;
+  --surface-3: #274032;
+  --line: #3d5c47;
+  --ink: #f3f0d8;
+  --ink-2: #ccd6ba;
+  --ink-3: #9eaf94;
+  --accent: #f3d58a;
+  --accent-2: #c9a4e8;
+  --on-accent: #13200f;
+  --danger: #ff8f8f;
+  --ok: #a8e3a3;
+  --warn: #f3d58a;
+  --loose-c: #8fb4ff;
+  --scrim: #050a07;
+  --font-display: 'Fraunces', 'Iowan Old Style', serif;
+  --world-glyph: '✿';
+  color-scheme: dark;
+}
+
+html[data-space][data-world='fairy'] body:not(.fitting-page) {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300'%3E %3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='4'/%3E%3C/filter%3E%3C/defs%3E %3Cpath d='M0 0H1200V300C1160 170 1060 80 900 60C760 42 690 74 600 74C510 74 440 42 300 60C140 80 40 170 0 300Z' fill='%2308110b'/%3E %3Cpath d='M0 0H1200V200C1120 110 1010 50 880 36C760 24 690 46 600 46C510 46 440 24 320 36C190 50 80 110 0 200Z' fill='%23050b07'/%3E %3Cg stroke='%233b6343' stroke-width='2' fill='none' stroke-linecap='round' opacity='.7'%3E %3Cpath d='M150 96c4 8-4 14 0 22s-3 12 0 18'/%3E%3Cpath d='M168 88c3 6-3 10 0 16'/%3E%3Cpath d='M300 62c4 8-4 12 0 20s-3 10 0 14'/%3E%3Cpath d='M900 62c4 8-4 12 0 20s-3 10 0 14'/%3E%3Cpath d='M1032 88c3 6-3 10 0 16'/%3E%3Cpath d='M1050 96c4 8-4 14 0 22s-3 12 0 18'/%3E%3C/g%3E %3Cpath d='M10 170C90 90 230 52 420 54C520 55 560 64 600 64C640 64 680 55 780 54C970 52 1110 90 1190 170' fill='none' stroke='%23f3d58a' stroke-width='12' stroke-linecap='round' stroke-dasharray='0 34' opacity='.55' filter='url(%23g)'/%3E %3Cpath d='M10 170C90 90 230 52 420 54C520 55 560 64 600 64C640 64 680 55 780 54C970 52 1110 90 1190 170' fill='none' stroke='%23fff1c4' stroke-width='5' stroke-linecap='round' stroke-dasharray='0 34'/%3E %3C/svg%3E") top center / max(100%, 1200px) auto no-repeat fixed,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 240'%3E %3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='6'/%3E%3C/filter%3E%3C/defs%3E %3Cpath d='M0 240V120C40 96 80 130 120 104C170 72 210 126 260 112C300 100 330 140 380 150C420 158 450 180 500 200L560 240Z' fill='%230b170f'/%3E %3Cpath d='M1200 240V110C1160 90 1120 124 1080 100C1030 70 990 122 940 110C900 100 870 138 820 150C780 160 750 182 700 202L640 240Z' fill='%230b170f'/%3E %3Cpath d='M0 240V170C60 150 120 180 180 166C240 152 300 190 360 200L420 240ZM1200 240V164C1140 146 1080 176 1020 162C960 150 900 188 840 200L780 240Z' fill='%23060e09'/%3E %3Cg fill='%237f8fe0'%3E%3Ccircle cx='70' cy='150' r='5'/%3E%3Ccircle cx='76' cy='136' r='4'/%3E%3Ccircle cx='80' cy='123' r='3.5'/%3E%3Ccircle cx='230' cy='138' r='5'/%3E%3Ccircle cx='236' cy='124' r='4'/%3E%3Ccircle cx='1110' cy='130' r='5'/%3E%3Ccircle cx='1116' cy='116' r='4'/%3E%3Ccircle cx='1120' cy='103' r='3.5'/%3E%3Ccircle cx='980' cy='140' r='5'/%3E%3Ccircle cx='986' cy='126' r='4'/%3E%3C/g%3E %3Cg fill='%23c9a4e8'%3E%3Ccircle cx='150' cy='140' r='4.5'/%3E%3Ccircle cx='154' cy='127' r='3.5'/%3E%3Ccircle cx='330' cy='160' r='4.5'/%3E%3Ccircle cx='1050' cy='136' r='4.5'/%3E%3Ccircle cx='1054' cy='123' r='3.5'/%3E%3Ccircle cx='870' cy='162' r='4.5'/%3E%3C/g%3E %3Cg fill='%23e7a7c8'%3E%3Ccircle cx='290' cy='150' r='4'/%3E%3Ccircle cx='920' cy='150' r='4'/%3E%3C/g%3E %3Cellipse cx='120' cy='176' rx='34' ry='22' fill='%23f3d58a' opacity='.45' filter='url(%23g)'/%3E %3Cpath d='M114 196v-18h12v18z' fill='%23e8d9b0'/%3E%3Cpath d='M96 180c4-18 44-18 48 0z' fill='%23f3c77a'/%3E %3C/svg%3E") bottom center / max(100%, 1200px) auto no-repeat fixed,
+    radial-gradient(circle at 34px 46px, #fff1c4 0 1.5px, rgba(243, 213, 138, 0.4) 2.5px, transparent 8px) 0 0 / 190px 210px,
+    radial-gradient(circle at 150px 120px, #ffe7a3 0 1px, rgba(243, 213, 138, 0.35) 2px, transparent 6px) 0 0 / 270px 240px,
+    radial-gradient(circle at 80px 260px, #f6dcff 0 1.5px, rgba(201, 164, 232, 0.35) 2.5px, transparent 7px) 0 0 / 350px 330px,
+    radial-gradient(ellipse 42% 55% at 50% 58%, rgba(132, 196, 186, 0.26), transparent 72%) fixed,
+    linear-gradient(180deg, #0a140e 0%, #132a1e 50%, #0c1811 100%) fixed,
+    var(--bg) !important;
+}
+
+/* ---------- Fairy Garden: glowing firefly pills, rounded mossy cards */
+html[data-space][data-world='fairy'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost), .site-nav-link[aria-current='page']),
+[data-world-scope='fairy'] .world-sample {
+  border-radius: 999px !important;
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border: 1px solid #fff1c4 !important;
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px rgba(243, 213, 138, 0.5), 0 0 22px rgba(243, 213, 138, 0.45) !important;
+  font-family: var(--font-display) !important;
+  font-style: italic;
+  font-weight: 600 !important;
+}
+html[data-space][data-world='fairy'] :is(.onboard-next, .studio-primary, .try-on-button, .body-card-foot a, .academy-primary, .primary-link, .board-create-button, .btn:not(.ghost)):hover {
+  background: var(--accent-2) !important;
+  border-color: #f6dcff !important;
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px rgba(201, 164, 232, 0.5), 0 0 24px rgba(201, 164, 232, 0.5) !important;
+}
+html[data-space][data-world='fairy'] :is(.preference-choice, .body-card-wear, .studio-error button, .space-choice, .space-pick),
+[data-world-scope='fairy'] .world-sample-alt {
+  border-radius: 999px !important;
+}
+html[data-space][data-world='fairy'] :is(.onboard-form, .world-choice, .studio-upload, .studio-placeholder, .studio-loading, .studio-ideas article, .body-card),
+.world-sample-row[data-world-scope='fairy'] {
+  border-radius: 22px !important;
+  overflow: hidden;
+}
+/* Cards let a little of the forest mist through. */
+html[data-space][data-world='fairy'] :is(.onboard-form, .studio-upload, .studio-placeholder, .studio-ideas article, .body-card) {
+  background-color: rgba(21, 37, 27, 0.86) !important;
+  border-color: rgba(243, 213, 138, 0.22) !important;
+  box-shadow: 0 0 0 1px rgba(243, 213, 138, 0.08), 0 18px 50px rgba(0, 0, 0, 0.45) !important;
+}
+html[data-space][data-world='fairy'] .site-header {
+  background: #0a140e;
+  border-bottom-color: rgba(243, 213, 138, 0.25);
+}
+html[data-space][data-world='fairy'] :is(.preference-choice, .world-choice).selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(243, 213, 138, 0.3);
+}
+html[data-space][data-world='fairy'] h1 em,
+html[data-space][data-world='fairy'] .site-brand::after {
+  text-shadow: 0 0 18px rgba(243, 213, 138, 0.5) !important;
+}
