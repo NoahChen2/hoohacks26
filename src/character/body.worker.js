@@ -1,5 +1,5 @@
 import { bodyModel } from './measurements.js';
-import { buildProceduralBody, weld } from './geometry.js';
+import { buildProceduralBody, weld, bakeHairMask } from './geometry.js';
 import { createTorsoSampler } from './sections.js';
 import { bodyWeightField, bakeBodyWeights, packSkin } from './rig.js';
 import { smoothSurface, vertexNormals, bakeOcclusion } from './finish.js';
@@ -17,12 +17,13 @@ self.onmessage = ({ data }) => {
     smoothSurface(mesh.positions, mesh.index);
     vertexNormals(mesh.positions, mesh.index, mesh.normals);
     const ao = bakeOcclusion(mesh.positions, mesh.normals, raw.sdf);
+    const hairMask = bakeHairMask(mesh.positions, raw.hairParts);
     raw.dispose();
     const weights = bakeBodyWeights(mesh.positions, bodyWeightField(model, sampler));
     const regions = morphRegions(model, sampler, mesh.positions);
     const skin = packSkin(weights);
-    const result = { id, ...mesh, ao, weights, regions, skinIndex: skin.index, skinWeight: skin.weight };
-    self.postMessage(result, [mesh.positions, mesh.normals, mesh.uv, mesh.index, ao, weights, regions, skin.index, skin.weight].map(a => a.buffer));
+    const result = { id, ...mesh, ao, hairMask, weights, regions, skinIndex: skin.index, skinWeight: skin.weight };
+    self.postMessage(result, [mesh.positions, mesh.normals, mesh.uv, mesh.index, ao, hairMask, weights, regions, skin.index, skin.weight].map(a => a.buffer));
   } catch (error) {
     self.postMessage({ id, error: error.message || 'Procedural preview unavailable.' });
   }

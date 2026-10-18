@@ -106,7 +106,7 @@ async function push() {
 }
 
 function failed(error) {
-  console.error('[ReStitch sync]', error);
+  console.error('[ReThread sync]', error);
   const missingTable = error.code === 'PGRST205' || error.code === '42P01' || /does not exist|schema cache/i.test(error.message || '');
   setStatus(missingTable ? 'nodb' : 'error', missingTable ? 'Database table not set up yet: run supabase/schema.sql' : error.message);
 }
@@ -174,7 +174,7 @@ function openModal(mode = 'signin') {
   modal.className = 'overlay auth-overlay';
   modal.innerHTML = `
     <form class="auth-card" novalidate>
-      <div class="auth-brand"><span class="logo">✂</span> ReStitch</div>
+      <div class="auth-brand">ReThread</div>
       <h2 id="auth-title"></h2>
       <p class="auth-sub" id="auth-sub"></p>
       <label class="lbl">Email<input type="email" name="email" autocomplete="email" required /></label>

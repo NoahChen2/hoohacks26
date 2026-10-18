@@ -1,6 +1,8 @@
-import { state, emit, subscribe, selectedGarment } from './state.js';
+import { state, emit, subscribe, selectedGarment, wornGarments, addGarments } from './state.js';
+import { dressOutfit } from './garments.js';
+import { takeIncoming } from './tryon/outfitStore.js';
 import { createScene } from './scene.js';
-import { STAGE_THEMES } from './stage.js';
+import { currentSpace, installShell, siteHeader } from './shell/shell.js';
 import { fitWord } from './model.js';
 import { renderBodyPanel } from './ui/bodyPanel.js';
 import { renderClosetPanel } from './ui/closetPanel.js';
@@ -9,6 +11,10 @@ import { GARMENT_TYPES } from './state.js';
 import { initAccount } from './ui/account.js';
 import { escapeHtml } from './ui/escape.js';
 
+document.body.classList.add('fitting-page');
+document.getElementById('site-header').outerHTML = siteHeader('fitting', { account: true });
+installShell();
+
 const panel = document.getElementById('panel');
 const caption = document.getElementById('stage-caption');
 const stage = document.querySelector('.stage');
@@ -16,19 +22,15 @@ const sparkleLayer = document.createElement('div');
 sparkleLayer.className = 'sparkle-burst';
 sparkleLayer.setAttribute('aria-hidden', 'true');
 stage.appendChild(sparkleLayer);
-const STAGE_KEY = 'restitch.stage';
-let stageTheme = 'celestial';
-try {
-  const saved = localStorage.getItem(STAGE_KEY);
-  if (STAGE_THEMES[saved]) stageTheme = saved;
-} catch { /* storage unavailable */ }
+// The stage backdrop is the site-wide space style chosen in the header.
+let stageTheme = currentSpace();
 let scene;
 try {
   scene = createScene(document.getElementById('viewport'), { stageTheme });
 } catch (error) {
   console.error('Could not start garment preview', error);
   document.getElementById('viewport').innerHTML = '<p class="preview-unavailable" role="status">The 3D preview could not start on this device. Your closet and project guides are still available.</p>';
-  scene = { setBody() {}, setGarment() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, setStage() {}, get checks() { return []; } };
+  scene = { setBody() {}, setGarment() {}, setGarments() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, setStage() {}, get checks() { return []; } };
   document.querySelectorAll('.stage-toolbar input, .stage-toolbar button').forEach((control) => (control.disabled = true));
 }
 
@@ -121,6 +123,19 @@ window.addEventListener('popstate', route);
 document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
 // --- 3D sync (coalesced to one rebuild per frame)
+// The body wears the whole outfit; an upcycle preview stands in for its garment.
+function outfit() {
+  const worn = wornGarments();
+  if (!preview?.g) return worn;
+  const original = selectedGarment();
+  return dressOutfit(worn.filter((g) => g.id !== original?.id), preview.g);
+}
+function focusGarment() {
+  if (preview?.g) return preview.g;
+  const worn = wornGarments(), selected = selectedGarment();
+  return worn.find((g) => g.id === selected?.id) || worn.at(-1) || null;
+}
+
 let pending = false;
 function syncScene() {
   if (pending) return;
@@ -128,17 +143,18 @@ function syncScene() {
   requestAnimationFrame(() => {
     pending = false;
     scene.setBody(state.body, state.character);
-    scene.setGarment(preview?.g || selectedGarment());
+    scene.setGarments(outfit(), { focus: focusGarment()?.id });
     renderCaption();
   });
 }
 
 function renderCaption() {
-  const g = preview?.g || selectedGarment();
+  const g = focusGarment();
   if (!g) {
-    caption.innerHTML = '';
+    caption.innerHTML = state.garments.length ? '<div class="cap-title">Nothing on yet. Pick a piece in your closet to wear it.</div>' : '';
     return;
   }
+  const others = outfit().filter((o) => o.id !== g.id);
   const kind = GARMENT_TYPES[g.type].kind;
   const chips = scene.checks
     .map((c) => {
@@ -149,6 +165,7 @@ function renderCaption() {
     .join('');
   caption.innerHTML = `
     <div class="cap-title">${preview ? `<span class="badge">Preview</span> ${escapeHtml(preview.label)}` : escapeHtml(g.name)}</div>
+    ${others.length ? `<div class="cap-outfit">Wearing with ${others.map((o) => escapeHtml(o.name)).join(' · ')}</div>` : ''}
     <div class="cap-chips">${chips}</div>
     ${preview ? '<button class="btn small" id="cap-back">Back to original</button>' : ''}`;
   caption.querySelector('#cap-back')?.addEventListener('click', () => setPreview(null));
@@ -163,9 +180,21 @@ previewEvents.addEventListener('preview', (e) => {
 subscribe((reason) => {
   if (reason === 'goto:upcycle') return switchTab('upcycle');
   if (reason === 'tab' || reason === 'tools') return;
-  if (reason === 'select' || reason === 'garment') preview = null;
-  if (reason === 'select' || reason === 'garment') burstSparkles();
-  if (reason === 'reset') switchTab(state.tab);
+  // Units only change how panels display lengths.
+  if (reason === 'units') {
+    const scroll = panel.scrollTop;
+    PANELS[state.tab](panel);
+    panel.scrollTop = scroll;
+    return;
+  }
+  if (reason === 'select' || reason === 'garment' || reason === 'outfit') preview = null;
+  if (reason === 'select' || reason === 'outfit') burstSparkles();
+  if (reason === 'reset') {
+    // Pieces brought in from other pages also join an account's closet once it loads.
+    const missing = imported.filter((g) => !state.garments.some((o) => o.id === g.id));
+    if (missing.length) addGarments(missing);
+    switchTab(state.tab);
+  }
   syncScene();
 });
 
@@ -189,25 +218,26 @@ motionPreference.addEventListener('change', (event) => {
   applyOpts();
 });
 document.getElementById('btn-reset-cam').addEventListener('click', () => scene.resetCamera());
-const stagePick = document.getElementById('tg-stage');
-stagePick.innerHTML = Object.entries(STAGE_THEMES).map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
-stagePick.value = stageTheme;
 document.body.dataset.stage = stageTheme;
-stagePick.addEventListener('change', () => {
-  stageTheme = stagePick.value;
+window.addEventListener('spacechange', (event) => {
+  stageTheme = event.detail.space;
   document.body.dataset.stage = stageTheme;
   scene.setStage(stageTheme);
-  try {
-    localStorage.setItem(STAGE_KEY, stageTheme);
-  } catch { /* storage unavailable */ }
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') document.getElementById('overlay').hidden = true;
 });
 
 // --- boot
+// Garments scanned or tried on elsewhere (AI Studio, Explore) arrive dressed.
+const imported = takeIncoming();
+if (imported.length) {
+  addGarments(imported);
+  if (!location.hash.slice(2)) history.replaceState(null, '', '#/closet');
+  emit('outfit');
+}
 scene.setBody(state.body, state.character);
-scene.setGarment(selectedGarment());
+scene.setGarments(outfit(), { focus: focusGarment()?.id });
 scene.resetCamera();
 applyOpts();
 renderCaption();

@@ -40,10 +40,9 @@ export function paintPattern(ctx, w, h, g, scale = 4) {
       break;
     }
     case 'gingham': {
-      ctx.fillStyle = c2;
-      ctx.fillRect(0, 0, w, h);
+      // Base colour with translucent checks of the pattern colour, as for plaid.
       ctx.globalAlpha = 0.5;
-      ctx.fillStyle = c1;
+      ctx.fillStyle = c2;
       for (let y = 0; y < h; y += 2 * s) ctx.fillRect(0, y, w, s);
       for (let x = 0; x < w; x += 2 * s) ctx.fillRect(x, 0, s, h);
       ctx.globalAlpha = 1;
@@ -124,19 +123,21 @@ export function svgPattern(id, g, s = 1) {
           `<rect y="${5.5 * s}" width="${8 * s}" height="${0.4 * s}" fill="${shade(c1, 0.55)}" opacity=".6"/><rect x="${5.5 * s}" width="${0.4 * s}" height="${8 * s}" fill="${shade(c1, 0.55)}" opacity=".6"/>`
       );
     case 'gingham':
-      return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${2 * s}" height="${2 * s}"><rect width="${2 * s}" height="${2 * s}" fill="${c2}"/><rect width="${2 * s}" height="${s}" fill="${c1}" opacity=".5"/><rect width="${s}" height="${2 * s}" fill="${c1}" opacity=".5"/></pattern>`;
+      return P(2 * s, 2 * s, `<rect width="${2 * s}" height="${s}" fill="${c2}" opacity=".5"/><rect width="${s}" height="${2 * s}" fill="${c2}" opacity=".5"/>`);
     case 'polka':
       return P(6 * s, 6 * s, `<circle cx="${1.5 * s}" cy="${1.5 * s}" r="${0.8 * s}" fill="${c2}"/><circle cx="${4.5 * s}" cy="${4.5 * s}" r="${0.8 * s}" fill="${c2}"/>`);
     case 'floral': {
-      const petals = [0, 1, 2, 3, 4]
-        .map((i) => {
-          const a = (i / 5) * Math.PI * 2;
-          const cx = 3 * s + Math.cos(a) * 1.3 * s,
-            cy = 3 * s + Math.sin(a) * 1.3 * s;
-          return `<ellipse cx="${cx}" cy="${cy}" rx="${1.1 * s}" ry="${0.7 * s}" transform="rotate(${(a * 180) / Math.PI} ${cx} ${cy})" fill="${c2}"/>`;
-        })
-        .join('');
-      return P(10 * s, 7 * s, petals + `<circle cx="${3 * s}" cy="${3 * s}" r="${0.6 * s}" fill="${shade(c2, -0.35)}"/>`);
+      // Same staggered layout as the 3D texture: one flower per 10 × 7 cm, alternate rows offset.
+      const flower = (fx, fy) =>
+        [0, 1, 2, 3, 4]
+          .map((i) => {
+            const a = (i / 5) * Math.PI * 2;
+            const cx = (fx + Math.cos(a) * 1.3) * s,
+              cy = (fy + Math.sin(a) * 1.3) * s;
+            return `<ellipse cx="${cx}" cy="${cy}" rx="${1.1 * s}" ry="${0.7 * s}" transform="rotate(${(a * 180) / Math.PI} ${cx} ${cy})" fill="${c2}"/>`;
+          })
+          .join('') + `<circle cx="${fx * s}" cy="${fy * s}" r="${0.6 * s}" fill="${shade(c2, -0.35)}"/>`;
+      return P(10 * s, 14 * s, flower(2.5, 3.5) + flower(7.5, 10.5));
     }
     case 'denim':
       return P(1.2 * s, 1.2 * s, `<path d="M0 0 L${1.2 * s} ${1.2 * s}" stroke="${shade(c1, 0.18)}" stroke-width="${0.25 * s}"/>`);

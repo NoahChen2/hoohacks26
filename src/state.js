@@ -3,29 +3,8 @@ import { defaultCharacter, normalizeCharacter } from './character/settings.ts';
 
 const KEY = 'restitch.v1';
 
-export const GARMENT_TYPES = {
-  tshirt: { label: 'T-shirt', kind: 'top', sleeves: true },
-  longsleeve: { label: 'Long-sleeve tee', kind: 'top', sleeves: true },
-  buttonup: { label: 'Button-up shirt', kind: 'top', sleeves: true },
-  hoodie: { label: 'Hoodie / sweatshirt', kind: 'top', sleeves: true },
-  sweater: { label: 'Sweater', kind: 'top', sleeves: true },
-  tank: { label: 'Tank top', kind: 'top', sleeves: false },
-  jeans: { label: 'Jeans / trousers', kind: 'bottom' },
-  shorts: { label: 'Shorts', kind: 'bottom' },
-  skirt: { label: 'Skirt', kind: 'skirt' },
-  dress: { label: 'Dress', kind: 'dress', sleeves: true },
-};
-
-export const PATTERNS = ['solid', 'stripes', 'vstripes', 'plaid', 'polka', 'floral', 'denim', 'gingham'];
-export const MATERIALS = {
-  cotton: { label: 'Cotton jersey (knit)', knit: true, frays: false },
-  woven: { label: 'Cotton woven / poplin', knit: false, frays: true },
-  denim: { label: 'Denim', knit: false, frays: true },
-  fleece: { label: 'Fleece / sweatshirt', knit: true, frays: false },
-  wool: { label: 'Wool knit', knit: true, frays: false },
-  poly: { label: 'Polyester / synthetic', knit: false, frays: true },
-  linen: { label: 'Linen', knit: false, frays: true },
-};
+export { GARMENT_TYPES, PATTERNS, MATERIALS, garmentFields, defaultGarment, garmentFromSpec, STARTER_PIECES } from './garments.js';
+import { defaultGarment, garmentFromSpec, dressOutfit, layerOrder, GARMENT_TYPES } from './garments.js';
 
 export const TOOLS = {
   scissors: { label: 'Scissors / shears', icon: '✂' },
@@ -46,20 +25,26 @@ export const BODY_PRESETS = {
   'Medium (M)': { height: 172, chest: 96, underbust: 84, waist: 80, hips: 99, shoulder: 44, arm: 61, inseam: 79, neck: 38, thigh: 57 },
   'Large (L)': { height: 178, chest: 106, underbust: 94, waist: 92, hips: 106, shoulder: 47, arm: 63, inseam: 81, neck: 41, thigh: 62 },
   'X-Large (XL)': { height: 181, chest: 116, underbust: 104, waist: 104, hips: 114, shoulder: 49, arm: 64, inseam: 81, neck: 44, thigh: 67 },
+  // Extended sizes: plus-size ready-to-wear averages, not capped at the straight-size range.
+  '2X-Large (2XL)': { height: 172, chest: 126, underbust: 114, waist: 116, hips: 126, shoulder: 50, arm: 63, inseam: 78, neck: 46, thigh: 73 },
+  '3X-Large (3XL)': { height: 172, chest: 137, underbust: 124, waist: 129, hips: 137, shoulder: 51.5, arm: 63, inseam: 77, neck: 48, thigh: 79 },
+  '4X-Large (4XL)': { height: 172, chest: 148, underbust: 135, waist: 142, hips: 149, shoulder: 53, arm: 64, inseam: 77, neck: 50, thigh: 85 },
+  '5X-Large (5XL)': { height: 172, chest: 160, underbust: 146, waist: 156, hips: 161, shoulder: 55, arm: 64, inseam: 76, neck: 53, thigh: 91 },
+  '6X-Large (6XL)': { height: 172, chest: 172, underbust: 158, waist: 170, hips: 174, shoulder: 57, arm: 65, inseam: 76, neck: 56, thigh: 97 },
 };
 
 export const BODY_FIELDS = [
   ['height', 'Height', 110, 215],
-  ['chest', 'Chest / bust', 70, 140],
-  ['underbust', 'Underbust / ribcage', 58, 135],
-  ['waist', 'Waist', 55, 135],
-  ['hips', 'Hips', 75, 145],
-  ['shoulder', 'Shoulder width', 32, 56],
-  ['arm', 'Arm length', 48, 72],
+  ['chest', 'Chest / bust', 70, 185],
+  ['underbust', 'Underbust / ribcage', 58, 175],
+  ['waist', 'Waist', 55, 185],
+  ['hips', 'Hips', 75, 190],
+  ['shoulder', 'Shoulder width', 32, 62],
+  ['arm', 'Arm length', 48, 74],
   ['inseam', 'Inseam', 60, 95],
-  ['neck', 'Neck', 28, 50],
-  ['thigh', 'Thigh', 40, 80],
-  ['belly', 'Belly projection / fundal height', 0, 24],
+  ['neck', 'Neck', 28, 62],
+  ['thigh', 'Thigh', 40, 105],
+  ['belly', 'Belly projection / fundal height', 0, 40],
 ];
 
 export const BODY_PROFILE_DEFAULTS = {
@@ -82,74 +67,8 @@ export const BODY_PROFILE_DEFAULTS = {
 export const FRAME_TO_SHAPE = { female: 'feminine', neutral: 'neutral', male: 'masculine' };
 export const SHAPE_TO_FRAME = { feminine: 'female', neutral: 'neutral', masculine: 'male' };
 
-// Garment measurement fields (flat-lay measurements, doubled to circumference where noted).
-export function garmentFields(type) {
-  const k = GARMENT_TYPES[type].kind;
-  const f = [];
-  if (k === 'top' || k === 'dress') {
-    f.push(['chest', 'Chest (circumference)', 60, 160]);
-    f.push(['waist', 'Waist (circumference)', 50, 160]);
-    f.push(['hem', 'Hem (circumference)', 50, 200]);
-    f.push(['length', 'Length (shoulder → hem)', 30, 150]);
-    f.push(['shoulder', 'Shoulder width', 28, 64]);
-    if (GARMENT_TYPES[type].sleeves) {
-      f.push(['sleeve', 'Sleeve length', 5, 80]);
-      f.push(['sleeveOpen', 'Sleeve opening (circ.)', 14, 60]);
-    }
-  }
-  if (k === 'bottom') {
-    f.push(['waist', 'Waist (circumference)', 50, 140]);
-    f.push(['hips', 'Hips (circumference)', 70, 150]);
-    f.push(['rise', 'Front rise', 15, 40]);
-    f.push(['inseam', 'Inseam', 5, 95]);
-    f.push(['legOpen', 'Leg opening (circ.)', 25, 80]);
-  }
-  if (k === 'skirt') {
-    f.push(['waist', 'Waist (circumference)', 50, 140]);
-    f.push(['hips', 'Hips (circumference)', 70, 160]);
-    f.push(['hem', 'Hem (circumference)', 70, 300]);
-    f.push(['length', 'Length', 25, 110]);
-  }
-  return f;
-}
-
-export function defaultGarment(type = 'tshirt') {
-  const base = {
-    id: Math.random().toString(36).slice(2, 9),
-    name: GARMENT_TYPES[type].label,
-    type,
-    color: '#3d7ea6',
-    color2: '#f4efe6',
-    pattern: 'solid',
-    material: 'cotton',
-    stains: false,
-    holes: false,
-    sketch: null, // dataURL of the 2D drawing layer
-  };
-  const m = {
-    tshirt: { chest: 108, waist: 106, hem: 106, length: 72, shoulder: 47, sleeve: 21, sleeveOpen: 38 },
-    longsleeve: { chest: 104, waist: 100, hem: 100, length: 70, shoulder: 45, sleeve: 63, sleeveOpen: 22 },
-    buttonup: { chest: 112, waist: 106, hem: 108, length: 78, shoulder: 47, sleeve: 63, sleeveOpen: 24 },
-    hoodie: { chest: 120, waist: 112, hem: 100, length: 70, shoulder: 52, sleeve: 62, sleeveOpen: 20 },
-    sweater: { chest: 112, waist: 104, hem: 96, length: 66, shoulder: 48, sleeve: 62, sleeveOpen: 20 },
-    tank: { chest: 98, waist: 96, hem: 98, length: 70, shoulder: 34 },
-    jeans: { waist: 84, hips: 102, rise: 26, inseam: 80, legOpen: 38 },
-    shorts: { waist: 84, hips: 104, rise: 26, inseam: 15, legOpen: 58 },
-    skirt: { waist: 74, hips: 100, hem: 130, length: 60 },
-    dress: { chest: 94, waist: 78, hem: 150, length: 105, shoulder: 38, sleeve: 12, sleeveOpen: 32 },
-  }[type];
-  if (type === 'jeans' || type === 'shorts') {
-    base.color = '#3b5a85';
-    base.pattern = 'denim';
-    base.material = 'denim';
-  }
-  if (type === 'hoodie') base.material = 'fleece';
-  if (type === 'sweater') base.material = 'wool';
-  if (type === 'buttonup' || type === 'dress') base.material = 'woven';
-  return { ...base, ...m };
-}
-
 function initialState() {
+  const body = { ...BODY_PROFILE_DEFAULTS, ...BODY_PRESETS['Medium (M)'] };
   const shirt = defaultGarment('tshirt');
   shirt.name = 'Old band tee';
   shirt.color = '#2d2d34';
@@ -164,11 +83,21 @@ function initialState() {
   flannel.chest = 124;
   flannel.waist = 120;
   flannel.hem = 120;
+  const extras = [
+    { type: 'jacket', name: 'Denim jacket', color: '#4b6fa0', pattern: 'denim', material: 'denim', fit: 'relaxed' },
+    { type: 'cardigan', name: 'Grandpa cardigan', color: '#c98d3a', fit: 'relaxed' },
+    { type: 'hoodie', name: 'College hoodie', color: '#6a2c3e', fit: 'oversized' },
+    { type: 'skirt', name: 'Plaid mini skirt', color: '#8c2f39', color2: '#1e2533', pattern: 'plaid', material: 'wool', length: 'cropped' },
+    { type: 'slipdress', name: 'Floral sundress', color: '#f3dfb5', color2: '#b44a6a', pattern: 'floral' },
+    { type: 'joggers', name: 'Grey joggers', color: '#7d8087' },
+  ].map((spec) => garmentFromSpec(spec, body));
   return {
-    body: { ...BODY_PROFILE_DEFAULTS, ...BODY_PRESETS['Medium (M)'] },
+    body,
     character: { ...defaultCharacter(), bodyPreset: FRAME_TO_SHAPE[BODY_PROFILE_DEFAULTS.frame] },
-    garments: [shirt, jeans, flannel],
+    garments: [shirt, jeans, flannel, ...extras],
     selected: shirt.id,
+    // The outfit on the 3D body: one piece per slot, layered inside-out.
+    worn: [jeans.id, shirt.id, extras[0].id],
     tools: { scissors: true, needle: true, pins: true },
     tab: 'body',
   };
@@ -200,6 +129,8 @@ function hydrate(data, currentCharacter) {
     character,
     tools: { ...defaults.tools, ...(data.tools || {}) },
     garments: Array.isArray(data.garments) ? data.garments : defaults.garments,
+    // Saves from before outfits wore just the selected garment.
+    worn: Array.isArray(data.worn) ? data.worn : data.garments ? [data.selected].filter(Boolean) : defaults.worn,
   };
 }
 
@@ -226,8 +157,8 @@ export function emit(reason = 'change') {
 
 // The parts of state worth saving to an account (UI-only fields like `tab` stay local).
 export function snapshot() {
-  const { body, garments, selected, tools, character } = state;
-  return JSON.parse(JSON.stringify({ body, garments, selected, tools, character }));
+  const { body, garments, selected, tools, character, worn } = state;
+  return JSON.parse(JSON.stringify({ body, garments, selected, tools, character, worn }));
 }
 
 export function replaceState(data) {
@@ -252,6 +183,30 @@ export function guestData() {
 
 export function selectedGarment() {
   return state.garments.find((g) => g.id === state.selected) || state.garments[0] || null;
+}
+
+// Worn garments that still exist, in dressing order (innermost first).
+export function wornGarments() {
+  const ids = new Set(state.worn || []);
+  return layerOrder(state.garments.filter((g) => ids.has(g.id) && GARMENT_TYPES[g.type]));
+}
+
+export const isWorn = (g) => !!g && (state.worn || []).includes(g.id);
+
+// Put a garment on (taking off whatever shares its slot) or take it off.
+export function setWorn(g, on = true) {
+  const outfit = wornGarments();
+  state.worn = (on ? dressOutfit(outfit, g) : outfit.filter((o) => o.id !== g.id)).map((o) => o.id);
+}
+
+// Add new garments to the closet and dress the body in them (photo scans, try-ons).
+export function addGarments(list, { wear = true } = {}) {
+  for (const g of list) {
+    if (state.garments.some((o) => o.id === g.id)) continue;
+    state.garments.push(g);
+    if (wear) setWorn(g, true);
+  }
+  if (list[0]) state.selected = list[0].id;
 }
 
 export function resetAll() {

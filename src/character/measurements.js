@@ -12,14 +12,35 @@ export function assertPreviewRange(model) {
   if (crotchY > H * .59 || crotchY < H * .30) throw new Error('This inseam-to-height combination is outside the procedural preview range. Fit measurements are still saved.');
 }
 
-// Hairline height (in head radii from the head centre) by angle around the head,
-// 0 = face. Mirrored by the body shader, which paints the hair above it.
-export function hairline(angle, longHair) {
+// Painted hairline per hairstyle, in head radii from the head centre: `top` at
+// the forehead, `side` at the temples, `drop` for side curtains (when `curtain`),
+// `back` at the nape. `ears` hides the ears under hair, `neck` extends the head
+// zone over the nape, `texture` picks the painted pattern (0 straight, 1 curly,
+// 2 buzz stubble, 3 mohawk strip of half-width `strip` radii, 4 none). Shared by
+// the hair volume (geometry.js) and the body shader (materials.js).
+const SHAPE = (top, side, back, extra = {}) => ({ top, side, drop: side, curtain: 0, back, ears: 0, neck: 0, texture: 0, strip: 0, ...extra });
+export const HAIR_SHAPES = {
+  crop: SHAPE(.47, .17, -.78),
+  bob: SHAPE(.47, .17, -1.25, { drop: -.8, curtain: 1, ears: 1, neck: 1 }),
+  long: SHAPE(.47, .17, -1.25, { drop: -.8, curtain: 1, ears: 1, neck: 1 }),
+  ponytail: SHAPE(.5, .1, -.85),
+  bun: SHAPE(.5, .1, -.85),
+  curls: SHAPE(.4, .12, -.98, { drop: -.42, curtain: 1, ears: 1, texture: 1 }),
+  braids: SHAPE(.5, .1, -.85),
+  mohawk: SHAPE(.5, .15, -.8, { texture: 3, strip: .2 }),
+  buzz: SHAPE(.47, .15, -.8, { texture: 2 }),
+  bald: SHAPE(9, 9, 9, { texture: 4 }),
+};
+export const hairShape = style => HAIR_SHAPES[style] ?? HAIR_SHAPES.crop;
+
+// Hairline height by angle around the head (0 = face). Mirrored by the body
+// shader, which paints the hair above it.
+export function hairline(angle, shape) {
   const step = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const a = Math.abs(angle), front = 1 - step(.25, 1.35, a), back = step(1.75, 2.75, a);
-  let sides = .17 + (.47 - .17) * front;
-  if (longHair) sides += (-.8 - sides) * step(.95, 1.45, a);
-  return sides + ((longHair ? -1.25 : -.78) - sides) * back;
+  let sides = shape.side + (shape.top - shape.side) * front;
+  if (shape.curtain) sides += (shape.drop - sides) * step(.95, 1.45, a);
+  return sides + (shape.back - sides) * back;
 }
 
 // Ramanujan's ellipse perimeter
@@ -96,10 +117,19 @@ export function bodyModel(b) {
   // arms (A-pose)
   const L = b.arm;
   const upperR = (b.chest * 0.31) / (2 * Math.PI);
-  const armAngle = (13 * Math.PI) / 180;
+  const jointX = shA - upperR * 0.55, jointY = shoulderY - upperR * 0.95;
+  // A-pose: 13 degrees, opened up (to 30) so the forearms and hands hang clear
+  // of a wider waist and hips instead of sinking into them.
+  const torsoKeys = torso.map((t) => [t.y, t.rx]), torsoRx = (y) => piecewise(torsoKeys, y);
+  let armTan = Math.tan((13 * Math.PI) / 180);
+  for (const y of [waistY, lerp(waistY, hipY, 0.5), hipY]) {
+    const depth = jointY - y;
+    if (depth > 1) armTan = Math.max(armTan, (torsoRx(y) + upperR * 0.7 - jointX) / depth);
+  }
+  const armAngle = Math.min(Math.atan(armTan), (30 * Math.PI) / 180);
   const armDir = new THREE.Vector3(Math.sin(armAngle), -Math.cos(armAngle), 0);
-  const jointL = new THREE.Vector3(-(shA - upperR * 0.55), shoulderY - upperR * 0.95, 0);
-  const jointR = new THREE.Vector3(shA - upperR * 0.55, shoulderY - upperR * 0.95, 0);
+  const jointL = new THREE.Vector3(-jointX, jointY, 0);
+  const jointR = new THREE.Vector3(jointX, jointY, 0);
   const arm = [
     { t: -upperR * 0.6, r: upperR * 0.75 },
     { t: 0, r: upperR },

@@ -1,7 +1,8 @@
-import { BUILD_LABELS, PROPORTION_FIELDS, buildStartingPoint } from '../character/settings.ts';
+import './bodyPanel.css';
+import * as settings from '../character/settings.ts';
 import { state, emit, BODY_FIELDS, BODY_PRESETS, BODY_PROFILE_DEFAULTS, FRAME_TO_SHAPE, SHAPE_TO_FRAME } from '../state.js';
 import { bodyModel } from '../model.js';
-import { inch } from '../upcycle.js';
+import { unit, toUnit, fromUnit, unitStep, unitRange, otherUnit, formatLength, unitToggle, bindUnitToggle } from './units.js';
 
 const HINTS = {
   height: 'Barefoot, standing straight against a wall.',
@@ -16,190 +17,400 @@ const HINTS = {
   thigh: 'Around the fullest part of one thigh.',
   belly: 'Forward abdominal projection used for maternity and custom shaping.',
 };
-let bodyPane = 'measurements';
+const FIELD = Object.fromEntries(BODY_FIELDS.map((field) => [field[0], field]));
+const GROUPS = [
+  ['Length', ['height', 'inseam', 'arm']],
+  ['Upper body', ['chest', 'underbust', 'shoulder', 'neck']],
+  ['Lower body', ['waist', 'hips', 'thigh']],
+];
+const FRAMES = [['female', 'Female'], ['neutral', 'Neutral'], ['male', 'Male']];
+const PANES = [['measure', 'Measure'], ['shape', 'Shape'], ['access', 'Access'], ['look', 'Look']];
+const MATERNITY = [['none', 'None'], ['first', '1st tri'], ['second', '2nd tri'], ['third', '3rd tri']];
+const MUSCLE = { slim: 0.08, average: 0.15, athletic: 0.55, muscular: 0.9, curvy: 0.12, plus: 0.05 };
 
-// Options saved with the profile that the 3D character does not model yet.
-const NOT_IN_3D = '<p class="option-note">Saved with your profile. Not shown on the 3D character yet.</p>';
+const { BUILD_LABELS, PROPORTION_FIELDS, buildStartingPoint } = settings;
+// Appearance lists are read off the module namespace so the panel still loads
+// if the appearance options are not exported yet.
+const appearanceLists = () => ({
+  skins: settings.SKIN_TONES ?? [],
+  styles: settings.HAIR_STYLES ?? [],
+  hairColors: settings.HAIR_COLORS ?? [],
+});
+function ensureAppearance(character) {
+  const { skins, hairColors } = appearanceLists();
+  const defaults = settings.defaultCharacter().appearance ?? {};
+  character.appearance = {
+    skin: defaults.skin ?? skins[0]?.id ?? null,
+    hair: defaults.hair ?? null,
+    hairColor: defaults.hairColor ?? hairColors[0]?.id ?? null,
+    ...(character.appearance && typeof character.appearance === 'object' ? character.appearance : {}),
+  };
+  return character.appearance;
+}
+
+// The sub tab survives re-renders (unit switches, presets, builds).
+let bodyPane = 'measure';
+
+const NOT_IN_3D = 'Saved with your profile. Not shown on the 3D character yet.';
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const fill = (v, min, max) => `${(((clamp(v, min, max) - min) / (max - min || 1)) * 100).toFixed(1)}%`;
+const sizeCode = (name) => name.match(/\(([^)]+)\)/)?.[1] ?? name;
+const pct = (v) => `${Math.round(v * 100)}%`;
 
 export function renderBodyPanel(el) {
   const b = state.body;
   const character = state.character;
   Object.entries(BODY_PROFILE_DEFAULTS).forEach(([key, value]) => {
-    if (b[key] == null) b[key] = key === 'frame' ? SHAPE_TO_FRAME[character.bodyPreset] : value;
+    if (b[key] == null) b[key] = value;
   });
+  // The 3D shape is the source of truth; the saved frame mirrors it.
+  b.frame = SHAPE_TO_FRAME[character.bodyPreset] || 'neutral';
+  if (!PANES.some(([id]) => id === bodyPane)) bodyPane = 'measure';
+  const u = unit();
+  const look = ensureAppearance(character);
+  const { skins, styles, hairColors } = appearanceLists();
+
   el.innerHTML = `
-    <div class="panel-head">
-      <h2>Your body</h2>
-      <p>Enter real tape-measure numbers. Everything in the 3D view and the cut lines is worked out from these.</p>
+  <div class="bp">
+    <header class="bp-head">
+      <h2 class="bp-title">Your body</h2>
+      ${unitToggle('bp-units')}
+    </header>
+    <p class="bp-lede">Real tape-measure numbers drive the 3D figure and every cut line.</p>
+
+    <div class="bp-block">
+      <span class="bp-label" id="bp-frame-label">Body type</span>
+      <div class="bp-seg bp-cols-3 bp-planets" role="group" aria-labelledby="bp-frame-label">
+        ${FRAMES.map(([value, label], i) => `<button type="button" class="bp-opt planet" data-planet="${i + 1}" data-frame="${value}" aria-pressed="${b.frame === value}"><span>${label}</span></button>`).join('')}
+      </div>
     </div>
-    <div class="presets">${Object.keys(BODY_PRESETS)
-      .map((k) => `<button class="pill" data-preset="${k}" aria-pressed="${character.sizePreset === k}">${k}</button>`)
-      .join('')}</div>
-    <div class="body-subtabs">
-      <button data-body-pane="measurements" class="${bodyPane === 'measurements' ? 'active' : ''}">📏 <span>Measurements</span></button>
-      <button data-body-pane="frame" class="${bodyPane === 'frame' ? 'active' : ''}">👤 <span>Frame & maternity</span></button>
-      <button data-body-pane="accessibility" class="${bodyPane === 'accessibility' ? 'active' : ''}">♿ <span>Accessibility</span></button>
-      <button data-body-pane="appearance" class="${bodyPane === 'appearance' ? 'active' : ''}">✨ <span>Appearance</span></button>
+
+    <div class="bp-block">
+      <span class="bp-label" id="bp-size-label">Size</span>
+      <div class="bp-seg bp-cols-5" role="group" aria-labelledby="bp-size-label">
+        ${Object.keys(BODY_PRESETS).map((name) => `<button type="button" class="bp-opt bp-mono" data-preset="${name}" title="${name}" aria-label="${name}" aria-pressed="${character.sizePreset === name}">${sizeCode(name)}</button>`).join('')}
+      </div>
     </div>
-    <div class="body-pane" data-pane="frame" ${bodyPane === 'frame' ? '' : 'hidden'}>
-    <section class="sec anatomy-controls">
-      <h3>Body frame & anatomy base</h3>
-      <label class="choice-label">Body frame</label>
-      <div class="visual-choices three">${choiceCards('frame', [['female','◡','Female'],['neutral','◇','Neutral'],['male','▽','Male']], b.frame)}</div>
-      ${selectField('chestOption', 'Chest profile', [['symmetric','Symmetric'],['leftFlat','Unilateral flat — left'],['rightFlat','Unilateral flat — right'],['bilateralFlat','Bilateral flat']], b.chestOption)}
-      <label class="field"><span class="field-top"><span>Chest tissue projection</span><span class="val">${Math.round(b.chestProjection * 100)}%</span></span><input type="range" data-option-range="chestProjection" min="0" max="1" step="0.05" value="${b.chestProjection}"/></label>
-      <label class="choice-label">Maternity / abdomen</label>
-      <div class="visual-choices four">${choiceCards('maternity', [['none','○','None'],['first','◔','1st tri'],['second','◑','2nd tri'],['third','●','3rd tri']], b.maternity)}</div>
-      ${selectField('posture', 'Posture / spine', [['upright','Standard upright'],['kyphosis','Kyphosis / rounded back'],['scoliosis','Scoliosis asymmetry'],['seated','Seated / wheelchair']], b.posture)}
-      ${NOT_IN_3D.replace('Saved', 'Posture is saved')}
-    </section>
+
+    <div class="bp-block">
+      <span class="bp-label" id="bp-build-label">Build</span>
+      <div class="bp-seg bp-cols-3" role="group" aria-labelledby="bp-build-label">
+        ${Object.entries(BUILD_LABELS).map(([value, label]) => `<button type="button" class="bp-opt" data-build="${value}" aria-pressed="${character.build === value}">${label}</button>`).join('')}
+      </div>
     </div>
-    <div class="body-pane" data-pane="accessibility" ${bodyPane === 'accessibility' ? '' : 'hidden'}>
-    <section class="sec anatomy-controls">
-      <h3>Accessibility & body representation</h3>
-      ${selectField('stature', 'Stature profile', [['standard','Standard proportionate'],['achondroplasia','Achondroplasia preset'],['proportionateShort','Proportionate short stature']], b.stature)}
-      <label class="field"><span class="field-top"><span>Limb-to-torso ratio</span><span class="val">${Math.round(b.limbRatio * 100)}%</span></span><input type="range" data-option-range="limbRatio" min="0.55" max="1.15" step="0.05" value="${b.limbRatio}"/></label>
-      <div class="row2">
+
+    <div class="bp-tabs" role="tablist" aria-label="Body settings">
+      ${PANES.map(([id, label]) => `<button type="button" role="tab" id="bp-tab-${id}" class="bp-tab" data-bp-tab="${id}" aria-controls="bp-pane-${id}" aria-selected="${bodyPane === id}" tabindex="${bodyPane === id ? 0 : -1}">${label}</button>`).join('')}
+    </div>
+
+    <div class="bp-pane" role="tabpanel" id="bp-pane-measure" aria-labelledby="bp-tab-measure" ${bodyPane === 'measure' ? '' : 'hidden'}>
+      <figure class="bp-sil" id="bp-sil" aria-label="Front silhouette with your measurements"></figure>
+      ${GROUPS.map(([title, keys]) => `
+        <section class="bp-group" aria-label="${title}">
+          <h3 class="bp-group-title">${title}</h3>
+          ${keys.map((key) => measureRow(key, b[key], u)).join('')}
+        </section>`).join('')}
+      <p class="bp-note">Builds and sizes fill in starting values. Your own edits always win.</p>
+    </div>
+
+    <div class="bp-pane" role="tabpanel" id="bp-pane-shape" aria-labelledby="bp-tab-shape" ${bodyPane === 'shape' ? '' : 'hidden'}>
+      <section class="bp-group">
+        ${selectField('chestOption', 'Chest profile', [['symmetric', 'Symmetric'], ['leftFlat', 'Unilateral flat, left'], ['rightFlat', 'Unilateral flat, right'], ['bilateralFlat', 'Bilateral flat']], b.chestOption)}
+        ${ratioRow('chestProjection', 'Chest projection', 0, 1, b.chestProjection)}
+      </section>
+      <section class="bp-group">
+        <span class="bp-label" id="bp-maternity-label">Maternity</span>
+        <div class="bp-seg bp-cols-4" role="group" aria-labelledby="bp-maternity-label">
+          ${MATERNITY.map(([value, label]) => `<button type="button" class="bp-opt" data-choice="maternity" data-value="${value}" aria-pressed="${b.maternity === value}">${label}</button>`).join('')}
+        </div>
+        ${measureRow('belly', b.belly, u)}
+      </section>
+      <section class="bp-group">
+        ${selectField('posture', 'Posture / spine', [['upright', 'Standard upright'], ['kyphosis', 'Kyphosis / rounded back'], ['scoliosis', 'Scoliosis asymmetry'], ['seated', 'Seated / wheelchair']], b.posture)}
+        <p class="bp-note">Posture is saved with your profile. Not shown on the 3D character yet.</p>
+      </section>
+    </div>
+
+    <div class="bp-pane" role="tabpanel" id="bp-pane-access" aria-labelledby="bp-tab-access" ${bodyPane === 'access' ? '' : 'hidden'}>
+      <section class="bp-group">
+        ${selectField('stature', 'Stature profile', [['standard', 'Standard proportionate'], ['achondroplasia', 'Achondroplasia preset'], ['proportionateShort', 'Proportionate short stature']], b.stature)}
+        ${ratioRow('limbRatio', 'Limb-to-torso ratio', 0.55, 1.15, b.limbRatio)}
+      </section>
+      <section class="bp-group bp-grid2">
         ${selectField('leftArm', 'Left arm', armOptions(), b.leftArm)}
         ${selectField('rightArm', 'Right arm', armOptions(), b.rightArm)}
         ${selectField('leftLeg', 'Left leg', legOptions(), b.leftLeg)}
         ${selectField('rightLeg', 'Right leg', legOptions(), b.rightLeg)}
-      </div>
-      ${NOT_IN_3D}
-    </section>
+      </section>
+      <p class="bp-note">${NOT_IN_3D}</p>
     </div>
-    <div class="body-pane" data-pane="appearance" ${bodyPane === 'appearance' ? '' : 'hidden'}>
-    <section class="body-proportions">
-      <h3>Appearance proportions <span>Preview only</span></h3>
-      <p>These change the character and clothing preview together. They do not change tape measurements, fit warnings or cut lines.</p>
-      ${PROPORTION_FIELDS.map(([key, label, min, max]) => `<label class="field"><span class="field-top"><span>${label}</span><output data-proportion-value="${key}">${Math.round(character.proportions[key] * 100)}%</output></span><input type="range" data-proportion="${key}" min="${min}" max="${max}" step=".05" value="${character.proportions[key]}" /></label>`).join('')}
-      <button class="btn small ghost" id="reset-proportions">Reset appearance proportions</button>
-    </section>
+
+    <div class="bp-pane" role="tabpanel" id="bp-pane-look" aria-labelledby="bp-tab-look" ${bodyPane === 'look' ? '' : 'hidden'}>
+      ${skins.length ? `
+      <section class="bp-group">
+        <span class="bp-label" id="bp-skin-label">Skin</span>
+        <div class="bp-swatches" role="group" aria-labelledby="bp-skin-label">
+          ${skins.map((tone) => swatch('skin', tone, look.skin === tone.id)).join('')}
+        </div>
+      </section>` : ''}
+      ${styles.length ? `
+      <section class="bp-group">
+        <span class="bp-label" id="bp-hair-label">Hair</span>
+        <div class="bp-seg bp-cols-4" role="group" aria-labelledby="bp-hair-label">
+          ${[{ id: '', label: 'Auto' }, ...styles].map((style) => `<button type="button" class="bp-opt" data-hair="${style.id}" title="${style.id ? style.label : 'Auto: follows the body type'}" aria-pressed="${(look.hair ?? '') === style.id}">${style.label}</button>`).join('')}
+        </div>
+      </section>` : ''}
+      ${hairColors.length ? `
+      <section class="bp-group">
+        <span class="bp-label" id="bp-haircolor-label">Hair colour</span>
+        <div class="bp-swatches" role="group" aria-labelledby="bp-haircolor-label">
+          ${hairColors.map((tone) => swatch('hair-color', tone, look.hairColor === tone.id)).join('')}
+        </div>
+      </section>` : ''}
+      <section class="bp-group">
+        <span class="bp-label">Proportions</span>
+        <p class="bp-note bp-note-top">Preview only: these reshape the character and clothing together, never your tape measurements, fit warnings or cut lines.</p>
+        ${PROPORTION_FIELDS.map(([key, label, min, max]) => `
+          <div class="bp-row">
+            <div class="bp-row-top">
+              <label class="bp-row-label" for="bp-prop-${key}">${label}</label>
+              <output class="bp-out" data-proportion-value="${key}">${pct(character.proportions[key])}</output>
+            </div>
+            <input class="bp-range" type="range" id="bp-prop-${key}" data-proportion="${key}" min="${min}" max="${max}" step=".05" value="${character.proportions[key]}" style="--fill:${fill(character.proportions[key], min, max)}" />
+          </div>`).join('')}
+      </section>
+      <button type="button" class="bp-btn" id="reset-proportions">Reset proportions</button>
     </div>
-    <div class="body-pane" data-pane="measurements" ${bodyPane === 'measurements' ? '' : 'hidden'}>
-    <section class="body-starting-points" aria-label="Build starting points">
-      <span class="body-section-label">BUILD STARTING POINTS</span>
-      <div class="body-build-options" role="group" aria-label="Body build">
-        ${Object.entries(BUILD_LABELS).map(([value, label]) => `<button class="pill ${character.build === value ? 'active' : ''}" data-build="${value}" aria-pressed="${character.build === value}">${label}</button>`).join('')}
-      </div>
-      <p>Builds set editable measurement values. Manual edits always take precedence.</p>
-    </section>
-    <div class="body-grid">
-      <div class="silhouette" id="silhouette"></div>
-      <div class="fields">
-        ${BODY_FIELDS.map(
-          ([key, label, min, max]) => `
-          <label class="field" title="${HINTS[key]}">
-            <span class="field-top"><span>${label}</span><span class="val"><input type="number" data-num="${key}" value="${b[key]}" min="${min}" max="${max}" step="0.5"/> cm <em data-in="${key}">${inch(b[key])}</em></span></span>
-            <input type="range" data-key="${key}" min="${min}" max="${max}" step="0.5" value="${b[key]}" />
-            <small>${HINTS[key]}</small>
-          </label>`
-        ).join('')}
-      </div>
-    </div>
-    </div>
-  `;
-  const sil = el.querySelector('#silhouette');
+  </div>`;
+
+  const root = el.querySelector('.bp');
+  bindUnitToggle(root);
+
+  const sil = root.querySelector('#bp-sil');
   const draw = () => (sil.innerHTML = silhouetteSVG(state.body));
   draw();
 
-  el.querySelectorAll('[data-body-pane]').forEach((button) =>
+  const press = (buttons, active) => buttons.forEach((button) => button.setAttribute('aria-pressed', String(button === active)));
+
+  // Sub tabs (with arrow-key movement between them).
+  const tabs = [...root.querySelectorAll('[data-bp-tab]')];
+  const showPane = (tab) => {
+    bodyPane = tab.dataset.bpTab;
+    tabs.forEach((item) => {
+      const on = item === tab;
+      item.setAttribute('aria-selected', String(on));
+      item.tabIndex = on ? 0 : -1;
+    });
+    root.querySelectorAll('.bp-pane').forEach((pane) => (pane.hidden = pane.id !== `bp-pane-${bodyPane}`));
+  };
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => showPane(tab));
+    tab.addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      const next = tabs[(i + step + tabs.length) % tabs.length];
+      showPane(next);
+      next.focus();
+    });
+  });
+
+  // Body type: the 3D shape and the saved frame always change together.
+  const frameButtons = [...root.querySelectorAll('[data-frame]')];
+  frameButtons.forEach((button) =>
     button.addEventListener('click', () => {
-      bodyPane = button.dataset.bodyPane;
-      el.querySelectorAll('[data-body-pane]').forEach((item) => item.classList.toggle('active', item === button));
-      el.querySelectorAll('[data-pane]').forEach((pane) => (pane.hidden = pane.dataset.pane !== bodyPane));
-    })
-  );
-  el.querySelectorAll('[data-choice]').forEach((button) =>
-    button.addEventListener('click', () => {
-      b[button.dataset.choice] = button.dataset.value;
-      // The body frame sets the 3D character's shape.
-      if (button.dataset.choice === 'frame') character.bodyPreset = FRAME_TO_SHAPE[button.dataset.value];
-      button.parentElement.querySelectorAll('[data-choice]').forEach((item) => item.classList.toggle('active', item === button));
+      b.frame = button.dataset.frame;
+      character.bodyPreset = FRAME_TO_SHAPE[b.frame];
+      press(frameButtons, button);
       draw();
       emit('body');
     })
   );
 
-  el.querySelectorAll('[data-body-option]').forEach((control) =>
+  const sizeButtons = [...root.querySelectorAll('[data-preset]')];
+  sizeButtons.forEach((button) =>
+    button.addEventListener('click', () => {
+      Object.assign(b, BODY_PRESETS[button.dataset.preset]);
+      character.sizePreset = button.dataset.preset;
+      character.build = 'average';
+      renderBodyPanel(el);
+      emit('body');
+    })
+  );
+
+  root.querySelectorAll('[data-build]').forEach((button) =>
+    button.addEventListener('click', () => {
+      const build = button.dataset.build;
+      const names = Object.keys(BODY_PRESETS);
+      const closest = names.reduce((best, key) => (Math.abs(BODY_PRESETS[key].height - b.height) < Math.abs(BODY_PRESETS[best].height - b.height) ? key : best), names[0]);
+      const source = BODY_PRESETS[character.sizePreset] || { ...BODY_PRESETS[closest], height: b.height, arm: b.arm, inseam: b.inseam };
+      const values = buildStartingPoint(source, build);
+      for (const [key, , min, max] of BODY_FIELDS) if (values[key] != null) b[key] = clamp(values[key], min, max);
+      if (b.underbust > b.chest) b.underbust = Math.max(FIELD.underbust[2], b.chest);
+      character.build = build;
+      character.proportions.muscleDefinition = MUSCLE[build];
+      renderBodyPanel(el);
+      emit('body');
+    })
+  );
+
+  root.querySelectorAll('[data-choice]').forEach((button) =>
+    button.addEventListener('click', () => {
+      b[button.dataset.choice] = button.dataset.value;
+      press(button.parentElement.querySelectorAll('[data-choice]'), button);
+      draw();
+      emit('body');
+    })
+  );
+  root.querySelectorAll('[data-body-option]').forEach((control) =>
     control.addEventListener('change', () => {
       b[control.dataset.bodyOption] = control.value;
       draw();
       emit('body');
     })
   );
-  el.querySelectorAll('[data-option-range]').forEach((control) =>
+  root.querySelectorAll('[data-option-range]').forEach((control) =>
     control.addEventListener('input', () => {
-      b[control.dataset.optionRange] = parseFloat(control.value);
-      control.closest('.field').querySelector('.val').textContent = `${Math.round(parseFloat(control.value) * 100)}%`;
+      const v = parseFloat(control.value);
+      b[control.dataset.optionRange] = v;
+      control.style.setProperty('--fill', fill(v, +control.min, +control.max));
+      root.querySelector(`[data-option-value="${control.dataset.optionRange}"]`).textContent = pct(v);
       draw();
       emit('body');
     })
   );
 
-  const set = (key, v) => {
-    if (!Number.isFinite(v)) return;
-    const [, , min, max] = BODY_FIELDS.find((field) => field[0] === key);
-    const numeric = el.querySelector(`[data-num="${key}"]`);
-    numeric.setCustomValidity(v < min || v > max ? `Enter ${min}–${max} cm.` : '');
-    if (!numeric.reportValidity()) return;
-    state.body[key] = v;
-    character.sizePreset = null;
-    el.querySelector(`[data-key="${key}"]`).value = v;
-    const num = el.querySelector(`[data-num="${key}"]`);
-    if (document.activeElement !== num) num.value = v;
-    el.querySelector(`[data-in="${key}"]`).textContent = inch(v);
+  // Measurements: controls show the display unit, state keeps centimetres.
+  const sync = (key) => {
+    const cm = b[key];
+    const shown = toUnit(cm);
+    const range = root.querySelector(`[data-key="${key}"]`);
+    if (range) {
+      range.value = shown;
+      range.style.setProperty('--fill', fill(shown, +range.min, +range.max));
+    }
+    const num = root.querySelector(`[data-num="${key}"]`);
+    if (num && document.activeElement !== num) num.value = shown;
+    const alt = root.querySelector(`[data-alt="${key}"]`);
+    if (alt) alt.textContent = otherUnit(cm, { height: key === 'height' });
+  };
+  const commit = (key, cm) => {
+    const [, , min, max] = FIELD[key];
+    let v = clamp(cm, min, max);
+    // The ribcage can't measure more than the fullest chest.
+    if (key === 'underbust') v = Math.min(v, b.chest);
+    b[key] = v;
+    sync(key);
+    if (key === 'chest' && b.underbust > b.chest) {
+      b.underbust = Math.max(FIELD.underbust[2], b.chest);
+      sync('underbust');
+    }
+    if (key !== 'belly' && character.sizePreset) {
+      character.sizePreset = null;
+      press(sizeButtons, null);
+    }
     draw();
     emit('body');
   };
-  el.querySelectorAll('input[type=range][data-key]').forEach((r) => r.addEventListener('input', () => set(r.dataset.key, parseFloat(r.value))));
-  el.querySelectorAll('input[data-num]').forEach((n) => n.addEventListener('change', () => set(n.dataset.num, parseFloat(n.value))));
-  el.querySelectorAll('[data-preset]').forEach((btn) =>
-    btn.addEventListener('click', () => {
-      Object.assign(b, BODY_PRESETS[btn.dataset.preset]);
-      character.sizePreset = btn.dataset.preset;
-      character.build = 'average';
-      renderBodyPanel(el);
-      emit('body');
+  root.querySelectorAll('input[type=range][data-key]').forEach((range) =>
+    range.addEventListener('input', () => {
+      const v = parseFloat(range.value);
+      if (Number.isFinite(v)) commit(range.dataset.key, fromUnit(v));
     })
   );
-  el.querySelectorAll('[data-build]').forEach((button) =>
-    button.addEventListener('click', () => {
-      const build = button.dataset.build;
-      const closest = Object.keys(BODY_PRESETS).reduce((best, key) => (Math.abs(BODY_PRESETS[key].height - b.height) < Math.abs(BODY_PRESETS[best].height - b.height) ? key : best), Object.keys(BODY_PRESETS)[0]);
-      const source = BODY_PRESETS[character.sizePreset] || { ...BODY_PRESETS[closest], height: b.height, arm: b.arm, inseam: b.inseam };
-      const values = buildStartingPoint(source, build);
-      for (const [key, , min, max] of BODY_FIELDS) if (values[key] != null) b[key] = Math.max(min, Math.min(max, values[key]));
-      character.build = build;
-      character.proportions.muscleDefinition = { slim: .08, average: .15, athletic: .55, muscular: .9, curvy: .12, plus: .05 }[build];
-      renderBodyPanel(el);
-      emit('body');
-    })
-  );
-  el.querySelectorAll('[data-proportion]').forEach((input) =>
+  root.querySelectorAll('input[data-num]').forEach((num) => {
+    num.addEventListener('input', () => num.setCustomValidity(''));
+    num.addEventListener('change', () => {
+      const key = num.dataset.num;
+      const [, , min, max] = FIELD[key];
+      const [lo, hi] = unitRange(min, max);
+      const v = parseFloat(num.value);
+      if (!Number.isFinite(v) || v < lo || v > hi) {
+        num.setCustomValidity(`Enter ${lo}–${hi} ${unit()}.`);
+        num.reportValidity();
+        return;
+      }
+      num.setCustomValidity('');
+      commit(key, fromUnit(v));
+      num.value = toUnit(b[key]);
+    });
+  });
+
+  // Appearance: skin, hair style (empty id = Auto by body type) and hair colour.
+  const pick = (selector, apply) => {
+    const buttons = [...root.querySelectorAll(selector)];
+    buttons.forEach((button) =>
+      button.addEventListener('click', () => {
+        apply(button);
+        press(buttons, button);
+        emit('character');
+      })
+    );
+  };
+  pick('[data-skin]', (button) => (ensureAppearance(character).skin = button.dataset.skin));
+  pick('[data-hair]', (button) => (ensureAppearance(character).hair = button.dataset.hair || null));
+  pick('[data-hair-color]', (button) => (ensureAppearance(character).hairColor = button.dataset.hairColor));
+
+  root.querySelectorAll('[data-proportion]').forEach((input) =>
     input.addEventListener('input', () => {
-      character.proportions[input.dataset.proportion] = Number(input.value);
-      el.querySelector(`[data-proportion-value="${input.dataset.proportion}"]`).textContent = `${Math.round(Number(input.value) * 100)}%`;
+      const v = Number(input.value);
+      character.proportions[input.dataset.proportion] = v;
+      input.style.setProperty('--fill', fill(v, +input.min, +input.max));
+      root.querySelector(`[data-proportion-value="${input.dataset.proportion}"]`).textContent = pct(v);
       emit('character');
     })
   );
-  el.querySelector('#reset-proportions').addEventListener('click', () => {
-    for (const [key] of PROPORTION_FIELDS) character.proportions[key] = key === 'muscleDefinition' ? .15 : 0;
+  root.querySelector('#reset-proportions').addEventListener('click', () => {
+    for (const [key] of PROPORTION_FIELDS) character.proportions[key] = key === 'muscleDefinition' ? 0.15 : 0;
     renderBodyPanel(el);
     emit('character');
   });
 }
 
+// A tape measurement: label, number box in the display unit, the other unit as
+// a quiet secondary reading, and a full-width slider.
+function measureRow(key, cm, u) {
+  const [, label, min, max] = FIELD[key];
+  const [lo, hi] = unitRange(min, max, u);
+  const shown = toUnit(cm, u);
+  const hint = HINTS[key];
+  return `
+    <div class="bp-row" title="${hint}">
+      <div class="bp-row-top">
+        <label class="bp-row-label" for="bp-num-${key}">${label}</label>
+        <span class="bp-alt" data-alt="${key}">${otherUnit(cm, { height: key === 'height' }, u)}</span>
+        <span class="bp-val"><input class="bp-num" type="number" inputmode="decimal" id="bp-num-${key}" data-num="${key}" value="${shown}" min="${lo}" max="${hi}" step="any" aria-describedby="bp-hint-${key}" /><span class="bp-suffix">${u}</span></span>
+      </div>
+      <input class="bp-range" type="range" data-key="${key}" min="${lo}" max="${hi}" step="${unitStep(u)}" value="${clamp(shown, lo, hi)}" style="--fill:${fill(shown, lo, hi)}" aria-label="${label} (${u})" />
+      <p class="bp-hint" id="bp-hint-${key}">${hint}</p>
+    </div>`;
+}
+
+// A 0–1 style body option shown as a percentage.
+function ratioRow(key, label, min, max, value) {
+  return `
+    <div class="bp-row">
+      <div class="bp-row-top">
+        <label class="bp-row-label" for="bp-opt-${key}">${label}</label>
+        <output class="bp-out" data-option-value="${key}">${pct(value)}</output>
+      </div>
+      <input class="bp-range" type="range" id="bp-opt-${key}" data-option-range="${key}" min="${min}" max="${max}" step="0.05" value="${value}" style="--fill:${fill(value, min, max)}" />
+    </div>`;
+}
+
+function swatch(kind, { id, label, color }, active) {
+  return `<button type="button" class="bp-swatch" data-${kind}="${id}" style="--swatch:${color}" title="${label}" aria-label="${label}" aria-pressed="${active}"></button>`;
+}
+
 function selectField(key, label, options, value) {
-  return `<label class="lbl">${label}<select data-body-option="${key}">${options.map(([v, text]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
+  return `<label class="bp-field"><span class="bp-field-label">${label}</span><span class="bp-select-wrap"><select class="bp-select" data-body-option="${key}">${options.map(([v, text]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${text}</option>`).join('')}</select></span></label>`;
 }
-function choiceCards(key, options, value) {
-  return options.map(([v, icon, label]) => `<button type="button" class="visual-choice ${v === value ? 'active' : ''}" data-choice="${key}" data-value="${v}"><b>${icon}</b><span>${label}</span></button>`).join('');
-}
-const armOptions = () => [['full','Full limb'],['aboveElbow','Above-elbow / transhumeral'],['belowElbow','Below-elbow / transradial'],['shoulder','Shoulder disarticulation']];
-const legOptions = () => [['full','Full limb'],['aboveKnee','Above-knee / transfemoral'],['belowKnee','Below-knee / transtibial']];
+const armOptions = () => [['full', 'Full limb'], ['aboveElbow', 'Above-elbow / transhumeral'], ['belowElbow', 'Below-elbow / transradial'], ['shoulder', 'Shoulder disarticulation']];
+const legOptions = () => [['full', 'Full limb'], ['aboveKnee', 'Above-knee / transfemoral'], ['belowKnee', 'Below-knee / transtibial']];
 
 // Front-view silhouette with measurement callouts, drawn from the same body model as the 3D figure.
+// Callout values are shown in the current display unit.
 export function silhouetteSVG(b) {
   const M = bodyModel(b);
   const lm = M.lm;
@@ -234,10 +445,11 @@ export function silhouetteSVG(b) {
   const p = (y) => M.profileAt(y);
   const dimH = (y, label, val) => {
     const r = p(y).rx;
-    return `<line x1="${-r}" y1="${Y(y)}" x2="${r}" y2="${Y(y)}" class="dl"/><text x="${-r - 3}" y="${+Y(y) + 1.2}" text-anchor="end" class="dt">${label} ${val}</text>`;
+    return `<line x1="${-r}" y1="${Y(y)}" x2="${r}" y2="${Y(y)}" class="dl"/><text x="${-r - 3}" y="${+Y(y) + 2.5}" text-anchor="end" class="dt">${label} ${formatLength(val)}</text>`;
   };
-  const x0 = 52;
-  return `<svg viewBox="-80 -6 160 ${H + 12}" xmlns="http://www.w3.org/2000/svg">
+  // Height runs up the far left with its label turned along the line.
+  const x0 = -96;
+  return `<svg viewBox="-110 -6 220 ${H + 12}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Body silhouette">
     <g class="bodyfill">
       ${leg(-1)}${leg(1)}${arm(-1)}${arm(1)}
       <polygon points="${torsoR.join(' ')} ${torsoL.join(' ')}" />
@@ -247,11 +459,11 @@ export function silhouetteSVG(b) {
     ${dimH(lm.waistY, 'waist', b.waist)}
     ${dimH(lm.hipY, 'hips', b.hips)}
     <line x1="${-b.shoulder / 2}" y1="${Y(lm.shoulderY + 4)}" x2="${b.shoulder / 2}" y2="${Y(lm.shoulderY + 4)}" class="dl"/>
-    <text x="${b.shoulder / 2 + 2}" y="${+Y(lm.shoulderY + 4) - 1}" class="dt">shoulder ${b.shoulder}</text>
+    <text x="${b.shoulder / 2 + 2}" y="${+Y(lm.shoulderY + 4) - 1.5}" class="dt">shoulder ${formatLength(b.shoulder)}</text>
     <line x1="${x0}" y1="${Y(0)}" x2="${x0}" y2="${Y(H)}" class="dl"/>
-    <text x="${x0 + 2}" y="${Y(H / 2)}" class="dt">height ${b.height}</text>
+    <text transform="translate(${x0 - 2.5} ${Y(H / 2)}) rotate(-90)" text-anchor="middle" class="dt">height ${formatLength(b.height)}</text>
     <line x1="${lm.legX + 12}" y1="${Y(0)}" x2="${lm.legX + 12}" y2="${Y(lm.crotchY)}" class="dl dl2"/>
-    <text x="${lm.legX + 14}" y="${Y(lm.crotchY / 2)}" class="dt">inseam ${b.inseam}</text>
-    <line x1="-80" y1="${Y(0)}" x2="80" y2="${Y(0)}" stroke="#cbbfa9" stroke-width=".5"/>
+    <text x="${lm.legX + 14}" y="${Y(lm.crotchY / 2)}" class="dt">inseam ${formatLength(b.inseam)}</text>
+    <line x1="-110" y1="${Y(0)}" x2="110" y2="${Y(0)}" class="dl-ground" stroke="#cbbfa9" stroke-width=".5"/>
   </svg>`;
 }

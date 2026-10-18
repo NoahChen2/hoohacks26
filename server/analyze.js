@@ -7,13 +7,17 @@ const RequestSchema=z.object({imageDataUrl:z.string().max(7*1024*1024),condition
 export class StudioError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 export function parseAnalysisRequest(value){
  const result=RequestSchema.safeParse(value);if(!result.success)throw new StudioError('Check the image, condition, material, and preference fields.');
- const match=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(result.data.imageDataUrl);
+ validateImageDataUrl(result.data.imageDataUrl);
+ return {...result.data,preferences:normalizePreferences(result.data.preferences)};
+}
+// A base64 JPEG, PNG or WebP within the upload limit whose bytes match its type.
+export function validateImageDataUrl(imageDataUrl){
+ const match=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(imageDataUrl);
  if(!match||match[2].length%4!==0)throw new StudioError('Upload a valid JPEG, PNG, or WebP photo.');
  const bytes=Buffer.from(match[2],'base64');
  if(bytes.length>MAX_UPLOAD_BYTES)throw new StudioError('Your image must be 5 MB or smaller.',413);
  const mime=match[1],valid=bytes.length>12&&(mime==='image/jpeg'?bytes[0]===255&&bytes[1]===216&&bytes[2]===255:mime==='image/png'?bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])):bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP');
  if(!valid)throw new StudioError('The file contents do not match a supported image. Choose another photo.');
- return {...result.data,preferences:normalizePreferences(result.data.preferences)};
 }
 export function demoAnalysis(input){
  const aesthetic=input.preferences.aesthetics[0]||'Minimalist',needle=input.preferences.tools.includes('Needle and thread');
@@ -43,16 +47,20 @@ export async function analyzeClothing(input,{env=process.env,client}={}){
  if(analysis.projects.some(p=>(!hasMachine&&p.tools.some(tool=>/sewing machine|serger|overlocker/i.test(tool)))||(noTools&&p.tools.some(tool=>!/^none(?: required)?$|^no tools(?: required)?$/i.test(tool.trim())))))throw new StudioError('The recommendations required tools you do not have. Please retry.',502);
  return ResultSchema.parse({mode:'live',notice:'AI-assisted suggestions, not a fabric test. Confirm the care label and check suitability before starting.',analysis});
 }
+// Same-origin JSON body, capped at 7 MB while streaming.
+export async function readJsonBody(req){
+ if(!/^application\/json(?:;|$)/i.test(req.headers['content-type']||''))throw new StudioError('Send a JSON request.',415);
+ if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`&&req.headers.origin!==`https://${req.headers.host}`)throw new StudioError('Cross-origin requests are not allowed.',403);
+ const max=7*1024*1024;if(Number(req.headers['content-length'])>max)throw new StudioError('Upload is too large.',413);
+ const parts=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>max)throw new StudioError('Upload is too large.',413);parts.push(chunk);}
+ try{return JSON.parse(Buffer.concat(parts).toString());}catch{throw new StudioError('The request could not be read. Please retry.');}
+}
 export function createAnalyzeHandler({env=process.env,client}={}){
  return async(req,res)=>{
   res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
   if(req.method!=='POST'){res.setHeader('Allow','POST');res.writeHead(405);res.end(JSON.stringify({error:'Use POST to analyze a garment.'}));return;}
   try{
-   if(!/^application\/json(?:;|$)/i.test(req.headers['content-type']||''))throw new StudioError('Send a JSON request.',415);
-   if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`&&req.headers.origin!==`https://${req.headers.host}`)throw new StudioError('Cross-origin requests are not allowed.',403);
-   const max=7*1024*1024;if(Number(req.headers['content-length'])>max)throw new StudioError('Upload is too large.',413);
-   const parts=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>max)throw new StudioError('Upload is too large.',413);parts.push(chunk);}
-   let body;try{body=JSON.parse(Buffer.concat(parts).toString());}catch{throw new StudioError('The request could not be read. Please retry.');}
+   const body=await readJsonBody(req);
    const result=await analyzeClothing(parseAnalysisRequest(body),{env,client});res.writeHead(200);res.end(JSON.stringify(result));
   }catch(error){
    const status=error instanceof StudioError?error.status:error.status===429?429:502;

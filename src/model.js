@@ -3,7 +3,7 @@
 // cutting calculations continue to use the unchanged measurement model.
 
 import * as THREE from 'three';
-import { GARMENT_TYPES } from './state.js';
+import { GARMENT_TYPES } from './garments.js';
 import { topLandmarks, bottomLandmarks } from './flats.js';
 
 import { bodyModel, perim } from './character/measurements.js';
@@ -114,12 +114,33 @@ export function ringSurface(rings, opts = {}) {
     }
   }
   const row = N + 1;
+  // An open front (jackets, cardigans) leaves out the faces either side of φ = 0.
+  const open = opts.open || 0;
+  const gap = (i) => open > 0 && Math.abs(-Math.PI + ((i + 0.5) / N) * Math.PI * 2) < open;
+  // Armholes (sleeveless tops): above armhole.y only the cloth within armhole.x
+  // of the centre line stays, which leaves the shoulder straps.
+  // A neckline (armhole.neck) is cut to the flat's curve: a scoop, or a V,
+  // `front` cm deep at the centre front and `back` cm at the centre back.
+  const armhole = opts.armhole;
+  const cut = (...k) => {
+    if (!armhole) return false;
+    let x = 0, y = 0, z = 0;
+    for (const v of k) { x += pos[v * 3]; y += pos[v * 3 + 1]; z += pos[v * 3 + 2]; }
+    x = Math.abs(x / k.length); y /= k.length; z /= k.length;
+    if (y > armhole.y && x > armhole.x) return true;
+    const neck = armhole.neck;
+    if (!neck || x >= neck.x) return false;
+    const t = x / neck.x, depth = (z > 0 ? neck.front : neck.back) * (neck.v ? 1 - t : 1 - t * t);
+    return y > neck.top - depth;
+  };
   for (let j = 0; j < rings.length - 1; j++) {
     for (let i = 0; i < N; i++) {
+      if (gap(i)) continue;
       const a = j * row + i,
         b = a + 1,
         c = a + row,
         d = c + 1;
+      if (cut(a, b, c, d)) continue;
       idx.push(a, b, c, b, d, c); // CCW from outside → outward normals
     }
   }
@@ -135,11 +156,21 @@ export function ringSurface(rings, opts = {}) {
   geo.computeVertexNormals();
   if(opts.cloth) {
     const result=[geo];
+    const vertex=(j,i)=>{const k=(j*(N+1)+i)*3;return new THREE.Vector3(pos[k],pos[k+1],pos[k+2]);};
+    // Open garments: hem and neck trims run around the back between the two front edges.
+    let right=N/2,left=N/2;
+    if(open>0){while(gap(right))right++;while(gap(left-1))left--;}
+    const columns=open>0?[...Array.from({length:N-right+1},(_,k)=>right+k),...Array.from({length:left},(_,k)=>k+1)]:Array.from({length:N},(_,i)=>i);
     for(const j of [opts.trimStart?0:null,opts.trimEnd?rings.length-1:null].filter(v=>v!==null)) {
-      const points=[];for(let i=0;i<N;i++){const k=(j*(N+1)+i)*3;points.push(new THREE.Vector3(pos[k],pos[k+1],pos[k+2]));}
-      const curve=new THREE.CatmullRomCurve3(points,true);
-      const trim=new THREE.TubeGeometry(curve,N*2,(j===rings.length-1 && opts.neckDrop) ? .27 : .14,6,true);
+      const curve=new THREE.CatmullRomCurve3(columns.map(i=>vertex(j,i)),!(open>0));
+      const trim=new THREE.TubeGeometry(curve,N*2,(j===rings.length-1 && opts.neckDrop) ? .27 : .14,6,!(open>0));
       trim.userData.trim=true;result.push(trim);
+    }
+    // Front bands down both opening edges.
+    if(open>0)for(const i of [right,left]) {
+      const curve=new THREE.CatmullRomCurve3(rings.map((_,j)=>vertex(j,i)));
+      const band=new THREE.TubeGeometry(curve,Math.max(8,rings.length*2),.32,6,false);
+      band.userData.trim=true;result.push(band);
     }
     return result;
   }
@@ -189,7 +220,66 @@ export function easeColor(ease) {
   return [0.24, 0.39, 0.87];
 }
 
-function fitRing(M, y, Cg, flatY, extra = 0.6) {
+// Layering: an outer garment keeps clear of the garments already on the body.
+// `under` is the merged envelope of those garments (see outfitEnvelope).
+const LAYER_GAP = 0.7;
+function clearUnder(ring, under) {
+  const e = under?.torso(ring.c.y);
+  if (!e) return ring;
+  ring.r1 = Math.max(ring.r1, e.rx + LAYER_GAP);
+  ring.r2 = Math.max(ring.r2, e.rz + LAYER_GAP);
+  ring.minR1 = Math.max(ring.minR1 ?? 0, e.rx + LAYER_GAP);
+  ring.minR2 = Math.max(ring.minR2 ?? 0, e.rz + LAYER_GAP);
+  return ring;
+}
+
+// Cloth folds reach about a centimetre past each ring's nominal radius.
+const FOLD = 1.2;
+function torsoSamples(rings) {
+  return rings.map((r) => [r.c.y, Math.abs(r.c.x) + r.r1 + FOLD, r.r2 + FOLD]);
+}
+
+/** Merge built garments' envelopes into lookups by height (torso) and sleeve distance. */
+export function outfitEnvelope(envelopes) {
+  const bins = new Map(), sleeves = [];
+  const put = (y, rx, rz) => {
+    const k = Math.round(y), cur = bins.get(k);
+    if (!cur) bins.set(k, { rx, rz });
+    else { cur.rx = Math.max(cur.rx, rx); cur.rz = Math.max(cur.rz, rz); }
+  };
+  for (const env of envelopes) {
+    for (const piece of env.torso) {
+      const list = [...piece].sort((a, b) => a[0] - b[0]);
+      for (let i = 0; i < list.length; i++) {
+        put(...list[i]);
+        const next = list[i + 1];
+        if (!next) continue;
+        for (let y = Math.ceil(list[i][0]); y < next[0]; y++) {
+          const t = (y - list[i][0]) / (next[0] - list[i][0] || 1);
+          put(y, lerp(list[i][1], next[1], t), lerp(list[i][2], next[2], t));
+        }
+      }
+    }
+    sleeves.push(...env.sleeve);
+  }
+  return {
+    torso(y) {
+      let best = null;
+      for (const k of [Math.floor(y), Math.ceil(y)]) {
+        const b = bins.get(k);
+        if (b) best = best ? { rx: Math.max(best.rx, b.rx), rz: Math.max(best.rz, b.rz) } : { ...b };
+      }
+      return best;
+    },
+    sleeve(t) {
+      let r = 0;
+      for (const [st, sr] of sleeves) if (Math.abs(st - t) < 2.6) r = Math.max(r, sr);
+      return r;
+    },
+  };
+}
+
+function fitRing(M, y, Cg, flatY, extra = 0.6, under = null) {
   const p = M.profileAt(y);
   const Cb = perim(p.rx, p.rz);
   let r1, r2;
@@ -201,7 +291,7 @@ function fitRing(M, y, Cg, flatY, extra = 0.6) {
     r1 = p.rx + extra;
     r2 = p.rz + extra;
   }
-  return { c: new THREE.Vector3(0, y, 0), e1: X, e2: Z, r1, r2, flatY, minR1: p.rx+extra, minR2: p.rz+extra, color: easeColor(Cg - Cb), ease: Cg - Cb };
+  return clearUnder({ c: new THREE.Vector3(0, y, 0), e1: X, e2: Z, r1, r2, flatY, minR1: p.rx+extra, minR2: p.rz+extra, color: easeColor(Cg - Cb), ease: Cg - Cb }, under);
 }
 
 function sampleYs(top, bottom, step, extras = []) {
@@ -241,15 +331,18 @@ function frontPocket(rings, cx, top, width, height, texTop) {
 }
 
 /**
- * Returns { parts: [{geo, region}], summary, topY } for a garment on a body model.
+ * Returns { parts: [{geo, region}], checks, topY, envelope } for a garment on a body model.
+ * opts.under: envelope of garments already worn beneath (outfitEnvelope), so this
+ * one is built outside them; opts.open: leave the front open over those layers.
  * parts' uv map into a shared texture where the flat sketch (cm) lives at
  * u = 0.5 + x/texW, v = 1 - (flatY + margin)/texH.
  */
-export function buildGarment(g, M) {
+export function buildGarment(g, M, { under = null, open = false } = {}) {
   const kind = GARMENT_TYPES[g.type].kind;
   const lm = M.lm;
   const parts = [];
   const checks = []; // {label, ease}
+  const envelope = { torso: [], sleeve: [] };
   let topY;
 
   if (kind === 'top' || kind === 'dress') {
@@ -280,7 +373,9 @@ export function buildGarment(g, M) {
     keys = keys.filter((k, i) => i === 0 || k[0] > hemY).sort((a, b) => a[0] - b[0]);
     const Cg = (y) => piecewise(keys, y);
     const ys = sampleYs(lm.armpitY, hemY, 3, [lm.waistY, lm.hipY, lm.chestY, lm.crotchY]);
-    const rings = ys.map((y) => fitRing(M, y, Cg(y), topY - y));
+    const rings = ys.map((y) => fitRing(M, y, Cg(y), topY - y, 0.6, under));
+    const strappy = ['tank', 'cami', 'vest', 'slipdress'].includes(g.type);
+    const collared = ['buttonup', 'polo', 'jacket', 'coat'].includes(g.type);
     // shoulders → neckline
     const shoulderHalf = Math.max(g.shoulder / 2, M.profileAt(lm.shoulderY - 1.5).rx + 0.8);
     const up = [
@@ -297,21 +392,42 @@ export function buildGarment(g, M) {
       let r1 = atShoulder ? p.rx + 1 : Math.max(p.rx + 0.8, Math.min(shoulderHalf, chestRing.r1));
       let r2 = Math.max(p.rz + 0.8, u.w ? lerp(p.rz + 0.8, chestRing.r2, 0.4) : p.rz + 0.8);
       if (u.w === 0) {
-        r1 = Math.max(M.neckR + 1.2, g.type === 'tank' ? T.nw : T.nw * 0.85);
-        r2 = M.neckR + (g.type === 'buttonup' ? 1.2 : 2.4);
+        r1 = Math.max(M.neckR + 1.2, strappy ? T.nw : T.nw * 0.85);
+        r2 = M.neckR + (collared ? 1.2 : 2.4);
       }
-      rings.push({ c: new THREE.Vector3(0, u.y, u.w === 0 ? 0.6 : 0), e1: X, e2: Z, r1, r2, flatY: topY - u.y, color: [0.27, 0.65, 0.35] });
+      rings.push(clearUnder({ c: new THREE.Vector3(0, u.y, u.w === 0 ? 0.6 : 0), e1: X, e2: Z, r1, r2, flatY: topY - u.y, color: [0.27, 0.65, 0.35] }, under));
     }
-    parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: true, neckDrop: g.type==='tank'?5:g.type==='buttonup'?2:2.8 }), region: 'torso' });
+    const neckDrop = { tank: 5, cami: 6, slipdress: 5, vest: 8, cardigan: 7, buttonup: 2, polo: 2.2, blouse: 3.4 }[g.type] ?? 2.8;
+    const opening = open ? (g.type === 'cardigan' || g.type === 'vest' ? 0.27 : 0.22) : 0;
+    // Sleeveless cuts keep straps as wide as the flat's shoulder line (2D and 3D agree).
+    // Their necklines follow the flat too: a scoop (a V on vests) as deep as the
+    // flat's neck curve (0.8 × collar), shallower at the back.
+    const armhole = strappy ? {
+      y: lm.armpitY + 1, x: Math.max(g.shoulder / 2, T.nw + 1.5),
+      neck: { top: topY + 1, x: T.nw, front: T.collar * 0.8, back: T.collar * 0.3, v: g.type === 'vest' },
+    } : null;
+    parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: !strappy, neckDrop: strappy ? 0 : neckDrop, open: opening, armhole }), region: 'torso' });
+    envelope.torso.push(torsoSamples(rings));
     const ringAt = (y) => rings.reduce((best, r) => (Math.abs(r.c.y - y) < Math.abs(best.c.y - y) ? r : best), rings[0]);
     if(g.type==='hoodie') parts.push({geo:frontPocket(rings,0,topY-g.length+27,27,16,topY),region:'pocket'});
     if(g.type==='buttonup') parts.push({geo:frontPocket(rings,-g.chest*.105,lm.chestY+2,11,12,topY),region:'pocket'});
-    if (g.type === 'buttonup') {
-      for(let fy=7;fy<g.length-3;fy+=9) {
-        const y=topY-fy,r=ringAt(y),button=new THREE.SphereGeometry(.52,16,10);
-        button.scale(1,1,.35);button.translate(0,y,r.r2+.8);button.userData.button=true;
-        parts.push({geo:button,region:'button'});
+    if(g.type==='jacket') for(const side of [-1,1]) parts.push({geo:frontPocket(rings,side*g.chest*.1,lm.chestY+3,10,11,topY),region:'pocket'});
+    if(g.type==='coat') for(const side of [-1,1]) parts.push({geo:frontPocket(rings,side*g.chest*.12,lm.waistY-8,14,13,topY),region:'pocket'});
+    const button=(x,y)=>{
+      const r=ringAt(y),z=r.r2*Math.sqrt(Math.max(0,1-(x/r.r1)**2)),geo=new THREE.SphereGeometry(.52,16,10);
+      geo.scale(1,1,.35);geo.translate(x,y,z+.8);geo.userData.button=true;
+      parts.push({geo,region:'button'});
+    };
+    // Button stands: full fronts on shirts and closed outerwear, a short placket on polos.
+    if (['buttonup', 'cardigan', 'jacket', 'coat', 'vest'].includes(g.type) && !open) {
+      const start = g.type === 'cardigan' || g.type === 'vest' ? 16 : 7, step = g.type === 'coat' ? 11 : 9;
+      for (let fy = start; fy < Math.min(g.length - 3, g.type === 'coat' ? 62 : g.length); fy += step) {
+        if (g.type === 'coat') for (const x of [-4, 4]) button(x, topY - fy);
+        else button(0, topY - fy);
       }
+    }
+    if (g.type === 'polo') for (const fy of [5, 9, 13]) button(0, topY - fy);
+    if (collared) {
       for(const side of [-1,1]) {
         const y=lm.neckBaseY,positions=[side*3,y+1,M.neckR+2.5,side*9,y-2,M.neckR+3,side*6,y-7,M.profileAt(y-7).rz+2];
         const collar=new THREE.BufferGeometry();collar.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));collar.computeVertexNormals();collar.userData.trim=true;
@@ -345,10 +461,14 @@ export function buildGarment(g, M) {
           // A domed sleeve cap closes over the deltoid instead of ending in a wide
           // ring above the shoulder line.
           if (t < 0) r = lerp(M.upperR * 0.35, r, Math.sqrt(clamp(1 + t / (M.upperR * 0.9), 0, 1)));
+          const below = under?.sleeve(t) || 0;
+          if (below) r = Math.max(r, below + LAYER_GAP);
+          if (side > 0) envelope.sleeve.push([t, r + FOLD]);
           // flat mapping for the sleeve: along the flat sleeve direction
           const fx = side * (T.S[0] + Math.cos(T.theta) * Math.max(t, 0));
           const fy = T.S[1] + Math.sin(T.theta) * Math.max(t, 0);
-          return { c: joint.clone().addScaledVector(dir, t), e1, e2, r1: r, r2: r * 0.96, minR1: skin+0.8, minR2: skin+0.8, flatY: fy, xOff: fx, color: easeColor(Cs - Cb), ease: Cs - Cb };
+          const floor = Math.max(skin + 0.8, below ? below + LAYER_GAP : 0);
+          return { c: joint.clone().addScaledVector(dir, t), e1, e2, r1: r, r2: Math.max(r * 0.96, floor), minR1: floor, minR2: floor, flatY: fy, xOff: fx, color: easeColor(Cs - Cb), ease: Cs - Cb };
         });
         parts.push({ geo: ringSurface(srings, { segments: 48, cloth: true, material: g.material, trimEnd: true }), region: 'sleeve' });
       }
@@ -374,7 +494,8 @@ export function buildGarment(g, M) {
       [topY, g.waist],
     ].sort((a, b) => a[0] - b[0]);
     const ys = sampleYs(topY, crotch - 1, 3, [lm.hipY]);
-    const rings = ys.map((y) => fitRing(M, y, piecewise(keys, y), topY - y, 0.5));
+    const rings = ys.map((y) => fitRing(M, y, piecewise(keys, y), topY - y, 0.5, under));
+    envelope.torso.push(torsoSamples(rings));
     const waistband = ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimEnd: true });
     waistband.shift().dispose();
     parts.push({geo:waistband,region:'waistband'});
@@ -402,6 +523,7 @@ export function buildGarment(g, M) {
           color:easeColor(lerp(Cl-Cb,seat.ease,pelvisBlend)),ease:lerp(Cl-Cb,seat.ease,pelvisBlend) };
       });
       parts.push({ geo: ringSurface(lr, { segments: 64, cloth: true, material: g.material, trimStart: true, bodyCollision: M }), region: 'leg' });
+      envelope.torso.push(torsoSamples(lr.filter((r) => r.c.y < crotch)));
     }
     checks.push({ label: 'Thigh', ease: thighC - M.b.thigh });
     checks.push({ label: 'Length', ease: null, text: inseamText(g.inseam, M.b.inseam) });
@@ -417,17 +539,15 @@ export function buildGarment(g, M) {
       [topY, g.waist],
     ].sort((a, b) => a[0] - b[0]);
     const ys = sampleYs(topY, hemY, 3, [lm.hipY, lm.crotchY]);
-    const rings = ys.map((y) => {
-      const r = fitRing(M, y, piecewise(keys, y), topY - y, 0.6);
-      return r;
-    });
+    const rings = ys.map((y) => fitRing(M, y, piecewise(keys, y), topY - y, 0.6, under));
+    envelope.torso.push(torsoSamples(rings));
     parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: true }), region: 'skirt' });
     checks.push({ label: 'Waist', ease: g.waist - M.b.waist });
     checks.push({ label: 'Hips', ease: g.hips - M.b.hips });
     checks.push({ label: 'Length', ease: null, text: hemY > lm.H * 0.285 ? 'above knee' : hemY > lm.H * 0.12 ? 'midi' : 'maxi' });
   }
 
-  return { parts, checks, topY };
+  return { parts, checks, topY, envelope };
 }
 
 function lengthText(hemY, lm) {

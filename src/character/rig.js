@@ -34,7 +34,10 @@ export function bodyWeightField(model, sampler) {
       arm *= smooth(torso * .98, torso * 1.06 + .8, Math.hypot(x, z));
     }
     const fore = smooth(a.elbowT - 3, a.elbowT + 3, t), rest = 1 - arm;
-    const head = smooth(lm.neckBaseY + 1, lm.neckTopY + 3, y) * (1 - smooth(neckR * 1.3, neckR * 2.2, Math.hypot(x, z + 1))) * rest;
+    // Around the neck only skin near its axis follows the head; above the neck
+    // everything does, so wide hair volumes (curls) turn with the head.
+    const radial = 1 - smooth(neckR * 1.3, neckR * 2.2, Math.hypot(x, z + 1));
+    const head = smooth(lm.neckBaseY + 1, lm.neckTopY + 3, y) * (radial + (1 - radial) * smooth(lm.neckTopY + 3, lm.neckTopY + 8, y)) * rest;
     const spine = smooth(lm.hipY - 6, lm.waistY + 6, y) * (rest - head);
     out[B.root] = rest - head - spine; out[B.spine] = spine; out[B.head] = head;
     out[a.arm] = arm * (1 - fore); out[a.fore] = arm * fore;

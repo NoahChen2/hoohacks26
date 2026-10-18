@@ -48,6 +48,10 @@ export function createTorsoSampler(model, character, rows = 160, segments = 128)
   const belly = Math.max(b.belly || 0, trimester * (14 + 3 * fem));
   const bellyY = model.lm.hipY + (model.lm.waistY - model.lm.hipY) * (trimester > 0 ? .58 : .48);
   const bellySpread = (model.lm.waistY - model.lm.hipY) * (trimester > 0 ? .95 : .75) + 4;
+  // Larger bodies carry more of the waist girth in front (a soft lower belly)
+  // and at the sides of the hips; redistributed within the measured girth.
+  const fullness = Math.max(0, Math.min(.42, (b.waist / H - .5) * 1.1));
+  const softY = (model.lm.waistY * .45 + model.lm.hipY * .55) / H;
   let maxRadius = 0;
   for (let j = 0; j <= rows; j++) {
     const y = low + (high - low) * j / rows;
@@ -66,9 +70,11 @@ export function createTorsoSampler(model, character, rows = 160, segments = 128)
     const bust = (.045 + .245 * fem) * projection * cup * chest, rear = (.06 + .04 * fem) * hips, collar = .025 * bell(y / H, .796, .008);
     let abs = 0;
     for (let k = 0; k < 3; k++) abs += definition * .025 * bell(y / H, .688 - k * .025, .012);
+    abs *= 1 - fullness * 2;
+    const soft = fullness * bell(y / H, softY, .07);
     for (let i = 0; i < segments; i++) {
       const r = 1 / Math.hypot(sin[i] / rx, cos[i] / rz);
-      section[i] = r * (1 + bust * (bustLeft * left[i] + bustRight * right[i]) + abs * pair[i] + rear * rearAngle[i] + collar * collarAngle[i]);
+      section[i] = r * (1 + bust * (bustLeft * left[i] + bustRight * right[i]) + abs * pair[i] + rear * rearAngle[i] + collar * collarAngle[i] + soft * front[i]);
     }
     let circumference = 0;
     for (let i = 0; i < segments; i++) {
@@ -111,7 +117,8 @@ export function conformToCharacter(geometry, region, model, sampler) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     if (y < model.lm.crotchY - 1 || y > model.lm.neckBaseY + 2.5) continue;
     const r = Math.hypot(x, z), body = sampler.radius(y, Math.atan2(x, z));
-    const clearance = geometry.userData.trim ? .38 : geometry.userData.button ? 1.0 : .8;
+    // Outfit layers stand further off the body, so each sits outside the one beneath.
+    const clearance = (geometry.userData.trim ? .38 : geometry.userData.button ? 1.0 : .8) + (geometry.userData.layer || 0);
     if (r > .001 && r < body + clearance) {
       const scale = (body + clearance) / r;
       p.setXYZ(i, x * scale, y, z * scale);

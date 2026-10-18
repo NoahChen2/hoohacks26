@@ -2213,3 +2213,22 @@ input[type='range']::-webkit-slider-thumb { margin-top: -5px; width: 13px; heigh
 .stage-toolbar .stage-pick select { appearance:none; padding:2px 18px 2px 8px; border:1px solid rgba(255,255,255,.18); border-radius:999px; color:inherit; font:inherit; cursor:pointer; color-scheme:dark;
   background:rgba(0,0,0,.25) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23adf8ff'/%3E%3C/svg%3E") no-repeat right 7px center; }
 .stage-toolbar .stage-pick select option { background:#10121c; color:#f5f7fa; }
+
+/* outfit: worn badge, wear toggle, photo scan, starter rail */
+.closet-list .g-card { position: relative; }
+.g-card.worn { outline: 2px solid var(--accent); outline-offset: -2px; }
+.g-worn { position: absolute; top: 4px; left: 4px; padding: 2px 5px; background: var(--accent); color: var(--on-accent); font: 600 9px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
+.wear-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 12px; background: var(--surface-2); border: 1px solid var(--line); font: 500 11px/1.4 var(--font-mono); color: var(--ink-2); }
+.closet-scan { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; padding: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.closet-scan .scan-photo { align-self: flex-start; cursor: pointer; }
+.closet-scan .scan-photo.busy { opacity: .6; pointer-events: none; }
+.scan-msg { margin: 0; font-size: 11px; line-height: 1.5; color: var(--ink-3); }
+.starter-rail { margin-bottom: 14px; border: 1px solid var(--line); background: var(--surface); }
+.starter-rail summary { padding: 10px 12px; cursor: pointer; font-weight: 600; font-size: 12px; color: var(--ink); }
+.starter-rail summary small { font-weight: 400; color: var(--ink-3); margin-left: 6px; }
+.starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; padding: 0 10px 10px; }
+.starter { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); font-size: 10.5px; line-height: 1.2; text-align: center; cursor: pointer; }
+.starter:hover { border-color: var(--accent); color: var(--ink); }
+.starter .g-thumb { height: 52px; }
+.starter .g-thumb svg { max-height: 52px; }
+.cap-outfit { font-size: 11px; color: var(--ink-3); margin: 2px 0 6px; }

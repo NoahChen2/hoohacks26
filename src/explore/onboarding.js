@@ -1,6 +1,7 @@
 import './style.css';
+import {siteHeader,installShell} from '../shell/shell.js';
 import './onboarding.css';
-import {escape,icon} from './ui.js';
+import {escape} from './ui.js';
 import {AESTHETICS,SKILLS,TOOLS,WORLDS,loadPreferences,savePreferences,toggleTool,validateStep} from './preferences.js';
 let storage;try{storage=window.localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
 const settings=location.pathname.startsWith('/settings');
@@ -8,7 +9,8 @@ let preferences=loadPreferences(storage),step=0;
 if(!settings&&preferences.status!=='draft')location.replace('/explore');
 document.title=`${settings?'Preferences':'Welcome'} — ReThread`;
 document.body.classList.add('discovery-page');
-document.body.innerHTML=`<header class="discovery-header"><a class="discovery-brand" href="/explore">${icon('thread')}<span>ReThread<span class="brand-dot">.</span></span></a><a class="onboard-exit" href="/explore">${settings?'Back to Explore ↗':'Explore without setup ↗'}</a></header><main class="onboarding"><p class="eyebrow">${settings?'MAKE ROOM FOR YOUR NEXT CHAPTER':'A LITTLE ABOUT YOU'}</p><h1>${settings?'Your taste. Your pace.':'Make yourself at home.'}</h1><p class="onboard-intro">A few choices to make your inspiration feel more like you. Change them anytime in Settings.</p><ol class="onboard-progress" aria-label="Setup progress"></ol><form class="onboard-form" novalidate><div id="onboard-step"></div><p class="onboard-error" role="alert"></p><div class="onboard-actions"><button type="button" data-back>← Back</button><button type="button" data-skip>${settings?'Cancel':'Skip for now'}</button><button type="submit" class="onboard-next"></button></div></form></main>`;
+document.body.innerHTML=`${siteHeader('settings')}<main class="onboarding"><p class="eyebrow">${settings?'MAKE ROOM FOR YOUR NEXT CHAPTER':'A LITTLE ABOUT YOU'}</p><h1>${settings?'Your taste. Your pace.':'Make yourself at home.'}</h1><p class="onboard-intro">A few choices to make your inspiration feel more like you. Change them anytime in Settings.</p><ol class="onboard-progress" aria-label="Setup progress"></ol><form class="onboard-form" novalidate><div id="onboard-step"></div><p class="onboard-error" role="alert"></p><div class="onboard-actions"><button type="button" data-back>← Back</button><button type="button" data-skip>${settings?'Cancel':'Skip for now'}</button><button type="submit" class="onboard-next"></button></div></form></main>`;
+installShell();
 const form=document.querySelector('form'),panel=document.querySelector('#onboard-step'),error=document.querySelector('.onboard-error');
 const titles=['Find your fashion people','Where are you starting?','What’s in your toolkit?','Choose your world'];
 const notes=['Pick every aesthetic that speaks to you.','There’s a place for every skill level.','Select all you have. Starting with nothing is welcome.','A theme preference for your future journey. Rank names are previews only.'];

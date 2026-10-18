@@ -1,8 +1,15 @@
+import './shell/shell.js';
 import {loadPreferences} from './explore/preferences.js';
 async function bootPage(){
 if(location.pathname==='/'){
   location.replace(`/settings${location.search}${location.hash}`);
   return;
+}
+// Pages that show the 3D body card start building the body (and loading the
+// viewer) right away, in parallel with the page itself.
+if (/^\/(explore|studio|learn|project)(?:\/|$)/.test(location.pathname)) {
+  import('./boot.js');
+  import('./scene.js').catch(() => {});
 }
 if (/^\/learn\/?$/.test(location.pathname)) {
   return import('./learn/page.js');

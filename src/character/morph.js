@@ -46,6 +46,8 @@ export function morphBody(positions, regions, from, to, out = new Float32Array(p
   const legY = piecewise(legMarks(a).map((y, i) => [y, legMarks(t)[i]]));
   const ha = headFrame(a.H), ht = headFrame(t.H);
   const cosA = Math.cos(a.armAngle), sinA = Math.sin(a.armAngle);
+  // The target may hang its arms at a wider angle (larger bodies): rotate into it.
+  const cosT = Math.cos(t.armAngle), sinT = Math.sin(t.armAngle);
   const armK = T.upperR / A.upperR, wristA = a.wristT, wristT = t.wristT;
   const arms = [[-1, A.jointL, T.jointL], [1, A.jointR, T.jointR]];
   const n = positions.length / 3;
@@ -70,8 +72,9 @@ export function morphBody(positions, regions, from, to, out = new Float32Array(p
       // The hand (past the wrist) scales with stature, the arm with its radius.
       const along2 = along <= 0 ? along * armK : along <= wristA ? along * wristT / wristA : wristT + (along - wristA) * s;
       const k = armK + (s - armK) * smooth(wristA - 1, wristA + 3, along);
-      px += wArm * (jt.x + dx * along2 - dy * across * k);
-      py += wArm * (jt.y + dy * along2 + dx * across * k);
+      const tx = side * sinT, ty = -cosT;
+      px += wArm * (jt.x + tx * along2 - ty * across * k);
+      py += wArm * (jt.y + ty * along2 + tx * across * k);
       pz += wArm * z * k;
     }
     if (wHead > 0) {

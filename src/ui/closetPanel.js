@@ -1,8 +1,10 @@
-import { state, emit, GARMENT_TYPES, MATERIALS, PATTERNS, garmentFields, defaultGarment, selectedGarment } from '../state.js';
+import { state, emit, GARMENT_TYPES, MATERIALS, PATTERNS, garmentFields, defaultGarment, selectedGarment, garmentFromSpec, STARTER_PIECES, isWorn, setWorn, addGarments } from '../state.js';
+import { scanPhoto } from '../scan/scan.js';
 import { flatSVG, flatViewBox } from '../flats.js';
 import { PATTERN_LABELS, svgPattern } from '../patterns.js';
-import { inch } from '../upcycle.js';
 import { escapeHtml } from './escape.js';
+import { unit, toUnit, fromUnit, unitStep, unitRange, otherUnit, unitToggle, bindUnitToggle } from './units.js';
+import './bodyPanel.css';
 
 const PPC = 8; // sketch canvas px per cm
 const STAMPS = ['★', '♥', '✿', '☀', '☾', '⚡'];
@@ -11,13 +13,80 @@ export function renderClosetPanel(el) {
   el.innerHTML = `
     <div class="panel-head">
       <h2>Your closet</h2>
-      <p>Add the clothes you don't wear. Measure them laid flat and enter the real sizes, then sketch any designs you want to see.</p>
+      <p>Add the clothes you don't wear. Tap a piece to put it on: the 3D body wears a whole outfit, one piece per layer. Measure them laid flat and enter the real sizes, then sketch any designs you want to see.</p>
     </div>
+    <section class="closet-scan">
+      <label class="btn scan-photo">Scan clothes from a photo<input type="file" id="scan-photo" accept="image/jpeg,image/png,image/webp" hidden/></label>
+      <p class="scan-msg" id="scan-msg" role="status" aria-live="polite">Every garment found in the photo is added to your closet and dressed on the 3D body. With a server Gemini key the photo is sent to Google Gemini (on its free tier, Google may use it to improve its products); otherwise it is scanned on this device.</p>
+    </section>
     <div class="closet-list" id="closet-list"></div>
+    <details class="starter-rail">
+      <summary>Add starter pieces <small>${STARTER_PIECES.length} basics, sized to your body</small></summary>
+      <div class="starter-grid" id="starter-grid"></div>
+    </details>
     <div class="editor" id="editor"></div>
   `;
   renderList(el.querySelector('#closet-list'));
   renderEditor(el.querySelector('#editor'));
+  renderStarters(el);
+  bindScan(el);
+}
+
+// Selecting a piece also puts it on, replacing whatever shares its slot.
+function wear(g) {
+  state.selected = g.id;
+  setWorn(g, true);
+}
+
+function rerender() {
+  const list = document.getElementById('closet-list');
+  if (!list) return;
+  renderList(list);
+  renderEditor(document.getElementById('editor'));
+}
+
+function renderStarters(el) {
+  const grid = el.querySelector('#starter-grid');
+  const pieces = STARTER_PIECES.map((spec) => garmentFromSpec(spec, state.body));
+  grid.innerHTML = pieces
+    .map((g, i) => `<button type="button" class="starter" data-starter="${i}" title="Add ${escapeHtml(g.name)}"><span class="g-thumb">${thumb(g)}</span><span>${escapeHtml(g.name)}</span></button>`)
+    .join('');
+  grid.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-starter]');
+    if (!button) return;
+    // A fresh copy each time, so the same basic can be added twice.
+    addGarments([garmentFromSpec(STARTER_PIECES[Number(button.dataset.starter)], state.body)]);
+    emit('select');
+    rerender();
+  });
+}
+
+function bindScan(el) {
+  const input = el.querySelector('#scan-photo');
+  const msg = el.querySelector('#scan-msg');
+  const label = el.querySelector('.scan-photo');
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    label.classList.add('busy');
+    msg.textContent = 'Scanning your photo for clothes…';
+    try {
+      const { garments, notice, mode } = await scanPhoto(file, { body: state.body });
+      if (!garments.length) {
+        msg.textContent = notice || 'No clothes were found in that photo. Try one with the garment clearly in view.';
+        return;
+      }
+      addGarments(garments);
+      emit('select');
+      rerender();
+      msg.textContent = `${mode === 'live' ? 'AI scan' : 'On-device scan'}: added and wearing ${garments.map((g) => g.name).join(', ')}. ${notice}`;
+    } catch (error) {
+      msg.textContent = error.message || 'The photo could not be scanned.';
+    } finally {
+      label.classList.remove('busy');
+    }
+  });
 }
 
 function thumb(g) {
@@ -29,9 +98,10 @@ function renderList(list) {
     state.garments
       .map(
         (g) => `
-      <button class="g-card ${g.id === state.selected ? 'active' : ''}" data-id="${g.id}">
+      <button class="g-card ${g.id === state.selected ? 'active' : ''} ${isWorn(g) ? 'worn' : ''}" data-id="${g.id}" title="${isWorn(g) ? 'Wearing' : 'Put on'} ${escapeHtml(g.name)}">
         <span class="g-thumb">${thumb(g)}</span>
         <span class="g-name">${escapeHtml(g.name)}</span>
+        ${isWorn(g) ? '<span class="g-worn keep-bg">On</span>' : ''}
       </button>`
       )
       .join('') +
@@ -43,7 +113,7 @@ function renderList(list) {
     </div>`;
   list.querySelectorAll('.g-card').forEach((c) =>
     c.addEventListener('click', () => {
-      state.selected = c.dataset.id;
+      wear(state.garments.find((g) => g.id === c.dataset.id));
       emit('select');
       renderList(list);
       renderEditor(document.getElementById('editor'));
@@ -52,7 +122,7 @@ function renderList(list) {
   list.querySelector('#add-btn').addEventListener('click', () => {
     const g = defaultGarment(list.querySelector('#add-type').value);
     state.garments.push(g);
-    state.selected = g.id;
+    wear(g);
     emit('select');
     renderList(list);
     renderEditor(document.getElementById('editor'));
@@ -74,7 +144,12 @@ function renderEditor(ed) {
     return;
   }
   const fields = garmentFields(g.type);
+  const u = unit();
   ed.innerHTML = `
+    <div class="wear-row">
+      <span>${isWorn(g) ? 'On the 3D body' : 'In the closet'}</span>
+      <button class="btn small ${isWorn(g) ? 'ghost' : ''}" id="g-wear">${isWorn(g) ? 'Take off' : 'Put on'}</button>
+    </div>
     <section class="sec">
       <h3>Details</h3>
       <div class="row2">
@@ -105,17 +180,22 @@ function renderEditor(ed) {
       </div>
     </section>
 
-    <section class="sec">
-      <h3>Measurements <small>(laid flat, in cm)</small></h3>
+    <section class="sec bp-units-scope">
+      <div class="bp-measure-head">
+        <h3>Measurements (laid flat)</h3>
+        ${unitToggle('closet-units')}
+      </div>
       <div class="fields compact">
       ${fields
-        .map(
-          ([key, label, min, max]) => `
+        .map(([key, label, min, max]) => {
+          const [lo, hi] = unitRange(min, max, u);
+          const shown = toUnit(g[key], u);
+          return `
         <label class="field">
-          <span class="field-top"><span>${label}</span><span class="val"><input type="number" data-num="${key}" value="${g[key]}" min="${min}" max="${max}" step="0.5"/> cm <em data-in="${key}">${inch(g[key])}</em></span></span>
-          <input type="range" data-key="${key}" min="${min}" max="${max}" step="0.5" value="${g[key]}"/>
-        </label>`
-        )
+          <span class="field-top"><span>${label}</span><span class="val"><input type="number" data-num="${key}" value="${shown}" min="${lo}" max="${hi}" step="any" inputmode="decimal"/> ${u} <em data-in="${key}">${otherUnit(g[key], {}, u)}</em></span></span>
+          <input type="range" data-key="${key}" min="${lo}" max="${hi}" step="${unitStep(u)}" value="${Math.max(lo, Math.min(hi, shown))}" aria-label="${label} (${u})"/>
+        </label>`;
+        })
         .join('')}
       </div>
       <p class="hint">Circumference = flat width × 2 (e.g. measure armpit to armpit and double it for chest).</p>
@@ -166,7 +246,16 @@ function renderEditor(ed) {
     Object.keys(g).forEach((k) => delete g[k]);
     Object.assign(g, fresh, keep);
     if (g.name === oldLabel) g.name = fresh.name;
-    changed();
+    // A new type can move it to another slot (a shirt becoming a dress).
+    if (isWorn(g)) setWorn(g, true);
+    changed('outfit');
+    renderList(document.getElementById('closet-list'));
+    renderEditor(ed);
+  });
+  ed.querySelector('#g-wear').addEventListener('click', () => {
+    setWorn(g, !isWorn(g));
+    emit('outfit');
+    renderList(document.getElementById('closet-list'));
     renderEditor(ed);
   });
   ed.querySelector('#g-mat').addEventListener('change', (e) => {
@@ -206,26 +295,47 @@ function renderEditor(ed) {
   });
 
   let relayout;
-  const setField = (key, v) => {
-    if (!Number.isFinite(v)) return;
+  // Controls work in the display unit; the garment keeps centimetres.
+  const setField = (key, cm) => {
     const [, , min, max] = fields.find((field) => field[0] === key);
-    const input = ed.querySelector(`[data-num="${key}"]`);
-    input.setCustomValidity(v < min || v > max ? `Enter ${min}–${max} cm.` : '');
-    if (!input.reportValidity()) return;
-    g[key] = v;
-    ed.querySelector(`[data-key="${key}"]`).value = v;
+    g[key] = Math.max(min, Math.min(max, cm));
+    const shown = toUnit(g[key]);
+    ed.querySelector(`[data-key="${key}"]`).value = shown;
     const num = ed.querySelector(`[data-num="${key}"]`);
-    if (document.activeElement !== num) num.value = v;
-    ed.querySelector(`[data-in="${key}"]`).textContent = inch(v);
+    if (document.activeElement !== num) num.value = shown;
+    ed.querySelector(`[data-in="${key}"]`).textContent = otherUnit(g[key]);
     changed();
     clearTimeout(relayout);
     relayout = setTimeout(() => sketch.layout(), 120);
   };
-  ed.querySelectorAll('input[type=range][data-key]').forEach((r) => r.addEventListener('input', () => setField(r.dataset.key, parseFloat(r.value))));
-  ed.querySelectorAll('input[data-num]').forEach((n) => n.addEventListener('change', () => setField(n.dataset.num, parseFloat(n.value))));
+  ed.querySelectorAll('input[type=range][data-key]').forEach((r) =>
+    r.addEventListener('input', () => {
+      const v = parseFloat(r.value);
+      if (Number.isFinite(v)) setField(r.dataset.key, fromUnit(v));
+    })
+  );
+  ed.querySelectorAll('input[data-num]').forEach((n) => {
+    n.addEventListener('input', () => n.setCustomValidity(''));
+    n.addEventListener('change', () => {
+      const key = n.dataset.num;
+      const [, , min, max] = fields.find((field) => field[0] === key);
+      const [lo, hi] = unitRange(min, max);
+      const v = parseFloat(n.value);
+      if (!Number.isFinite(v) || v < lo || v > hi) {
+        n.setCustomValidity(`Enter ${lo}–${hi} ${unit()}.`);
+        n.reportValidity();
+        return;
+      }
+      n.setCustomValidity('');
+      setField(key, fromUnit(v));
+      n.value = toUnit(g[key]);
+    });
+  });
+  bindUnitToggle(ed.querySelector('.bp-units-scope'));
 
   ed.querySelector('#g-del').addEventListener('click', () => {
     if (!confirm(`Delete “${g.name}”?`)) return;
+    setWorn(g, false);
     state.garments = state.garments.filter((x) => x.id !== g.id);
     state.selected = state.garments[0]?.id || null;
     emit('select');
@@ -236,7 +346,7 @@ function renderEditor(ed) {
     copy.id = Math.random().toString(36).slice(2, 9);
     copy.name = g.name + ' (copy)';
     state.garments.push(copy);
-    state.selected = copy.id;
+    wear(copy);
     emit('select');
     renderClosetPanel(ed.parentElement);
   });

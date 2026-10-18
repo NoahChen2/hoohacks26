@@ -3,6 +3,7 @@ export type BodyBuild = 'slim' | 'average' | 'athletic' | 'muscular' | 'curvy' |
 export interface Measurements {
   height: number; chest: number; waist: number; hips: number; shoulder: number;
   arm: number; inseam: number; neck: number; thigh: number;
+  underbust?: number;
 }
 export interface VisualProportions {
   shoulderBreadth: number;
@@ -20,6 +21,14 @@ export interface CharacterCustomization {
   build: BodyBuild;
   sizePreset: string | null;
   proportions: VisualProportions;
+  appearance: CharacterAppearance;
+}
+// Ids from SKIN_TONES, HAIR_STYLES and HAIR_COLORS (settings.ts). `hair: null`
+// means "auto by body type" (see resolveHair).
+export interface CharacterAppearance {
+  skin: string;
+  hair: string | null;
+  hairColor: string;
 }
 export type MorphBinding = { name: string; min: number; max: number };
 export interface CharacterAssetManifest {

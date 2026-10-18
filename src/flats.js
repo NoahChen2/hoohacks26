@@ -1,7 +1,7 @@
 // 2D "flat sketch" geometry for each garment, in centimetres (x right, y down, origin = top centre).
 // Used by the closet editor and by every instruction diagram so the drawings match the real piece.
 
-import { GARMENT_TYPES } from './state.js';
+import { GARMENT_TYPES } from './garments.js';
 import { svgPattern } from './patterns.js';
 
 // Generic shapes for non-garment pieces (strips, patches, panels), centred on x = 0.
@@ -23,9 +23,10 @@ export function topLandmarks(g) {
   const kind = GARMENT_TYPES[g.type].kind;
   const cw = g.chest / 4;
   const sw = g.shoulder / 2;
-  const collar = g.type === 'buttonup' ? 2.5 : g.type === 'hoodie' ? 4 : g.type === 'tank' ? 12 : 8;
-  const nw = Math.min(sw - 3, g.type === 'tank' ? 11 : 8.5);
-  const ad = Math.max(18, g.chest / 4.6) + (g.type === 'tank' ? 4 : 0);
+  const collar = { buttonup: 2.5, polo: 3, jacket: 3, coat: 3, hoodie: 4, blouse: 5, tank: 12, cami: 11, cardigan: 16, vest: 15 }[g.type] ?? 8;
+  const strappy = ['tank', 'cami', 'vest', 'slipdress'].includes(g.type);
+  const nw = Math.min(sw - 3, strappy ? 11 : g.type === 'coat' || g.type === 'jacket' ? 9.5 : 8.5);
+  const ad = Math.max(18, g.chest / 4.6) + (strappy ? 4 : 0);
   const length = g.length;
   const waistY = Math.min(length * 0.62, kind === 'dress' ? 40 : 46);
   const hasSleeves = GARMENT_TYPES[g.type].sleeves && g.sleeve > 0;
@@ -138,19 +139,49 @@ function details(g, shape) {
       for (let y = 6; y < L.length - 3; y += 9) s += `<circle cx="1.2" cy="${y}" r=".7" fill="#eee" stroke="rgba(0,0,0,.4)" stroke-width=".2"/>`;
       s += `<path d="M ${-L.nw} 0 L -2 6 L 0 ${L.collar * 1.6} L 2 6 L ${L.nw} 0" fill="none" stroke="rgba(0,0,0,.45)" stroke-width=".4"/>`;
     }
+    const buttons = (x, from, to, step) => {
+      for (let y = from; y < to; y += step) s += `<circle cx="${x}" cy="${y}" r=".7" fill="#eee" stroke="rgba(0,0,0,.4)" stroke-width=".2"/>`;
+    };
+    const front = (from) => (s += `<line x1="0" y1="${from}" x2="0" y2="${L.length}" stroke="rgba(0,0,0,.45)" stroke-width=".4"/>`);
+    if (g.type === 'polo') {
+      s += `<line x1="0" y1="${L.collar * 1.6}" x2="0" y2="14" stroke="rgba(0,0,0,.4)" stroke-width=".35"/>`;
+      buttons(1.2, 6, 14, 4);
+      s += `<path d="M ${-L.nw} 0 L -3 5 L 0 ${L.collar * 1.6} L 3 5 L ${L.nw} 0" fill="none" stroke="rgba(0,0,0,.45)" stroke-width=".4"/>`;
+    }
+    if (g.type === 'cardigan' || g.type === 'vest') {
+      front(L.collar * 1.6);
+      buttons(1.2, L.collar * 1.6 + 3, L.length - 3, 7);
+    }
+    if (g.type === 'jacket' || g.type === 'coat') {
+      front(L.collar * 1.6);
+      buttons(2, 10, Math.min(L.length - 6, g.type === 'coat' ? 60 : L.length), g.type === 'coat' ? 10 : 9);
+      s += `<path d="M ${-L.nw} 0 L -6 ${L.collar * 3} L 0 ${L.collar * 1.6} L 6 ${L.collar * 3} L ${L.nw} 0" fill="none" stroke="rgba(0,0,0,.45)" stroke-width=".45"/>`;
+      for (const side of [-1, 1]) s += `<rect x="${side > 0 ? 4 : -14}" y="${L.length * (g.type === 'coat' ? 0.45 : 0.62)}" width="10" height="${g.type === 'coat' ? 12 : 8}" rx="1" ${st}/>`;
+      s += `<line x1="${-L.H[0]}" y1="${L.length - 4}" x2="${L.H[0]}" y2="${L.length - 4}" ${st}/>`;
+    }
+    if (g.type === 'blouse') s += `<path d="M ${-L.nw} 0 Q 0 ${L.collar * 2.4} ${L.nw} 0" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".4" stroke-dasharray=".6 .6"/>`;
+    if (g.type === 'cami' || g.type === 'slipdress') for (const side of [-1, 1]) s += `<line x1="${side * (L.nw - 1)}" y1="0" x2="${side * (L.nw - 1)}" y2="-9" stroke="rgba(0,0,0,.55)" stroke-width=".5"/>`;
     if (g.type === 'hoodie') {
       s += `<path d="M ${-L.nw - 1} 0 Q 0 -14 ${L.nw + 1} 0" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".5"/>`;
       s += `<rect x="-12" y="${L.length - 26}" width="24" height="16" rx="3" ${st}/>`;
       s += `<line x1="${-L.H[0]}" y1="${L.length - 6}" x2="${L.H[0]}" y2="${L.length - 6}" ${st}/>`;
     }
     if (g.type === 'sweater') s += `<line x1="${-L.H[0]}" y1="${L.length - 5}" x2="${L.H[0]}" y2="${L.length - 5}" ${st}/>`;
-    if (k !== 'dress' && g.type !== 'hoodie' && g.type !== 'sweater') s += `<line x1="${-L.H[0]}" y1="${L.length - 2}" x2="${L.H[0]}" y2="${L.length - 2}" ${st}/>`;
+    if (k !== 'dress' && !['hoodie', 'sweater', 'jacket', 'coat'].includes(g.type)) s += `<line x1="${-L.H[0]}" y1="${L.length - 2}" x2="${L.H[0]}" y2="${L.length - 2}" ${st}/>`;
   }
   if (k === 'bottom') {
     s += `<line x1="${-L.hw}" y1="4" x2="${L.hw}" y2="4" ${st}/>`;
-    s += `<path d="M ${-L.hw + 2} 4 Q ${-L.hw + 8} 12 ${-L.hh + 1} 13" ${st}/><path d="M ${L.hw - 2} 4 Q ${L.hw - 8} 12 ${L.hh - 1} 13" ${st}/>`;
-    s += `<path d="M 0 4 L 0 ${L.rise - 4} Q 1 ${L.rise} 0 ${L.rise + 1.5}" ${st}/>`;
-    s += `<circle cx="0" cy="2" r=".8" fill="#c9a24a"/>`;
+    if (g.type === 'joggers' || g.type === 'leggings') {
+      // Elastic waist: no fly. Joggers get a drawstring and ribbed cuffs.
+      if (g.type === 'joggers') {
+        s += `<path d="M -2 4 q -1 5 -2.5 7 M 2 4 q 1 5 2.5 7" fill="none" stroke="rgba(0,0,0,.5)" stroke-width=".35"/>`;
+        for (const side of [-1, 1]) s += `<line x1="${side * (L.xc - L.lo / 2)}" y1="${L.hemY - 5}" x2="${side * (L.xc + L.lo / 2)}" y2="${L.hemY - 5}" ${st}/>`;
+      }
+    } else {
+      s += `<path d="M ${-L.hw + 2} 4 Q ${-L.hw + 8} 12 ${-L.hh + 1} 13" ${st}/><path d="M ${L.hw - 2} 4 Q ${L.hw - 8} 12 ${L.hh - 1} 13" ${st}/>`;
+      s += `<path d="M 0 4 L 0 ${L.rise - 4} Q 1 ${L.rise} 0 ${L.rise + 1.5}" ${st}/>`;
+      s += `<circle cx="0" cy="2" r=".8" fill="#c9a24a"/>`;
+    }
   }
   if (k === 'skirt') s += `<line x1="${-L.hw}" y1="3.5" x2="${L.hw}" y2="3.5" ${st}/>`;
   return s;

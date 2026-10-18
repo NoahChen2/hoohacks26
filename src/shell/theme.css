@@ -1,0 +1,987 @@
+/* ReThread design system: one set of tokens per space style, flat colour
+   blocks, square corners. Loaded on every page (src/shell/shell.js). */
+
+html[data-space='celestial'] {
+  --bg: #0a0920;
+  --surface: #141238;
+  --surface-2: #1d1a4c;
+  --surface-3: #2a2563;
+  --line: #3d3785;
+  --ink: #f2f0ff;
+  --ink-2: #c3bdf0;
+  --ink-3: #9a93d6;
+  --accent: #9ff3ff;
+  --accent-2: #e04ad8;
+  --on-accent: #0a0920;
+  --danger: #ff6b8b;
+  --ok: #7af0b0;
+  --warn: #ffd166;
+  --loose-c: #7f9cff;
+  --scrim: #06051a;
+  --header-h: 84px;
+  color-scheme: dark;
+}
+html[data-space='night'] {
+  --bg: #0c1520;
+  --surface: #13202e;
+  --surface-2: #1a2b3d;
+  --surface-3: #233a50;
+  --line: #34506a;
+  --ink: #edf2f1;
+  --ink-2: #b4c4c6;
+  --ink-3: #8a9fa3;
+  --accent: #8fd8c8;
+  --accent-2: #e8a65a;
+  --on-accent: #0c1520;
+  --danger: #f07a6a;
+  --ok: #8fd8c8;
+  --warn: #e8c35a;
+  --loose-c: #8fb4e8;
+  --scrim: #070d14;
+  --header-h: 64px;
+  color-scheme: dark;
+}
+html[data-space='daylight'] {
+  --bg: #efebe3;
+  --surface: #faf8f3;
+  --surface-2: #e4e8e7;
+  --surface-3: #cfd8dc;
+  --line: #aab6ba;
+  --ink: #1b262c;
+  --ink-2: #3f4f56;
+  --ink-3: #5c6b71;
+  --accent: #a74629;
+  --accent-2: #2f6463;
+  --on-accent: #ffffff;
+  --danger: #b3261e;
+  --ok: #2f7d4f;
+  --warn: #9a6a00;
+  --loose-c: #2f5fa7;
+  --scrim: #1b262c;
+  --header-h: 64px;
+  color-scheme: light;
+}
+html[data-space] {
+  --font-display: 'Gloock', 'Iowan Old Style', serif;
+  --font-body: 'Familjen Grotesk', 'Segoe UI', sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, monospace;
+  /* Legacy fitting-room variables follow the active space. */
+  --paper: var(--surface);
+  --paper-2: var(--surface-2);
+  --card: var(--surface);
+  --accent-soft: var(--surface-3);
+  --bad: var(--danger);
+  --loose: var(--loose-c);
+  --radius: 0;
+  --shadow: none;
+  --glass-edge: var(--line);
+  --glass-fill: var(--surface);
+  --glass-deep: var(--surface);
+  --silver: var(--ink);
+  --secondary: var(--ink-2);
+  --cyan: var(--accent);
+  --feed-accent: var(--accent);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ---------- flat everywhere: no rounding, glass, glow or soft text shadow */
+html[data-space] *,
+html[data-space] *::before,
+html[data-space] *::after {
+  border-radius: 0 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+html[data-space] body {
+  font-family: var(--font-body) !important;
+  background: var(--bg) !important;
+  color: var(--ink);
+}
+html[data-space] body.discovery-page {
+  width: auto !important;
+  height: auto !important;
+  background: var(--bg) !important;
+  color: var(--ink);
+}
+html[data-space] h1,
+html[data-space] h2,
+html[data-space] .discovery-page h3 {
+  font-family: var(--font-display) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
+}
+html[data-space] .eyebrow {
+  font-family: var(--font-mono);
+  color: var(--ink-3) !important;
+}
+html[data-space] ::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+html[data-space] :focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}
+
+/* ---------- site header (all pages) */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  height: var(--header-h);
+  padding: 0 max(24px, calc((100vw - 1376px) / 2));
+  background: var(--surface);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  /* Stepped colour bands instead of a gradient or glow. */
+  box-shadow: 0 3px 0 var(--accent-2), 0 6px 0 var(--surface-3) !important;
+}
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink) !important;
+  text-decoration: none !important;
+  font: 400 26px/1 var(--font-display);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.site-brand svg {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+}
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.site-nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  color: var(--ink-2) !important;
+  text-decoration: none !important;
+  font: 500 14px/1 var(--font-body);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.site-nav-link:hover {
+  color: var(--ink) !important;
+  background: var(--surface-2);
+}
+.site-nav-link[aria-current='page'] {
+  color: var(--on-accent) !important;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.site-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.site-link {
+  color: var(--ink-2) !important;
+  text-decoration: none !important;
+  font: 500 13px/1 var(--font-body);
+  white-space: nowrap;
+}
+.site-link:hover,
+.site-link[aria-current='page'] {
+  color: var(--ink) !important;
+  box-shadow: 0 2px 0 var(--accent) !important;
+}
+.site-link b {
+  display: inline-block;
+  min-width: 20px;
+  padding: 3px 4px;
+  margin-left: 4px;
+  text-align: center;
+  font: 500 10px/1 var(--font-mono);
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.space-pick {
+  display: flex;
+  border: 1px solid var(--line);
+}
+.space-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 9px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 10px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.space-choice + .space-choice {
+  border-left: 1px solid var(--line);
+}
+.space-choice i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ink-3);
+}
+.space-choice[data-space-choice='celestial'] i { background: linear-gradient(180deg, #0a0920 0 50%, #e04ad8 50% 70%, #9ff3ff 70%); }
+.space-choice[data-space-choice='night'] i { background: linear-gradient(180deg, #0c1520 0 50%, #e8a65a 50% 70%, #8fd8c8 70%); }
+.space-choice[data-space-choice='daylight'] i { background: linear-gradient(180deg, #faf8f3 0 50%, #2f6463 50% 70%, #a74629 70%); }
+.space-choice[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.space-choice:hover:not([aria-pressed='true']) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* ---------- planets (Celestial): click a planet, label on top */
+html[data-space='celestial'] .planet {
+  --p1: #ffb36b;
+  --p2: #d8693a;
+  --p3: #ffd9a8;
+  --p4: #a9472a;
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  place-items: center;
+  width: var(--planet, 66px);
+  height: var(--planet, 66px);
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(160deg, var(--p1) 0 20%, var(--p2) 20% 34%, var(--p3) 34% 47%, var(--p1) 47% 58%, var(--p4) 58% 74%, var(--p2) 74%) !important;
+  color: var(--ink) !important;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+html[data-space='celestial'] .planet[data-planet='2'] { --p1: #9ff3ff; --p2: #3e9fcf; --p3: #dcfbff; --p4: #23608f; }
+html[data-space='celestial'] .planet[data-planet='3'] { --p1: #d2a8ff; --p2: #8a5bd9; --p3: #efe0ff; --p4: #5d34a8; }
+html[data-space='celestial'] .planet[data-planet='4'] { --p1: #9df0c4; --p2: #3fa982; --p3: #d9ffe9; --p4: #24705a; }
+/* A hard terminator: the night side of the planet as one solid block. */
+html[data-space='celestial'] .planet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50% !important;
+  background: linear-gradient(115deg, transparent 0 66%, #2a2563 66% 74%, #141238 74%) !important;
+}
+/* Ring on the current planet. */
+html[data-space='celestial'] .planet::after {
+  content: '';
+  position: absolute;
+  left: -14%;
+  right: -14%;
+  top: 40%;
+  height: 20%;
+  border: 2px solid var(--accent);
+  border-radius: 50% !important;
+  transform: rotate(-16deg);
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-space='celestial'] .planet[aria-current='page']::after,
+html[data-space='celestial'] .planet[aria-pressed='true']::after,
+html[data-space='celestial'] .planet.active::after {
+  opacity: 1;
+}
+html[data-space='celestial'] .planet > span,
+html[data-space='celestial'] .planet > b + span {
+  position: relative;
+  z-index: 1;
+  padding: 3px 5px;
+  background: #0a0920;
+  color: #f2f0ff;
+  font: 600 10px/1.1 var(--font-mono) !important;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+}
+html[data-space='celestial'] .planet[aria-current='page'] > span,
+html[data-space='celestial'] .planet[aria-pressed='true'] > span,
+html[data-space='celestial'] .planet.active > span {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+html[data-space='celestial'] .planet:hover {
+  transform: translateY(-3px) rotate(-6deg);
+}
+html[data-space='celestial'] .site-nav {
+  gap: 20px;
+}
+html[data-space='celestial'] .site-nav-link.planet > span {
+  white-space: normal;
+  max-width: 68px;
+}
+/* Body type planets in the fitting room panel. */
+html[data-space='celestial'] .bp-planets {
+  gap: 10px !important;
+  padding: 8px 0 4px;
+  justify-items: center;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-space='celestial'] .bp .bp-planets .planet {
+  --planet: 76px;
+  overflow: visible;
+  min-height: 0;
+}
+html[data-space='celestial'] .site-nav-link.planet {
+  --planet: 62px;
+  height: var(--planet);
+}
+html[data-space='celestial'] .site-nav-link.planet:hover {
+  background: linear-gradient(160deg, var(--p1) 0 20%, var(--p2) 20% 34%, var(--p3) 34% 47%, var(--p1) 47% 58%, var(--p4) 58% 74%, var(--p2) 74%) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-space='celestial'] .planet:hover { transform: none; }
+}
+
+@media (max-width: 900px) {
+  .site-header {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 10px 16px;
+  }
+  .site-nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .site-tools { gap: 10px; }
+  .space-choice span { display: none; }
+  html[data-space='celestial'] .site-nav-link.planet { --planet: 56px; }
+}
+
+/* ---------- discovery pages pick up the tokens */
+html[data-space] .discovery-page button,
+html[data-space] .discovery-page input,
+html[data-space] .discovery-page select,
+html[data-space] .discovery-page textarea {
+  font-family: inherit;
+}
+html[data-space] .discovery-page input,
+html[data-space] .discovery-page select,
+html[data-space] .discovery-page textarea {
+  color: var(--ink);
+}
+html[data-space] .discovery-page img {
+  background: var(--surface-2);
+}
+
+/* ---------- 3D body card on other pages */
+.body-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
+  min-height: 360px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 6px 6px 0 var(--surface-3) !important;
+  color: var(--ink);
+}
+.body-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px dashed var(--line);
+}
+.body-card-head strong {
+  font: 400 19px/1.1 var(--font-display);
+}
+.body-card-head small {
+  font: 500 9px/1.3 var(--font-mono);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: right;
+}
+.body-card-view {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.body-card-view > canvas {
+  display: block;
+}
+.body-card-view .character-view-status {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  right: auto;
+  padding: 6px 8px;
+  font: 500 10px/1.3 var(--font-mono);
+  background: var(--surface) !important;
+  color: var(--ink-2) !important;
+  border: 1px solid var(--line) !important;
+}
+.body-card-poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--ink-3);
+  font: 500 11px/1.5 var(--font-mono);
+  padding: 20px;
+}
+.body-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  font: 500 11px/1.4 var(--font-mono);
+  color: var(--ink-2);
+}
+.body-card-foot a {
+  padding: 8px 12px;
+  background: var(--accent);
+  color: var(--on-accent) !important;
+  text-decoration: none !important;
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.body-card-foot a:hover {
+  background: var(--accent-2);
+}
+.body-card-foot:has(.body-card-wear:not([hidden])) {
+  flex-wrap: wrap;
+}
+.body-card-wear {
+  padding: 7px 11px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.body-card-wear[hidden] {
+  display: none;
+}
+.body-card-wear:hover {
+  background: var(--surface-3);
+}
+.body-card-canvas {
+  position: absolute;
+  inset: 0;
+}
+.body-card-canvas canvas {
+  display: block;
+  cursor: grab;
+}
+
+/* Docked try-on viewer, used when no body card is on screen. */
+.body-dock {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  width: 300px;
+}
+.body-dock .body-card {
+  min-height: 420px;
+  box-shadow: 8px 8px 0 var(--accent-2) !important;
+}
+.body-dock-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 18px/1 var(--font-mono);
+  cursor: pointer;
+}
+.try-on-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--accent) !important;
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  font: 600 10px/1 var(--font-mono) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.try-on-button:hover {
+  background: var(--accent-2) !important;
+  border-color: var(--accent-2) !important;
+}
+@media (max-width: 600px) {
+  .body-dock { right: 12px; left: 12px; bottom: 12px; width: auto; }
+  .body-dock .body-card { min-height: 340px; }
+}
+
+/* Where the card sits on each page. */
+.page-with-body {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 32px;
+  align-items: center;
+}
+.page-with-body > .body-card {
+  grid-column: 2;
+  grid-row: 1 / span 6;
+  min-height: 380px;
+}
+.page-with-body > :not(.body-card) {
+  grid-column: 1;
+}
+.explore-intro.page-with-body {
+  align-items: end;
+}
+.detail-visual .body-card {
+  margin-top: 22px;
+  min-height: 340px;
+}
+@media (max-width: 860px) {
+  .page-with-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-with-body > .body-card {
+    grid-column: 1;
+    grid-row: auto;
+    min-height: 340px;
+  }
+}
+
+/* ---------- Fitting Room: solid surfaces over the 3D stage.
+   Prefixed with html[data-space] body.fitting-page to outrank the legacy
+   glass layers in src/style.css. */
+html[data-space] body.fitting-page *:not(.keep-shadow) {
+  box-shadow: none !important;
+}
+html[data-space] body.fitting-page *:not([style]):not(select):not(.planet):not(.space-choice i):not(input[type='range']):not(.keep-bg) {
+  background-image: none !important;
+}
+html[data-space] body.fitting-page {
+  --rail-w: 380px;
+  --rail-top: calc(var(--header-h) + 18px);
+  color: var(--ink);
+}
+html[data-space] body.fitting-page .site-header {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  box-shadow: 0 3px 0 var(--accent-2), 0 6px 0 var(--surface-3) !important;
+}
+html[data-space] body.fitting-page .fit-steps {
+  position: fixed;
+  z-index: 18;
+  top: var(--rail-top);
+  left: 20px;
+  width: var(--rail-w);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+html[data-space] body.fitting-page .fit-steps button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  border: 0;
+  background: var(--surface) !important;
+  color: var(--ink-2) !important;
+  font: 600 12px/1 var(--font-body);
+  cursor: pointer;
+}
+html[data-space] body.fitting-page .fit-steps button + button {
+  border-left: 1px solid var(--line);
+}
+html[data-space] body.fitting-page .fit-steps button b {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font: 600 10px/1 var(--font-mono);
+  background: var(--surface-3);
+  color: var(--ink);
+}
+html[data-space] body.fitting-page .fit-steps button.active {
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+}
+html[data-space] body.fitting-page .fit-steps button.active b {
+  background: var(--on-accent);
+  color: var(--accent);
+}
+/* Celestial: the three steps are planets in a row. */
+html[data-space='celestial'] body.fitting-page .fit-steps {
+  height: 84px;
+  align-items: center;
+  justify-items: center;
+  border: 0;
+  background: transparent;
+}
+html[data-space='celestial'] body.fitting-page .fit-steps button.planet {
+  --planet: 76px;
+  width: var(--planet);
+  height: var(--planet);
+  flex-direction: column;
+  gap: 2px;
+  border: 0 !important;
+}
+html[data-space='celestial'] body.fitting-page .fit-steps button.planet b {
+  display: none;
+}
+html[data-space='celestial'] body.fitting-page .fit-steps button.planet,
+html[data-space='celestial'] body.fitting-page .fit-steps button.planet.active {
+  background: linear-gradient(160deg, var(--p1) 0 20%, var(--p2) 20% 34%, var(--p3) 34% 47%, var(--p1) 47% 58%, var(--p4) 58% 74%, var(--p2) 74%) !important;
+}
+html[data-space='celestial'] body.fitting-page .fit-steps + .panel {
+  top: calc(var(--rail-top) + 96px) !important;
+}
+
+html[data-space] body.fitting-page .panel {
+  position: fixed !important;
+  top: calc(var(--rail-top) + 52px) !important;
+  left: 20px !important;
+  bottom: 20px !important;
+  width: var(--rail-w) !important;
+  padding: 18px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: 6px 6px 0 var(--surface-3) !important;
+  color: var(--ink);
+  scrollbar-color: var(--line) var(--surface);
+}
+html[data-space] body.fitting-page .panel *:not(input):not(select):not(button):not(.btn):not(.swatch):not([style]):not(.keep-bg):not([class*='bp-']):not(.planet > span) {
+  background-color: transparent !important;
+}
+html[data-space] body.fitting-page .panel-head h2 {
+  font: 400 30px/1.05 var(--font-display) !important;
+  color: var(--ink) !important;
+  margin: 0 0 6px;
+}
+html[data-space] body.fitting-page .panel-head p,
+html[data-space] body.fitting-page .panel .hint,
+html[data-space] body.fitting-page .panel .muted {
+  color: var(--ink-3) !important;
+}
+html[data-space] body.fitting-page .panel .sec {
+  border: 0 !important;
+  border-top: 1px dashed var(--line) !important;
+  padding: 14px 0 0 !important;
+  margin-top: 14px !important;
+}
+html[data-space] body.fitting-page .panel .sec h3,
+html[data-space] body.fitting-page .panel .lbl,
+html[data-space] body.fitting-page .panel .check,
+html[data-space] body.fitting-page .panel .field-top {
+  color: var(--ink) !important;
+  font-family: var(--font-body) !important;
+}
+html[data-space] body.fitting-page .panel .sec h3 {
+  font: 400 19px/1.2 var(--font-display) !important;
+}
+html[data-space] body.fitting-page .panel .sec h3 small {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--ink-3);
+}
+
+/* Buttons and pills */
+html[data-space] body.fitting-page .btn,
+html[data-space] body.fitting-page .pill,
+html[data-space] body.fitting-page .seg button,
+html[data-space] body.fitting-page .tool {
+  border: 1px solid var(--line) !important;
+  background: var(--surface-2) !important;
+  color: var(--ink) !important;
+  font-family: var(--font-body) !important;
+}
+html[data-space] body.fitting-page .btn:not(.ghost) {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--on-accent) !important;
+  font-weight: 600 !important;
+}
+html[data-space] body.fitting-page .btn:not(.ghost):hover {
+  background: var(--accent-2) !important;
+  border-color: var(--accent-2) !important;
+}
+html[data-space] body.fitting-page .btn.ghost:hover,
+html[data-space] body.fitting-page .pill:hover,
+html[data-space] body.fitting-page .seg button:hover,
+html[data-space] body.fitting-page .tool:hover {
+  background: var(--surface-3) !important;
+}
+html[data-space] body.fitting-page .btn.danger {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+html[data-space] body.fitting-page .pill.active,
+html[data-space] body.fitting-page .pill[aria-pressed='true'],
+html[data-space] body.fitting-page .seg button.active,
+html[data-space] body.fitting-page .tool.on,
+html[data-space] body.fitting-page .tool.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--on-accent) !important;
+}
+
+/* Inputs */
+html[data-space] body.fitting-page input[type='text'],
+html[data-space] body.fitting-page input[type='email'],
+html[data-space] body.fitting-page input[type='password'],
+html[data-space] body.fitting-page input[type='number'],
+html[data-space] body.fitting-page select,
+html[data-space] body.fitting-page textarea {
+  background-color: var(--bg) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+}
+html[data-space] body.fitting-page select {
+  appearance: none;
+  padding-right: 26px !important;
+  background-image: linear-gradient(45deg, transparent 50%, var(--accent) 50%), linear-gradient(135deg, var(--accent) 50%, transparent 50%) !important;
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50% !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat !important;
+}
+html[data-space] body.fitting-page input:focus,
+html[data-space] body.fitting-page select:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+}
+html[data-space] body.fitting-page .check input {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--line) !important;
+  background: var(--bg) !important;
+}
+html[data-space] body.fitting-page .check input:checked {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+html[data-space] body.fitting-page .check input:checked::after {
+  color: var(--on-accent) !important;
+}
+html[data-space] body.fitting-page input[type='range'] {
+  appearance: none;
+  height: 18px;
+  background: transparent !important;
+  accent-color: var(--accent) !important;
+}
+html[data-space] body.fitting-page input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--surface-3) !important;
+  border: 0;
+}
+html[data-space] body.fitting-page input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 16px;
+  margin-top: -6px;
+  background: var(--accent) !important;
+  border: 2px solid var(--bg) !important;
+}
+html[data-space] body.fitting-page input[type='range']::-moz-range-track {
+  height: 4px;
+  background: var(--surface-3);
+}
+html[data-space] body.fitting-page input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 16px;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+}
+
+/* Closet and upcycle cards */
+html[data-space] body.fitting-page .g-card,
+html[data-space] body.fitting-page .card,
+html[data-space] body.fitting-page .swatch,
+html[data-space] body.fitting-page .visual-card,
+html[data-space] body.fitting-page .step {
+  border: 1px solid var(--line) !important;
+  background-color: var(--surface-2) !important;
+  color: var(--ink) !important;
+}
+html[data-space] body.fitting-page .g-card.active,
+html[data-space] body.fitting-page .swatch.active,
+html[data-space] body.fitting-page .card:hover,
+html[data-space] body.fitting-page .g-card:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 3px 3px 0 var(--accent) !important;
+}
+html[data-space] body.fitting-page .fbar {
+  background: var(--surface-3) !important;
+}
+html[data-space] body.fitting-page .fbar b { background: var(--ink) !important; }
+html[data-space] body.fitting-page .fbar b.bad { background: var(--danger) !important; }
+html[data-space] body.fitting-page .fbar b.warn { background: var(--warn) !important; }
+html[data-space] body.fitting-page .fbar b.ok { background: var(--ok) !important; }
+html[data-space] body.fitting-page .fbar b.loose { background: var(--loose-c) !important; }
+html[data-space] body.fitting-page .fv.bad { color: var(--danger) !important; }
+html[data-space] body.fitting-page .fv.warn { color: var(--warn) !important; }
+html[data-space] body.fitting-page .fv.ok { color: var(--ok) !important; }
+html[data-space] body.fitting-page .fv.loose { color: var(--loose-c) !important; }
+
+/* Stage toolbar, caption and status */
+html[data-space] body.fitting-page .stage-toolbar {
+  position: fixed !important;
+  top: var(--rail-top) !important;
+  right: 20px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+}
+html[data-space] body.fitting-page .stage-toolbar .chip {
+  height: 34px;
+  padding: 0 11px !important;
+  border: 0 !important;
+  border-right: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+  color: var(--ink-2) !important;
+  font: 500 11px/1 var(--font-mono) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+html[data-space] body.fitting-page .stage-toolbar .chip:last-child { border-right: 0 !important; }
+html[data-space] body.fitting-page .stage-toolbar .chip:has(input:checked) {
+  background: var(--surface-3) !important;
+  color: var(--ink) !important;
+}
+html[data-space] body.fitting-page .stage-toolbar input {
+  appearance: none;
+  width: 9px !important;
+  height: 9px !important;
+  border: 1px solid var(--ink-3) !important;
+  background: transparent !important;
+}
+html[data-space] body.fitting-page .stage-toolbar input:checked {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+html[data-space] body.fitting-page .stage-caption {
+  left: calc(var(--rail-w) + 44px) !important;
+  right: 20px !important;
+  bottom: 20px !important;
+  padding: 6px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+}
+html[data-space] body.fitting-page .stage-caption .cap-title {
+  font: 400 18px/1 var(--font-display) !important;
+  color: var(--ink) !important;
+  border: 0 !important;
+}
+html[data-space] body.fitting-page .stage-caption .cap-chip {
+  border: 1px solid var(--line) !important;
+  background: var(--surface-2) !important;
+  color: var(--ink-2) !important;
+  font: 500 10px/1.2 var(--font-mono) !important;
+}
+html[data-space] body.fitting-page .stage-caption .cap-chip b { color: var(--ink) !important; }
+html[data-space] body.fitting-page .stage-caption .cap-chip.bad { border-color: var(--danger) !important; }
+html[data-space] body.fitting-page .stage-caption .cap-chip.warn { border-color: var(--warn) !important; }
+html[data-space] body.fitting-page .stage-caption .cap-chip.ok { border-color: var(--ok) !important; }
+html[data-space] body.fitting-page .stage-caption .cap-chip.loose { border-color: var(--loose-c) !important; }
+html[data-space] body.fitting-page .character-view-status {
+  position: fixed !important;
+  top: calc(var(--rail-top) + 48px) !important;
+  left: auto !important;
+  right: 20px !important;
+  background: var(--surface) !important;
+  color: var(--ink-2) !important;
+  border: 1px solid var(--line) !important;
+  font: 500 11px/1.3 var(--font-mono) !important;
+}
+
+/* Sheets, dialogs, account */
+html[data-space] body.fitting-page .overlay {
+  background: var(--scrim) !important;
+}
+html[data-space] body.fitting-page .sheet,
+html[data-space] body.fitting-page .auth-card,
+html[data-space] body.fitting-page .acct-menu {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: 8px 8px 0 var(--accent-2) !important;
+  color: var(--ink) !important;
+}
+html[data-space] body.fitting-page .sheet *:not(input):not(select):not(button):not(.btn):not([style]):not(svg *) {
+  background-color: transparent !important;
+}
+html[data-space] body.fitting-page .auth-brand {
+  font: 400 24px/1 var(--font-display);
+  color: var(--ink) !important;
+}
+html[data-space] body.fitting-page .acct-chip {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+}
+html[data-space] body.fitting-page .site-tools .btn {
+  height: 30px;
+  padding: 0 12px !important;
+  font: 600 11px/1 var(--font-mono) !important;
+  text-transform: uppercase;
+}
+
+@media (max-width: 860px) {
+  html[data-space] body.fitting-page {
+    --rail-w: calc(100vw - 24px);
+    --rail-top: calc(var(--header-h) + 64px);
+  }
+  html[data-space] body.fitting-page .fit-steps,
+  html[data-space] body.fitting-page .panel {
+    left: 12px !important;
+  }
+  html[data-space] body.fitting-page .panel {
+    bottom: auto !important;
+    max-height: 46vh;
+  }
+  html[data-space] body.fitting-page .stage-toolbar {
+    top: auto !important;
+    bottom: 76px !important;
+    left: 12px !important;
+    right: 12px !important;
+  }
+  html[data-space] body.fitting-page .stage-caption {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+  }
+}
