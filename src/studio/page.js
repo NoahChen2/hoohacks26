@@ -1,3 +1,4 @@
+import {saveGeneratedProject} from '../tutorial/store.js';
 import '../explore/style.css';
 import './style.css';
 import {escape,icon} from '../explore/ui.js';
@@ -16,7 +17,7 @@ function removeImage(){resetAnalysis();image=null;if(previewUrl)URL.revokeObject
 input.addEventListener('change',async()=>{
  const file=input.files?.[0];if(!file)return;const issue=validateUpload(file);if(issue){input.value='';setError(issue);return;}
  resetAnalysis();const current=revision,url=URL.createObjectURL(file),probe=new Image();
- try{probe.src=url;await probe.decode();if(current!==revision){URL.revokeObjectURL(url);return;}if(previewUrl)URL.revokeObjectURL(previewUrl);image=file;previewUrl=url;preview.querySelector('img').src=url;preview.querySelector('figcaption').textContent=`${file.name} · ${(file.size/1024/1024).toFixed(2)} MB`;preview.hidden=false;photoActions.hidden=false;}
+ try{probe.src=url;await probe.decode();if(current!==revision){URL.revokeObjectURL(url);return;}if(previewUrl)URL.revokeObjectURL(previewUrl);image=file;garmentId='garment-'+window.crypto.randomUUID();previewUrl=url;preview.querySelector('img').src=url;preview.querySelector('figcaption').textContent=`${file.name} · ${(file.size/1024/1024).toFixed(2)} MB`;preview.hidden=false;photoActions.hidden=false;}
  catch{URL.revokeObjectURL(url);input.value='';setError('This photo could not be opened. Choose another image.');}
 });
 document.querySelector('[data-replace]').addEventListener('click',()=>input.click());document.querySelector('[data-remove]').addEventListener('click',removeImage);
@@ -42,12 +43,15 @@ form.addEventListener('submit',async event=>{
  finally{window.clearTimeout(timer);if(current===revision){controller=null;submit.disabled=false;submit.textContent='Analyze My Clothing ↗';results.setAttribute('aria-busy','false');if(!result)status.textContent='';}}
 });
 document.querySelector('[data-retry]').addEventListener('click',()=>form.requestSubmit());
-let returning=null;
+let returning=null,selectedProject=null,garmentId='garment-'+window.crypto.randomUUID();
 results.addEventListener('click',event=>{
- const button=event.target.closest('[data-project]');if(!button||!result)return;const p=result.analysis.projects[Number(button.dataset.project)];returning=button;
- dialog.innerHTML=`<button class="studio-dialog-close" type="button" aria-label="Close project details">${icon('close')}</button><p class="eyebrow">${result.mode==='demo'?'DEMO EXAMPLE · NOT PHOTO-ANALYZED':'YOUR UPCYCLING IDEA'}</p><h2 id="studio-project-title">${escape(p.title)}</h2><p>${escape(p.description)}</p><p class="idea-meta">${escape(p.difficulty)} · ${escape(p.estimatedTime)}</p><h3>Tools</h3>${list(p.tools)}<h3>Materials</h3>${list(p.materials)}<h3>Make it yours</h3><ol>${p.instructions.map(step=>`<li>${escape(step)}</li>`).join('')}</ol><aside class="analysis-warnings"><h3>Safety notes</h3>${list(p.safetyNotes)}</aside><button class="studio-primary" type="button" data-close-project>Back to ideas</button>`;
+ const button=event.target.closest('[data-project]');if(!button||!result)return;const p=result.analysis.projects[Number(button.dataset.project)];returning=button;selectedProject=p;
+ dialog.innerHTML=`<button class="studio-dialog-close" type="button" aria-label="Close project details">${icon('close')}</button><p class="eyebrow">${result.mode==='demo'?'DEMO EXAMPLE · NOT PHOTO-ANALYZED':'YOUR UPCYCLING IDEA'}</p><h2 id="studio-project-title">${escape(p.title)}</h2><p>${escape(p.description)}</p><p class="idea-meta">${escape(p.difficulty)} · ${escape(p.estimatedTime)}</p><h3>Tools</h3>${list(p.tools)}<h3>Materials</h3>${list(p.materials)}<h3>Make it yours</h3><ol>${p.instructions.map(step=>`<li>${escape(step)}</li>`).join('')}</ol><aside class="analysis-warnings"><h3>Safety notes</h3>${list(p.safetyNotes)}</aside><p class="studio-tutorial-note">Save this idea locally to track your steps and finish it later from Saved. The uploaded photo is not stored.</p><button class="studio-primary" type="button" data-save-tutorial>Save & open tutorial →</button><p data-tutorial-error role="alert"></p><button type="button" data-close-project>Back to ideas</button>`;
  dialog.showModal();dialog.querySelector('button').focus();
 });
-dialog.addEventListener('click',event=>{if(event.target.closest('.studio-dialog-close,[data-close-project]')||event.target===dialog)dialog.close();});
+dialog.addEventListener('click',async event=>{
+ const save=event.target.closest('[data-save-tutorial]');
+ if(save&&selectedProject&&result){save.disabled=true;try{const id=await saveGeneratedProject(storage,selectedProject,{mode:result.mode,warnings:result.analysis.warnings,garmentId});location.assign(`/project/${id}`);}catch(error){dialog.querySelector('[data-tutorial-error]').textContent=error.message;save.disabled=false;}return;}
+if(event.target.closest('.studio-dialog-close,[data-close-project]')||event.target===dialog)dialog.close();});
 dialog.addEventListener('close',()=>returning?.focus({preventScroll:true}));
 window.addEventListener('pagehide',()=>{controller?.abort();if(previewUrl)URL.revokeObjectURL(previewUrl);});

@@ -1,7 +1,10 @@
+import {loadGeneratedProjects} from '../tutorial/store.js';
+import {seededTutorial,generatedTutorial} from '../tutorial/catalog.js';
+import {tutorialMarkup,installTutorial,tutorialShelf} from '../tutorial/view.js';
 import {loadPreferences,rankProjects,PREFERENCES_KEY} from './preferences.js';
 import './onboarding.css';
 import './style.css';
-import {projects,CATEGORIES,filterProjects} from './projects.js';
+import {projects as seededProjects,CATEGORIES,filterProjects} from './projects.js';
 import {toggleEngagement,ENGAGEMENT_KEY} from './storage.js';
 import {loadLibrary,createBoard,setBoardMembership,saveLibrary} from './library.js';
 import {icon,escape} from './ui.js';
@@ -17,6 +20,8 @@ import {createVisualSearch} from './visual-search.js';
 let storage;
 try{storage=window.localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
 let engagement=loadLibrary(storage);
+const projects=[...seededProjects.map(seededTutorial),...loadGeneratedProjects(storage).map(generatedTutorial)];
+let disposeTutorial=()=>{};
 let toastTimer;
 const params=new URLSearchParams(location.search);
 let query=params.get('q')||'', category=CATEGORIES.includes(params.get('category'))?params.get('category'):'For You', savedOnly=params.get('saved')==='1';
@@ -52,8 +57,10 @@ function updateFeed(){
 }
 function renderDetail(){
   if(!project){document.title='Project not found — ReThread';main.innerHTML=`<div class="project-not-found"><p class="eyebrow">A LOOSE THREAD</p><h1>This project couldn’t be found.</h1><p>Find something new to make in the community feed.</p><a class="primary-link" href="/explore">Back to Explore ↗</a></div>`;return;}
+  disposeTutorial();
   const p=project;document.title=`${p.title} — ReThread`;
-  main.innerHTML=`<a class="back-link" href="/explore${escape(location.search)}">${icon('arrow')} Back to Explore</a><article class="project-detail"><div class="detail-visual"><div class="image-action-frame detail-image-frame"><img src="${p.cover}" alt="Illustration of the finished ${escape(p.color.toLowerCase())} ${p.kind} upcycling project" width="400" height="${p.height}"/>${imageActionOverlay(p,engagement)}</div><span>Original project illustration</span></div><div class="detail-content"><div class="card-tags">${p.tags.map(tag=>`<span>${escape(tag)}</span>`).join('')}</div><h1>${p.title}</h1><div class="detail-creator creator"><img src="${p.avatar}" alt="" width="38" height="38"/><div><strong>@${p.username}</strong><small>ReThread demo creator</small></div></div><p class="detail-description">${p.description}</p><div id="detail-actions">${actions(p,true)}</div><div class="project-facts"><div><small>SKILL LEVEL</small><strong>${p.difficulty}</strong></div><div><small>ESTIMATED TIME</small><strong>${p.hours<1?'30 minutes':`${p.hours} hours`}</strong></div></div><section class="detail-section"><h2>Gather your materials</h2><ul class="material-list">${p.materials.map(m=>`<li>${m}</li>`).join('')}<li>Fabric scissors, pins, and a needle or sewing machine</li></ul></section><section class="detail-section"><h2>The project, in a few steps</h2><ol class="project-steps">${p.steps.map(step=>`<li>${step}</li>`).join('')}</ol></section><aside class="make-it-note">${icon('thread')}<p><strong>Make it yours.</strong> These demo guides are starting points. Try on and baste before cutting; leave room for seam allowances and comfortable movement.</p></aside></div></article><section class="related-projects"><div class="section-title"><h2>Keep the inspiration going</h2><a href="/explore?category=${encodeURIComponent(p.aesthetic)}">More ${p.aesthetic} ↗</a></div><div class="related-grid">${projects.filter(item=>item.aesthetic===p.aesthetic&&item.id!==p.id).slice(0,4).map(card).join('')}</div></section>`;
+  main.innerHTML=`<a class="back-link" href="/explore${escape(location.search)}">${icon('arrow')} Back to Explore</a><article class="project-detail"><div class="detail-visual"><div class="image-action-frame detail-image-frame"><img src="${p.cover}" alt="${escape(p.title)} — project illustration" width="400" height="${p.height}"/>${imageActionOverlay(p,engagement)}</div><span>${p.source==='seeded'?'Original project illustration':'Placeholder illustration, not a generated outcome preview'}</span></div><div class="detail-content"><div class="card-tags">${p.tags.map(tag=>`<span>${escape(tag)}</span>`).join('')}</div><h1>${escape(p.title)}</h1><div class="detail-creator creator"><img src="${p.avatar}" alt="" width="38" height="38"/><div><strong>@${p.username}</strong><small>${p.source==='seeded'?'ReThread demo creator':p.source==='ai-demo'?'DEMO idea · photo was not analyzed':'AI-generated tutorial · review before starting'}</small></div></div><p class="detail-description">${escape(p.description)}</p><div id="detail-actions">${actions(p,true)}</div><div class="project-facts"><div><small>SKILL LEVEL</small><strong>${p.difficulty}</strong></div><div><small>ESTIMATED TIME</small><strong>${escape(p.estimatedTime)}</strong></div></div>${tutorialMarkup(p,storage)}</div></article><section class="related-projects"><div class="section-title"><h2>Keep the inspiration going</h2><a href="/explore?category=${encodeURIComponent(p.aesthetic)}">More ${p.aesthetic} ↗</a></div><div class="related-grid">${projects.filter(item=>item.aesthetic===p.aesthetic&&item.id!==p.id).slice(0,4).map(card).join('')}</div></section>`;
+  disposeTutorial=installTutorial(main,p,storage);
 }
 
 function toast(message){
@@ -63,7 +70,7 @@ function toast(message){
 }
 function renderCurrent(){
   if(isExplore)updateFeed();
-  else if(isProfile)renderProfile(main,{library:engagement,projects,renderCard:card,boardId:params.get('board')});
+  else if(isProfile){renderProfile(main,{library:engagement,projects,renderCard:card,boardId:params.get('board')});main.insertAdjacentHTML('beforeend',tutorialShelf(projects,storage));}
   else renderDetail();
   document.querySelector('[data-saved-count]').textContent=engagement.saved.length;
   imageFocus.refresh();
@@ -107,7 +114,7 @@ main.addEventListener('pointermove',event=>{
 });
 window.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'&&!event.target.closest('.image-action-frame'))cancelHover();},{passive:true});
 main.addEventListener('pointerout',event=>{const frame=event.target.closest('.image-action-frame');if(!imageFocus.activeProjectId&&frame&&!frame.contains(event.relatedTarget))cancelHover();});
-const visualSearch=createVisualSearch({projects,onAction:handleAction,getState:()=>engagement});
+const visualSearch=createVisualSearch({projects:seededProjects,onAction:handleAction,getState:()=>engagement});
 installImageLongPress(main,{
   onOpen(frame,pointerId){const trigger=frame.querySelector('[data-image-menu]');imageFocus.open(projects.find(p=>p.id===trigger.dataset.imageMenu),trigger,{pointerId});},
   onMove:(x,y)=>imageFocus.targetAt(x,y),onRelease:(x,y)=>imageFocus.releaseAt(x,y),onCancel:()=>imageFocus.close({immediate:true}),
@@ -119,6 +126,7 @@ main.addEventListener('submit',event=>{
   catch(error){form.querySelector('.board-form-error').textContent=error.message;}
 });
 async function handleAction(event){
+  if(event.target.closest('[data-tutorial-root]'))return;
   const button=event.target.closest('button');
   if(!button){
     const frame=event.target.closest('.image-action-frame');

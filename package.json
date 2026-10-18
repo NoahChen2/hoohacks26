@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/explore src/studio src/entry.js server vite.config.js tests/*.test.mjs scripts/generate-explore-assets.mjs",
+    "lint": "eslint src/explore src/studio src/tutorial src/entry.js server vite.config.js tests/*.test.mjs scripts/generate-explore-assets.mjs",
     "start": "node server/index.js"
   },
   "dependencies": {
