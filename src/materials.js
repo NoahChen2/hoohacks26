@@ -359,11 +359,8 @@ function bodyStrokes(model, character) {
   if (fem === 0) bez(F.faceMirror, r(.43, -.25), r(.40, -.40), r(.33, -.52), R * .012);
   bez(F.ear, r(.06, .19), r(-.24, .02), r(.05, -.21), R * .022);
   bez(F.ear, r(.02, .09), r(-.08, -.01), r(.03, -.08), R * .014);
-  // Neck and chest.
-  seg(F.frontMirror, [model.neckR * .9, neckTop + 2], [model.neckR * .22, neckBase - .4], mix(.2, .13));
-  if (fem === 0) bez(F.front, [-.65, neckBase + 3.6], [0, neckBase + 3], [.65, neckBase + 3.6], .13);
-  bez(F.frontMirror, [1.6, neckBase - 2.2], [Sx * .45, neckBase - .8], [Sx * .82, shoulderY - 1.8], .2);
-  bez(F.front, [-1.2, neckBase - 1.6], [0, neckBase - 2.8], [1.2, neckBase - 1.6], .15);
+  // Keep the neck and upper chest clean. Their former heavy contour strokes
+  // read as black scratches/freckles on light skin, especially in close-ups.
   if (fem === 0) {
     bez(F.frontMirror, [.6, chestY + 2.5], [Cx * .42, chestY - 6.5], [Cx * .88, chestY + 2], .2 + .1 * muscle);
     seg(F.frontMirror, [0, chestY + 5], [0, chestY - 1.5], .12, muscle);
@@ -424,7 +421,7 @@ export function bodyMaterial() {
     uStrokes: { value: strokes }, uStrokeCount: { value: 0 },
   };
   return comicPatch(new THREE.MeshLambertMaterial({ color: SKIN.color }), {
-    key: 'comic-body-v4', shade: SKIN.shade.clone(), deep: SKIN.deep.clone(), lit: .45, warm: 1, rimLight: .6, occlusion: 'vAO', dots: .45, uniforms,
+    key: 'comic-body-v5', shade: SKIN.shade.clone(), deep: SKIN.deep.clone(), lit: .52, warm: 1, rim: .28, rimLight: .38, occlusion: 'vAO', dots: .04, uniforms,
     vertexHeader: 'attribute vec3 basePosition;\nattribute float ao;\nattribute float hairMask;\nvarying vec3 vBase;\nvarying float vAO;\nvarying float vHairMask;\n',
     vertexBody: 'vBase = basePosition;\nvAO = ao;\nvHairMask = hairMask;',
     fragmentHeader: 'varying float vAO;\n' + BODY_ART,
@@ -472,7 +469,7 @@ export function updateBodyAppearance(material, { skin = SKIN.color, hair = '#3a2
 }
 
 export function bodyOutlineMaterial() {
-  return outlineMaterial(.0026);
+  return outlineMaterial(.00135);
 }
 
 // Covered skin stays hidden at the trouser crotch during size changes. The radial

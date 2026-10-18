@@ -2,24 +2,24 @@
    blocks, square corners. Loaded on every page (src/shell/shell.js). */
 
 html[data-space='celestial'] {
-  --bg: #0a0920;
-  --surface: #141238;
-  --surface-2: #1d1a4c;
-  --surface-3: #2a2563;
-  --line: #3d3785;
-  --ink: #f2f0ff;
-  --ink-2: #c3bdf0;
-  --ink-3: #9a93d6;
-  --accent: #9ff3ff;
-  --accent-2: #e04ad8;
-  --on-accent: #0a0920;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-2: #f0f0ed;
+  --surface-3: #e8e8e4;
+  --line: #deded9;
+  --ink: #171717;
+  --ink-2: #484846;
+  --ink-3: #747470;
+  --accent: #6c5ce7;
+  --accent-2: #171717;
+  --on-accent: #ffffff;
   --danger: #ff6b8b;
   --ok: #7af0b0;
   --warn: #ffd166;
   --loose-c: #7f9cff;
-  --scrim: #06051a;
-  --header-h: 84px;
-  color-scheme: dark;
+  --scrim: #171717;
+  --header-h: 68px;
+  color-scheme: light;
 }
 html[data-space='night'] {
   --bg: #0c1520;
@@ -72,8 +72,8 @@ html[data-space] {
   --accent-soft: var(--surface-3);
   --bad: var(--danger);
   --loose: var(--loose-c);
-  --radius: 0;
-  --shadow: none;
+  --radius: 16px;
+  --shadow: 0 12px 36px rgba(0,0,0,.08);
   --glass-edge: var(--line);
   --glass-fill: var(--surface);
   --glass-deep: var(--surface);
@@ -85,15 +85,8 @@ html[data-space] {
   color: var(--ink);
 }
 
-/* ---------- flat everywhere: no rounding, glass, glow or soft text shadow */
-html[data-space] *,
-html[data-space] *::before,
-html[data-space] *::after {
-  border-radius: 0 !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  text-shadow: none !important;
-}
+/* ---------- one restrained product language across every page */
+html[data-space] *,html[data-space] *::before,html[data-space] *::after{text-shadow:none!important}
 html[data-space] body {
   font-family: var(--font-body) !important;
   background: var(--bg) !important;
@@ -135,11 +128,12 @@ html[data-space] :focus-visible {
   gap: 28px;
   height: var(--header-h);
   padding: 0 max(24px, calc((100vw - 1376px) / 2));
-  background: var(--surface);
+  background: color-mix(in srgb,var(--surface) 86%,transparent);
   color: var(--ink);
   border-bottom: 1px solid var(--line);
-  /* Stepped colour bands instead of a gradient or glow. */
-  box-shadow: 0 3px 0 var(--accent-2), 0 6px 0 var(--surface-3) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(150%);
+  backdrop-filter:blur(20px) saturate(150%);
 }
 .site-brand {
   display: flex;
@@ -170,7 +164,8 @@ html[data-space] :focus-visible {
   color: var(--ink-2) !important;
   text-decoration: none !important;
   font: 500 14px/1 var(--font-body);
-  border: 1px solid transparent;
+  border: 0;
+  border-radius:999px;
   white-space: nowrap;
 }
 .site-nav-link:hover {
@@ -178,9 +173,8 @@ html[data-space] :focus-visible {
   background: var(--surface-2);
 }
 .site-nav-link[aria-current='page'] {
-  color: var(--on-accent) !important;
-  background: var(--accent);
-  border-color: var(--accent);
+  color: var(--ink) !important;
+  background: var(--surface-2);
 }
 .site-tools {
   margin-left: auto;
@@ -206,12 +200,15 @@ html[data-space] :focus-visible {
   margin-left: 4px;
   text-align: center;
   font: 500 10px/1 var(--font-mono);
-  background: var(--surface-3);
-  color: var(--ink);
+  background:var(--ink);
+  color:var(--surface);
+  border-radius:999px;
 }
 .space-pick {
   display: flex;
-  border: 1px solid var(--line);
+  border:1px solid var(--line);
+  border-radius:999px;
+  overflow:hidden;
 }
 .space-choice {
   display: flex;
@@ -239,8 +236,8 @@ html[data-space] :focus-visible {
 .space-choice[data-space-choice='night'] i { background: linear-gradient(180deg, #0c1520 0 50%, #e8a65a 50% 70%, #8fd8c8 70%); }
 .space-choice[data-space-choice='daylight'] i { background: linear-gradient(180deg, #faf8f3 0 50%, #2f6463 50% 70%, #a74629 70%); }
 .space-choice[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--on-accent);
+  background:var(--ink);
+  color:var(--surface);
 }
 .space-choice:hover:not([aria-pressed='true']) {
   background: var(--surface-2);
@@ -578,6 +575,15 @@ html[data-space] .discovery-page img {
     min-height: 340px;
   }
 }
+
+/* Product polish: simple navigation beats decorative planets. */
+html[data-space='celestial'] .site-nav-link.planet{position:relative;display:inline-flex;width:auto;height:38px;padding:0 15px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:var(--ink-2)!important;transform:none!important;transition:background .18s ease,color .18s ease}
+html[data-space='celestial'] .site-nav-link.planet::before,html[data-space='celestial'] .site-nav-link.planet::after{display:none!important}
+html[data-space='celestial'] .site-nav-link.planet>span{position:static;padding:0;background:transparent;color:inherit;font:600 13px/1 var(--font-body)!important;letter-spacing:0;text-transform:none}
+html[data-space='celestial'] .site-nav-link.planet:hover{background:var(--surface-2)!important;color:var(--ink)!important}
+html[data-space='celestial'] .site-nav-link.planet[aria-current='page']{background:var(--ink)!important;color:var(--surface)!important}
+html[data-space='celestial'] .site-nav-link.planet[aria-current='page']>span{background:transparent;color:inherit}
+@media(max-width:900px){.site-header{gap:14px;padding-inline:18px}.space-pick{display:none}.site-nav{overflow-x:auto}.site-tools{gap:10px}}
 
 /* ---------- Fitting Room: solid surfaces over the 3D stage.
    Prefixed with html[data-space] body.fitting-page to outrank the legacy
@@ -984,4 +990,200 @@ html[data-space] body.fitting-page .site-tools .btn {
     right: 12px !important;
     bottom: 12px !important;
   }
+}
+
+/* Responsive header allocation: flexible navigation, fixed tools, no collisions. */
+.site-header{justify-content:space-between;gap:clamp(12px,2vw,28px)}
+.site-brand{flex:0 0 auto}.site-nav{flex:1 1 auto;justify-content:center;min-width:0;gap:clamp(2px,.5vw,7px)}.site-tools{flex:0 0 auto;margin-left:0;gap:clamp(8px,1vw,14px)}
+@media(max-width:1180px){.site-header{padding-inline:18px}.site-nav-link{padding-inline:10px}.space-choice{width:30px;padding:0;justify-content:center}.space-choice span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}}
+@media(max-width:900px){.site-header{justify-content:flex-start}.site-nav{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}.site-tools{margin-left:auto}.site-link[href='/settings']{display:none}}
+
+/* Fitting inspector: one contained surface with an Apple-style segmented tab row. */
+html[data-space] body.fitting-page{--rail-w:380px;--rail-top:calc(var(--header-h) + 18px)}
+html[data-space] body.fitting-page .inspector-shell{position:fixed;z-index:18;top:var(--rail-top);bottom:20px;left:20px;width:var(--rail-w);display:flex;flex-direction:column;gap:0;padding:6px;background:color-mix(in srgb,var(--surface) 94%,transparent);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.12);overflow:hidden}
+html[data-space] body.fitting-page .inspector-shell .fit-steps{position:static!important;z-index:auto;width:auto;height:42px!important;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;justify-items:stretch;padding:3px;border:0!important;border-radius:14px;background:var(--surface-2)!important}
+html[data-space] body.fitting-page .inspector-shell .fit-steps button,html[data-space='celestial'] body.fitting-page .inspector-shell .fit-steps button{width:auto;height:36px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;padding:0 10px;border:0!important;border-radius:11px!important;background:transparent!important;color:var(--ink-2)!important;font:600 12px/1 var(--font-body);transition:background .16s ease,color .16s ease,box-shadow .16s ease;transform:none!important}
+html[data-space] body.fitting-page .inspector-shell .fit-steps button::before,html[data-space] body.fitting-page .inspector-shell .fit-steps button::after{display:none!important}
+html[data-space] body.fitting-page .inspector-shell .fit-steps button+button{border-left:0!important}
+html[data-space] body.fitting-page .inspector-shell .fit-steps button.active{background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 1px 4px rgba(0,0,0,.12)!important}
+html[data-space] body.fitting-page .fit-step-icon{display:grid;place-items:center;width:16px;height:16px;flex:0 0 16px;background:transparent!important;color:currentColor}
+html[data-space] body.fitting-page .fit-step-icon svg{display:block;width:16px;height:16px}
+html[data-space] body.fitting-page .inspector-shell .panel,html[data-space='celestial'] body.fitting-page .fit-steps+.panel{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;bottom:auto!important;width:auto!important;min-height:0;flex:1 1 auto;margin-top:6px;padding:16px!important;border:0!important;border-radius:14px!important;box-shadow:none!important;overflow:auto}
+html[data-space] body.fitting-page .stage-toolbar{left:calc(var(--rail-w) + 44px)!important;right:20px!important;justify-content:flex-end;max-width:calc(100vw - var(--rail-w) - 64px);border-radius:14px!important;overflow:hidden}
+@media(max-width:1050px){html[data-space] body.fitting-page{--rail-w:340px}html[data-space] body.fitting-page .stage-toolbar .chip{padding-inline:8px!important;font-size:10px!important}}
+@media(max-width:860px){html[data-space] body.fitting-page{--rail-w:calc(100vw - 24px);--rail-top:calc(var(--header-h) + 12px)}html[data-space] body.fitting-page .inspector-shell{left:12px;right:12px;bottom:auto;width:auto;height:min(48vh,520px)}html[data-space] body.fitting-page .stage-toolbar{top:auto!important;bottom:76px!important;left:12px!important;right:12px!important;max-width:none;justify-content:center}}
+
+/* visionOS smoked-glass fitting surfaces over the celestial stage. */
+html[data-space] body.fitting-page{--fit-glass:rgba(22,18,36,.65);--fit-glass-soft:rgba(255,255,255,.08);--fit-edge:rgba(255,255,255,.14);--fit-primary:#f8f7fc;--fit-secondary:rgba(248,247,252,.65);--fit-accent:#7c5cff}
+html[data-space] body.fitting-page .inspector-shell,html[data-space] body.fitting-page .stage-toolbar,html[data-space] body.fitting-page .stage-caption{background:var(--fit-glass)!important;border:1px solid var(--fit-edge)!important;-webkit-backdrop-filter:blur(24px) saturate(180%)!important;backdrop-filter:blur(24px) saturate(180%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 48px rgba(3,2,12,.3)!important}
+html[data-space] body.fitting-page .inspector-shell{border-radius:22px;color:var(--fit-primary)}
+html[data-space] body.fitting-page .inspector-shell .panel{background:transparent!important;color:var(--fit-primary)}
+html[data-space] body.fitting-page .inspector-shell .fit-steps{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.08)!important}
+html[data-space] body.fitting-page .inspector-shell .fit-steps button{color:var(--fit-secondary)!important}
+html[data-space] body.fitting-page .inspector-shell .fit-steps button.active{color:var(--fit-primary)!important;background:rgba(255,255,255,.12)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.18)!important}
+html[data-space] body.fitting-page .panel-head h2,html[data-space] body.fitting-page .bp .bp-title,html[data-space] body.fitting-page .stage-caption .cap-title{font-family:var(--font-display)!important;color:var(--fit-primary)!important;font-weight:400!important;letter-spacing:-.025em}
+html[data-space] body.fitting-page .panel-head p,html[data-space] body.fitting-page .panel .hint,html[data-space] body.fitting-page .panel .muted,html[data-space] body.fitting-page .bp-lede,html[data-space] body.fitting-page .bp-hint,html[data-space] body.fitting-page .bp-alt,html[data-space] body.fitting-page .bp-note{color:var(--fit-secondary)!important}
+html[data-space] body.fitting-page .panel .sec h3,html[data-space] body.fitting-page .panel .lbl,html[data-space] body.fitting-page .panel .check,html[data-space] body.fitting-page .panel .field-top,html[data-space] body.fitting-page .bp-row-label,html[data-space] body.fitting-page .bp-field-label{color:var(--fit-primary)!important}
+html[data-space] body.fitting-page .stage-toolbar{border-radius:999px!important;padding:5px!important;gap:2px!important}
+html[data-space] body.fitting-page .stage-toolbar .chip{border:0!important;border-radius:999px!important;background:transparent!important;color:var(--fit-secondary)!important;text-transform:none;font-family:var(--font-body)!important;letter-spacing:0}
+html[data-space] body.fitting-page .stage-toolbar .chip:has(input:checked){background:rgba(255,255,255,.1)!important;color:var(--fit-primary)!important}
+html[data-space] body.fitting-page .stage-toolbar input:checked{background:var(--fit-accent)!important;border-color:#a996ff!important;box-shadow:0 0 10px rgba(124,92,255,.7)!important}
+html[data-space] body.fitting-page .stage-caption{border-radius:999px!important;color:var(--fit-secondary)!important}
+html[data-space] body.fitting-page .stage-caption .cap-title{font-size:17px!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip{color:var(--fit-secondary)!important;border-color:rgba(255,255,255,.1)!important;background:rgba(255,255,255,.05)!important;border-radius:999px!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip b{color:var(--fit-primary)!important}
+html[data-space] body.fitting-page .fbar{background:rgba(255,255,255,.08)!important;border-radius:999px!important;overflow:hidden}
+
+/* Frame cards replace the decorative body-type planets. */
+html[data-space='celestial'] body.fitting-page .bp-planets,html[data-space] body.fitting-page .bp-planets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0;border:0;background:transparent;box-shadow:none}
+html[data-space='celestial'] body.fitting-page .bp .bp-planets .planet,html[data-space] body.fitting-page .bp .bp-planets .bp-opt{width:auto;height:48px;min-height:48px;padding:0 8px!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;background:var(--fit-glass-soft)!important;color:var(--fit-secondary)!important;transform:none!important;box-shadow:none!important}
+html[data-space] body.fitting-page .bp .bp-planets .planet::before,html[data-space] body.fitting-page .bp .bp-planets .planet::after{display:none!important}
+html[data-space] body.fitting-page .bp .bp-planets .planet>span{position:static;padding:0;background:transparent;color:inherit;font:600 11px/1 var(--font-body)!important;letter-spacing:.02em;text-transform:none}
+html[data-space] body.fitting-page .bp .bp-planets .planet:hover{border-color:rgba(169,150,255,.5)!important;background:rgba(255,255,255,.12)!important}
+html[data-space] body.fitting-page .bp .bp-planets .planet[aria-pressed='true']{border-color:#9f8aff!important;background:rgba(124,92,255,.3)!important;color:var(--fit-primary)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)!important}
+
+/* Shared Closet and Upcycle panel controls use the same spatial material. */
+html[data-space] body.fitting-page .panel .sec,html[data-space] body.fitting-page .g-card,html[data-space] body.fitting-page .card,html[data-space] body.fitting-page .visual-card{background:rgba(255,255,255,.055)!important;border-color:rgba(255,255,255,.1)!important;border-radius:12px!important;box-shadow:none!important}
+html[data-space] body.fitting-page .g-card:hover,html[data-space] body.fitting-page .card:hover,html[data-space] body.fitting-page .visual-card:hover{background:rgba(255,255,255,.09)!important;border-color:rgba(169,150,255,.42)!important}
+html[data-space] body.fitting-page .g-card.active,html[data-space] body.fitting-page .card.active,html[data-space] body.fitting-page .visual-card.active{background:rgba(124,92,255,.22)!important;border-color:#9d88ff!important}
+html[data-space] body.fitting-page .lbl input,html[data-space] body.fitting-page .lbl select,html[data-space] body.fitting-page .g-add select,html[data-space] body.fitting-page .field .val input{background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:10px!important;color:var(--fit-primary)!important;box-shadow:none!important}
+html[data-space] body.fitting-page .lbl input:focus,html[data-space] body.fitting-page .lbl select:focus,html[data-space] body.fitting-page .g-add select:focus,html[data-space] body.fitting-page .field .val input:focus{border-color:#9d88ff!important;box-shadow:0 0 0 3px rgba(124,92,255,.18)!important;outline:0}
+html[data-space] body.fitting-page input[type='range']{accent-color:var(--fit-accent)!important}
+html[data-space] body.fitting-page input[type='range']::-webkit-slider-runnable-track{border-radius:999px!important;background:linear-gradient(90deg,#7c5cff,rgba(255,255,255,.13))!important}
+html[data-space] body.fitting-page input[type='range']::-webkit-slider-thumb{border-radius:50%!important;background:#7c5cff!important;border-color:#ded6ff!important;box-shadow:0 0 10px rgba(124,92,255,.65)!important}
+
+/* Closet and Upcycle detail polish. */
+html[data-space] body.fitting-page .g-card,html[data-space] body.fitting-page .g-mini,html[data-space] body.fitting-page .swatch{background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;color:var(--fit-primary)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+html[data-space] body.fitting-page .g-card:hover,html[data-space] body.fitting-page .g-mini:hover,html[data-space] body.fitting-page .swatch:hover{background:rgba(255,255,255,.11)!important;border-color:rgba(186,169,255,.42)!important;transform:translateY(-1px)}
+html[data-space] body.fitting-page .g-card.active,html[data-space] body.fitting-page .g-mini.active,html[data-space] body.fitting-page .swatch.active{background:rgba(124,92,255,.2)!important;border-color:rgba(177,158,255,.92)!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 0 0 1px rgba(124,92,255,.2),0 0 20px rgba(124,92,255,.32)!important}
+html[data-space] body.fitting-page .g-card.worn{outline:2px solid rgba(177,158,255,.75);outline-offset:-3px}
+html[data-space] body.fitting-page .swatch svg{width:34px;height:34px;border-radius:9px}
+html[data-space] body.fitting-page .sketch-wrap{border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;background-color:rgba(8,7,18,.32)!important;background-image:radial-gradient(circle,rgba(255,255,255,.11) 0 1px,transparent 1.25px)!important;background-size:18px 18px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important}
+html[data-space] body.fitting-page .sketch-tools .seg{border-color:rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.05)}
+html[data-space] body.fitting-page .sketch-tools .seg button{background:transparent;color:var(--fit-secondary)}
+html[data-space] body.fitting-page .sketch-tools .seg button.active{background:rgba(124,92,255,.3);color:#fff;box-shadow:none}
+
+/* Readable pastel fit states on the bottom garment bar. */
+html[data-space] body.fitting-page .stage-caption .cap-chips{gap:7px}
+html[data-space] body.fitting-page .stage-caption .cap-chip{padding:6px 11px!important;border:1px solid rgba(255,255,255,.14)!important;font-weight:600;color:var(--fit-primary)!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip.bad{background:rgba(255,132,158,.2)!important;border-color:rgba(255,178,194,.34)!important;color:#ffd9e1!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip.warn{background:rgba(255,202,112,.19)!important;border-color:rgba(255,222,161,.32)!important;color:#ffe8bd!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip.ok{background:rgba(115,225,193,.18)!important;border-color:rgba(153,238,213,.3)!important;color:#d7fff3!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip.loose{background:rgba(146,157,255,.2)!important;border-color:rgba(184,191,255,.34)!important;color:#e0e4ff!important}
+html[data-space] body.fitting-page .stage-caption .cap-chip b{color:inherit!important;font-weight:700}
+
+/* Luminous visionOS glass: the celestial scene remains visible through every
+   primary fitting-room surface, with a bright specular edge instead of a flat
+   dark panel. */
+html[data-space] body.fitting-page{
+  --fit-vision-glass:linear-gradient(135deg,rgba(255,255,255,.14) 0%,rgba(180,160,255,.06) 50%,rgba(20,16,38,.38) 100%);
+  --fit-vision-edge:rgba(255,255,255,.22);
+  --fit-vision-shadow:0 20px 50px rgba(0,0,0,.45),inset 0 1px 1px rgba(255,255,255,.35),inset 1px 0 1px rgba(255,255,255,.15);
+  --rail-top:calc(var(--header-h) + 16px);
+}
+html[data-space] body.fitting-page .inspector-shell,
+html[data-space] body.fitting-page .stage-toolbar,
+html[data-space] body.fitting-page .stage-caption{
+  background:var(--fit-vision-glass)!important;
+  border:1px solid var(--fit-vision-edge)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(200%)!important;
+  backdrop-filter:blur(28px) saturate(200%)!important;
+  box-shadow:var(--fit-vision-shadow)!important;
+}
+html[data-space] body.fitting-page .inspector-shell{
+  left:16px;
+  bottom:16px;
+  border-radius:24px;
+}
+
+/* Hug the viewport controls to their contents. Keeping only the right anchor
+   prevents the absolutely positioned pill from becoming a full-width bar. */
+html[data-space] body.fitting-page .stage-toolbar{
+  left:auto!important;
+  right:16px!important;
+  width:fit-content!important;
+  max-width:calc(100vw - var(--rail-w) - 64px);
+  margin-left:auto!important;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+html[data-space] body.fitting-page .stage-toolbar::-webkit-scrollbar{display:none}
+
+/* Controls nested inside the glass retain their own faint volume and top-edge
+   highlight rather than reading as white form fields. */
+html[data-space] body.fitting-page .bp .bp-seg{
+  gap:6px;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html[data-space] body.fitting-page .bp .bp-opt,
+html[data-space] body.fitting-page .bp .bp-planets .planet,
+html[data-space] body.fitting-page .bp .bp-planets .bp-opt{
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.09)!important;
+  color:var(--fit-secondary)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2)!important;
+}
+html[data-space] body.fitting-page .bp .bp-opt[aria-pressed='true'],
+html[data-space] body.fitting-page .bp .bp-planets .planet[aria-pressed='true']{
+  border-color:rgba(190,176,255,.8)!important;
+  background:rgba(124,92,255,.36)!important;
+  color:#fff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 16px rgba(124,92,255,.24)!important;
+}
+html[data-space] body.fitting-page .bp input.bp-num,
+html[data-space] body.fitting-page .field .val input{
+  background:rgba(255,255,255,.1)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.2)!important;
+  border-radius:8px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important;
+}
+
+/* SVG measurement labels: clean glyphs with a restrained shadow, no outlined
+   sticker effect. */
+html[data-space] body.fitting-page .silhouette .dt,
+html[data-space] body.fitting-page .bp .dt{
+  fill:#fff!important;
+  stroke:none!important;
+  stroke-width:0!important;
+  paint-order:normal!important;
+  filter:none!important;
+  text-shadow:0 2px 6px rgba(0,0,0,.85);
+}
+
+@media(max-width:860px){
+  html[data-space] body.fitting-page{--rail-top:calc(var(--header-h) + 12px)}
+  html[data-space] body.fitting-page .inspector-shell{left:12px;right:12px;bottom:auto}
+  html[data-space] body.fitting-page .stage-toolbar{left:auto!important;right:12px!important;width:fit-content!important;max-width:calc(100vw - 24px)}
+}
+
+/* Daylight uses the same glass construction with ink-dark content. The shared
+   fitting rules above intentionally use pale type for the two dark studios, so
+   these overrides prevent white-on-light labels and form values. */
+html[data-space='daylight'] body.fitting-page{
+  --fit-primary:#18202b;
+  --fit-secondary:rgba(24,32,43,.68);
+}
+html[data-space='daylight'] body.fitting-page .bp input.bp-num,
+html[data-space='daylight'] body.fitting-page .field .val input,
+html[data-space='daylight'] body.fitting-page .lbl input,
+html[data-space='daylight'] body.fitting-page .lbl select,
+html[data-space='daylight'] body.fitting-page .g-add select{
+  color:#18202b!important;
+  caret-color:#18202b;
+}
+html[data-space='daylight'] body.fitting-page .silhouette .dt,
+html[data-space='daylight'] body.fitting-page .bp .dt{
+  fill:#18202b!important;
+  text-shadow:0 1px 4px rgba(255,255,255,.7);
+}
+html[data-space='daylight'] body.fitting-page .bp .bp-opt:not([aria-pressed='true']),
+html[data-space='daylight'] body.fitting-page .bp .bp-planets .planet:not([aria-pressed='true']),
+html[data-space='daylight'] body.fitting-page .stage-toolbar .chip,
+html[data-space='daylight'] body.fitting-page .stage-caption,
+html[data-space='daylight'] body.fitting-page .stage-caption .cap-chip:not(.bad):not(.warn):not(.ok):not(.loose){
+  color:var(--fit-secondary)!important;
 }

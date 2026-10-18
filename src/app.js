@@ -10,10 +10,16 @@ import { renderUpcyclePanel, previewEvents, setPreview } from './ui/upcyclePanel
 import { GARMENT_TYPES } from './state.js';
 import { initAccount } from './ui/account.js';
 import { escapeHtml } from './ui/escape.js';
+import {createElement,ScanFace,Shirt,Recycle} from 'lucide';
 
 document.body.classList.add('fitting-page');
 document.getElementById('site-header').outerHTML = siteHeader('fitting', { account: true });
 installShell();
+
+const tabIcons={body:ScanFace,closet:Shirt,upcycle:Recycle};
+document.querySelectorAll('[data-tab-icon]').forEach((slot)=>{
+  slot.replaceChildren(createElement(tabIcons[slot.dataset.tabIcon],{'aria-hidden':'true',width:16,height:16,'stroke-width':1.8}));
+});
 
 const panel = document.getElementById('panel');
 const caption = document.getElementById('stage-caption');

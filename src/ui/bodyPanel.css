@@ -528,3 +528,29 @@
 .bp-group > .bp-label + .bp-note-top {
   margin-bottom: 2px;
 }
+
+/* Spatial smoked-glass controls in the Fitting Room. */
+.fitting-page .bp{color:#f8f7fc}
+.fitting-page .bp button,.fitting-page .bp input,.fitting-page .bp select{border-radius:10px!important}
+.fitting-page .bp-seg{gap:7px;padding:0;border:0;background:transparent;box-shadow:none}
+.fitting-page .bp .bp-opt{min-height:34px;border:1px solid rgba(255,255,255,.1);border-radius:10px!important;background:rgba(255,255,255,.08);color:rgba(248,247,252,.68)}
+.fitting-page .bp .bp-opt:hover{border-color:rgba(169,150,255,.45);background:rgba(255,255,255,.12);color:#f8f7fc}
+.fitting-page .bp .bp-opt[aria-pressed='true']{border-color:#9d88ff;background:#7c5cff;color:#fff;box-shadow:0 5px 16px rgba(60,35,145,.35)}
+.fitting-page .bp-tabs{gap:5px;border:0;background:rgba(255,255,255,.05);padding:4px;border-radius:12px}
+.fitting-page .bp .bp-tab{border:0;border-radius:9px!important;background:transparent;color:rgba(248,247,252,.6)}
+.fitting-page .bp .bp-tab[aria-selected='true']{background:rgba(255,255,255,.12);color:#f8f7fc;box-shadow:inset 0 1px rgba(255,255,255,.08)}
+.fitting-page :is(.bp,.bp-units-scope) .unit-toggle{gap:3px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.05);box-shadow:none}
+.fitting-page :is(.bp,.bp-units-scope) .unit-toggle button{border-radius:7px!important;background:transparent;color:rgba(248,247,252,.6)}
+.fitting-page :is(.bp,.bp-units-scope) .unit-toggle button[aria-pressed='true']{background:rgba(255,255,255,.14);color:#f8f7fc}
+.fitting-page .bp input.bp-num,.fitting-page .bp select.bp-select{border:1px solid rgba(255,255,255,.12)!important;border-radius:10px!important;background:rgba(255,255,255,.08)!important;color:#f8f7fc!important}
+.fitting-page .bp input.bp-num:focus,.fitting-page .bp select.bp-select:focus{border-color:#9d88ff!important;box-shadow:0 0 0 3px rgba(124,92,255,.18)!important}
+.fitting-page .bp select.bp-select option{background:#171326;color:#f8f7fc}
+.fitting-page .bp-row+.bp-row,.fitting-page .bp-seg+.bp-row,.fitting-page .bp-group+.bp-group{border-color:rgba(255,255,255,.08)}
+.fitting-page .bp input[type='range'].bp-range{height:20px;border-radius:999px!important}
+.fitting-page .bp input[type='range'].bp-range::-webkit-slider-runnable-track{height:5px;border-radius:999px;background:linear-gradient(to right,#7c5cff 0 var(--fill,0%),rgba(255,255,255,.13) var(--fill,0%) 100%)}
+.fitting-page .bp input[type='range'].bp-range::-webkit-slider-thumb{width:15px;height:15px;margin-top:-5px;border:2px solid #ded6ff;border-radius:50%;background:#7c5cff;box-shadow:0 0 10px rgba(124,92,255,.65)}
+.fitting-page .bp input[type='range'].bp-range::-moz-range-track{height:5px;border-radius:999px;background:rgba(255,255,255,.13)}
+.fitting-page .bp input[type='range'].bp-range::-moz-range-progress{height:5px;border-radius:999px;background:#7c5cff}
+.fitting-page .bp input[type='range'].bp-range::-moz-range-thumb{width:13px;height:13px;border:2px solid #ded6ff;border-radius:50%;background:#7c5cff;box-shadow:0 0 10px rgba(124,92,255,.65)}
+.fitting-page .bp-sil{border-color:rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.045);box-shadow:none}
+.fitting-page .bp .bp-btn{border-color:rgba(255,255,255,.12);border-radius:10px!important;background:rgba(255,255,255,.08);color:#f8f7fc;box-shadow:none}

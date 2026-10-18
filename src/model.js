@@ -96,6 +96,9 @@ export function ringSurface(rings, opts = {}) {
         p.z=(p.z<0?-1:1)*Math.max(Math.abs(p.z),envelope);
       }
       if(opts.neckDrop) p.y-=Math.max(0,Math.cos(phi))**2*opts.neckDrop*clamp((R.c.y-(rings.at(-1).c.y-6))/6,0,1);
+      // A slight curved drop at the front/back breaks the perfectly rigid,
+      // cylindrical shirt edge and lets the hem settle over the hips.
+      if(opts.hemDrape && j === 0) p.y -= opts.hemDrape * (.28 + .72 * Math.cos(phi) ** 2);
       pts.push(p);
     }
     let s = 0;
@@ -406,7 +409,8 @@ export function buildGarment(g, M, { under = null, open = false } = {}) {
       y: lm.armpitY + 1, x: Math.max(g.shoulder / 2, T.nw + 1.5),
       neck: { top: topY + 1, x: T.nw, front: T.collar * 0.8, back: T.collar * 0.3, v: g.type === 'vest' },
     } : null;
-    parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: !strappy, neckDrop: strappy ? 0 : neckDrop, open: opening, armhole }), region: 'torso' });
+    const hemDrape = isDress ? 0 : (['jacket', 'coat'].includes(g.type) ? 0.22 : 0.55);
+    parts.push({ geo: ringSurface(rings, { segments: 64, cloth: true, material: g.material, trimStart: true, trimEnd: !strappy, neckDrop: strappy ? 0 : neckDrop, hemDrape, open: opening, armhole }), region: 'torso' });
     envelope.torso.push(torsoSamples(rings));
     const ringAt = (y) => rings.reduce((best, r) => (Math.abs(r.c.y - y) < Math.abs(best.c.y - y) ? r : best), rings[0]);
     if(g.type==='hoodie') parts.push({geo:frontPocket(rings,0,topY-g.length+27,27,16,topY),region:'pocket'});

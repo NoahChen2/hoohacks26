@@ -130,19 +130,31 @@ export function createRig(model, proportions, sampler) {
       let moved = false;
       for (let i = 0; i < n; i++) {
         let x = a[i * 3], y = a[i * 3 + 1], z = a[i * 3 + 2], near = -1;
+        const upperSide = arms ? 0 : smooth(lm.armpitY - 3, lm.shoulderY + 1, y)
+          * smooth(model.profileAt(Math.min(y, lm.shoulderY)).rx * .48, model.b.shoulder * .5, Math.abs(x));
+        // Extra breathing room through the armhole prevents raised arms from
+        // pinching the shirt body into the shoulder capsule.
+        const vertexClearance = clearance + upperSide * .48;
         // Creases such as the armpit can need more than one push.
         for (let pass = 0; pass < 4 && skin; pass++) {
           near = nearestSkin(skin, x, y, z, filter, w);
           if (near < 0) break;
           const o = near * 3, N = skin.normal, S = skin.position;
           const depth = (x - S[o]) * N[o] + (y - S[o + 1]) * N[o + 1] + (z - S[o + 2]) * N[o + 2];
-          if (depth >= clearance - .01) break;
-          x += N[o] * (clearance - depth); y += N[o + 1] * (clearance - depth); z += N[o + 2] * (clearance - depth);
+          if (depth >= vertexClearance - .01) break;
+          x += N[o] * (vertexClearance - depth); y += N[o + 1] * (vertexClearance - depth); z += N[o + 2] * (vertexClearance - depth);
           a[i * 3] = x; a[i * 3 + 1] = y; a[i * 3 + 2] = z; moved = true;
         }
         if (near < 0) {
           field(x, y, z, w);
-          if (!arms) { w[B.root] += limbOf(w); w[B.armL] = w[B.foreL] = w[B.armR] = w[B.foreR] = 0; }
+          if (!arms) {
+            const limb = limbOf(w), keep = Math.min(limb, upperSide * .72);
+            if (limb > 1e-5) {
+              const scale = keep / limb;
+              w[B.armL] *= scale; w[B.foreL] *= scale; w[B.armR] *= scale; w[B.foreR] *= scale;
+            }
+            w[B.root] += limb - keep;
+          }
         }
         if (lift) {
           const hem = Math.min(w[B.root], smooth(levels.chest - 2, levels.waist - 14, y));

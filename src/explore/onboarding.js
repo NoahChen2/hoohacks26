@@ -48,5 +48,5 @@ function finish(status){
 form.addEventListener('submit',event=>{event.preventDefault();const message=validateStep(preferences,step);if(message){error.textContent=message;return;}if(step<3){step++;render(true);}else finish('completed');});
 document.querySelector('[data-back]').addEventListener('click',()=>{if(step>0){step--;render(true);}});
 document.querySelector('[data-skip]').addEventListener('click',()=>settings?location.assign('/explore'):finish('skipped'));
-document.querySelector('.onboard-exit').addEventListener('click',event=>{if(!settings){event.preventDefault();finish('skipped');}});
+document.querySelector('.onboard-exit')?.addEventListener('click',event=>{if(!settings){event.preventDefault();finish('skipped');}});
 render();

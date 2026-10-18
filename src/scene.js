@@ -75,11 +75,14 @@ export function createScene(container, { characterAsset = null, quality = detect
   key.shadow.camera.near = .1;
   key.shadow.camera.far = 8;
   scene.add(key);
-  const rim = new THREE.DirectionalLight('#cd89fa', 1.25);
+  const rim = new THREE.DirectionalLight('#cd89fa', .72);
   rim.position.set(-2.5, 2, -2.5);
   scene.add(rim);
+  const cyanRim = new THREE.DirectionalLight('#adf8ff', .42);
+  cyanRim.position.set(2.8, 1.65, -2.2);
+  scene.add(cyanRim);
   // Front fill keeps the comic shadow band where it was tuned.
-  const fill = new THREE.DirectionalLight('#c5dcff', .6);
+  const fill = new THREE.DirectionalLight('#adf8ff', .48);
   fill.position.set(-3, 2, 2);
   scene.add(fill);
   const revealLight = new THREE.PointLight('#adf8ff', 0, 5.5, 1.8);

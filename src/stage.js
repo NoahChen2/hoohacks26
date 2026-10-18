@@ -132,6 +132,27 @@ export function addCelestialStage(stageGroup) {
   pedestalGlow.position.y = -0.006;
   pedestal.add(pedestalGlow);
   pedestal.add(ring);
+
+  // A small, feathered contact shadow anchors the feet without introducing a
+  // solid floor or hiding the astrolabe artwork beneath them.
+  const shadowCanvas = document.createElement('canvas');
+  shadowCanvas.width = shadowCanvas.height = 128;
+  const shadowCtx = shadowCanvas.getContext('2d');
+  const shadowGradient = shadowCtx.createRadialGradient(64, 64, 5, 64, 64, 62);
+  shadowGradient.addColorStop(0, 'rgba(8, 4, 28, 0.44)');
+  shadowGradient.addColorStop(0.42, 'rgba(45, 17, 146, 0.20)');
+  shadowGradient.addColorStop(1, 'rgba(45, 17, 146, 0)');
+  shadowCtx.fillStyle = shadowGradient;
+  shadowCtx.fillRect(0, 0, 128, 128);
+  const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
+  const contactShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.12, 0.62),
+    new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false, toneMapped: false })
+  );
+  contactShadow.rotation.x = -Math.PI / 2;
+  contactShadow.position.set(0, 0.012, 0);
+  contactShadow.renderOrder = 1;
+  pedestal.add(contactShadow);
   stageGroup.add(pedestal);
 
   function starTexture(color) {
@@ -209,10 +230,17 @@ export function addCelestialStage(stageGroup) {
   const lilacStar = new THREE.SpriteMaterial({ map: starTexture('#cd89fa'), color: '#cd89fa', transparent: true, opacity: 0.76, blending: THREE.AdditiveBlending, depthWrite: false });
   for (let i = 0; i < 280; i += 1) {
     const star = new THREE.Sprite(i % 3 ? cyanStar : lilacStar);
-    const radius = 2 + Math.random() * 43;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    star.position.set(radius * Math.sin(phi) * Math.cos(theta), radius * Math.cos(phi), radius * Math.sin(phi) * Math.sin(theta));
+    // Keep stage sparkles in a deep backdrop volume. A spherical distribution
+    // put half of them between the camera and the figure; rotating that field
+    // then swept bright sprites across the face. The central clearing also
+    // preserves a clean silhouette around the head and torso.
+    let x;
+    let y;
+    do {
+      x = (Math.random() - 0.5) * 34;
+      y = -1.5 + Math.random() * 15;
+    } while (Math.abs(x) < 1.35 && y > -0.15 && y < 3.1);
+    star.position.set(x, y, -3.5 - Math.random() * 22);
     const size = 0.06 + Math.random() * 0.2;
     star.scale.set(size, size, 1);
     star.userData.phase = Math.random() * Math.PI * 2;
@@ -223,7 +251,6 @@ export function addCelestialStage(stageGroup) {
 
   return {
     update(dt, elapsed) {
-      starField.rotation.y += dt * 0.018;
       cloudField.rotation.y += dt * 0.006;
       cloudField.children.forEach((cloud) => {
         cloud.position.y = cloud.userData.baseY + Math.sin(elapsed * cloud.userData.drift * 12 + cloud.userData.phase) * 0.22;

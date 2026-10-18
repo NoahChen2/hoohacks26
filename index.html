@@ -17,12 +17,14 @@
     <div id="site-header"></div>
 
     <main class="layout" id="main-content">
-      <nav class="fit-steps" id="tabs" aria-label="Fitting room steps">
-        <button data-tab="body" class="active planet" data-planet="2"><b>1</b> <span>Body</span></button>
-        <button data-tab="closet" class="planet" data-planet="3"><b>2</b> <span>Closet</span></button>
-        <button data-tab="upcycle" class="planet" data-planet="1"><b>3</b> <span>Upcycle</span></button>
-      </nav>
-      <aside class="panel" id="panel" tabindex="-1"></aside>
+      <section class="inspector-shell" aria-label="Fitting room inspector">
+        <nav class="fit-steps" id="tabs" aria-label="Fitting room steps">
+          <button data-tab="body" class="active"><span class="fit-step-icon" data-tab-icon="body" aria-hidden="true"></span><span>Body</span></button>
+          <button data-tab="closet"><span class="fit-step-icon" data-tab-icon="closet" aria-hidden="true"></span><span>Closet</span></button>
+          <button data-tab="upcycle"><span class="fit-step-icon" data-tab-icon="upcycle" aria-hidden="true"></span><span>Upcycle</span></button>
+        </nav>
+        <aside class="panel" id="panel" tabindex="-1"></aside>
+      </section>
 
       <section class="stage" aria-label="Interactive garment fitting preview">
         <div id="viewport"></div>
