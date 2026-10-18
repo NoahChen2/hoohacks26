@@ -1,6 +1,6 @@
 // The character's appearance options. Plain JavaScript so the server (photo
 // scan schema) can share them; settings.ts re-exports them for the app.
-// Skin tones from very light to very deep, as flat comic base colours.
+// Skin tones from very light to very deep, as flat cartoon base colours.
 export const SKIN_TONES = [
   { id: 'porcelain', label: 'Porcelain', color: '#fbe0cf' },
   { id: 'ivory', label: 'Ivory', color: '#f6d0b1' },

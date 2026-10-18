@@ -10,7 +10,7 @@ import { vertexNormals } from './character/finish.js';
 import { CANONICAL_MEASUREMENTS, canonicalCharacter } from './character/canonical.js';
 import { assertPreviewRange } from './character/measurements.js';
 import { detectQuality } from './quality.js';
-import { bodyMaterial, bodyOutlineMaterial, updateBodyArt, updateBodyAppearance, setSportsTop, fabricGloss, comicMaterial, outlineMaterial, paintComicGrain, addCoverageMask, comicDot } from './materials.js';
+import { bodyMaterial, updateBodyArt, updateBodyAppearance, setSportsTop, fabricGloss, setLayerBias, hideCovered, softMaterial, paintFabricGrain, addCoverageMask } from './materials.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { bodyModel, buildGarment, fitWord, outfitEnvelope } from './model.js';
@@ -35,7 +35,6 @@ export function createScene(container, { characterAsset = null, quality = detect
   renderer.domElement.dataset.quality = quality.name;
   // Shader-error queries wait for each compile to finish; keep them for development.
   renderer.debug.checkShaderErrors = !import.meta.env.PROD;
-  comicDot.value = 4.5 * renderer.getPixelRatio();
   container.appendChild(renderer.domElement);
 
   renderer.setClearColor(0x000000, 0);
@@ -60,8 +59,8 @@ export function createScene(container, { characterAsset = null, quality = detect
   // Cards embedded in scrolling pages only turn the figure; the wheel scrolls the page.
   if (framing === 'card') controls.enableZoom = controls.enablePan = false;
 
-  scene.add(new THREE.HemisphereLight('#fff6ea', '#6b8197', .65));
-  const key = new THREE.DirectionalLight('#fff5e6', 1.9);
+  scene.add(new THREE.HemisphereLight('#fff6ee', '#8a9ab8', 1.05));
+  const key = new THREE.DirectionalLight('#fff5e6', 1.55);
   key.position.set(1.6, 3.2, 3.6);
   key.castShadow = true;
   key.shadow.mapSize.set(quality.shadowSize, quality.shadowSize);
@@ -71,15 +70,15 @@ export function createScene(container, { characterAsset = null, quality = detect
   key.shadow.camera.bottom = -0.5;
   key.shadow.bias = -0.0005;
   key.shadow.normalBias = 0.004;
-  key.shadow.radius = 3;
+  key.shadow.radius = 6;
   key.shadow.camera.near = .1;
   key.shadow.camera.far = 8;
   scene.add(key);
-  const rim = new THREE.DirectionalLight('#cd89fa', 1.25);
+  const rim = new THREE.DirectionalLight('#cd89fa', 1.0);
   rim.position.set(-2.5, 2, -2.5);
   scene.add(rim);
-  // Front fill keeps the comic shadow band where it was tuned.
-  const fill = new THREE.DirectionalLight('#c5dcff', .6);
+  // A broad front fill keeps the shaded side soft and readable.
+  const fill = new THREE.DirectionalLight('#d6e4ff', .75);
   fill.position.set(-3, 2, 2);
   scene.add(fill);
   const revealLight = new THREE.PointLight('#adf8ff', 0, 5.5, 1.8);
@@ -96,31 +95,32 @@ export function createScene(container, { characterAsset = null, quality = detect
   figure.add(bodyGroup, garmentGroup);
 
   const skinMat = bodyMaterial();
-  const outlineMat = bodyOutlineMaterial();
   // Skin under trousers is hidden from the body shader; the garments write
   // garmentCoverage and the uniform only uses it while clothing is shown.
   const garmentCoverage = new THREE.Vector3(0,-1,0), noCoverage = new THREE.Vector3(0,-1,0);
   const coverage = { value: garmentCoverage };
   addCoverageMask(skinMat,coverage);
-  addCoverageMask(outlineMat,coverage);
   // Garment materials live as long as the viewer: rebuilding a garment only swaps
   // its texture and colours, so their shader programs compile exactly once.
   const blank = new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1);
   blank.needsUpdate = true;
   const garmentMats = {
-    fabric: comicMaterial({ map: blank }),
-    trim: comicMaterial(),
-    hardware: comicMaterial({ gloss: .9, side: THREE.FrontSide }),
-    ink: outlineMaterial(.0021),
+    fabric: softMaterial({ map: blank }),
+    trim: softMaterial(),
+    hardware: softMaterial({ gloss: .9, side: THREE.FrontSide }),
+    sleeve: softMaterial({ map: blank }),
+    sleeveTrim: softMaterial(),
     fit: new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: 0.92 }),
   };
   // One fabric/trim/hardware set per worn garment. Extra sets share the compiled
   // programs (same cache key), so wearing more layers never recompiles shaders.
   const wardrobeMats = [garmentMats];
   const matsFor = (i) => (wardrobeMats[i] ||= {
-    fabric: comicMaterial({ map: blank }),
-    trim: comicMaterial(),
-    hardware: comicMaterial({ gloss: .9, side: THREE.FrontSide }),
+    fabric: softMaterial({ map: blank }),
+    trim: softMaterial(),
+    hardware: softMaterial({ gloss: .9, side: THREE.FrontSide }),
+    sleeve: softMaterial({ map: blank }),
+    sleeveTrim: softMaterial(),
   });
   let garmentTextures = new Map(); // garment JSON → texture
 
@@ -134,7 +134,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     geometry.setAttribute('skinIndex', blankAttribute(4, Uint16Array));
     geometry.setIndex([0,1,2]);
     const skeleton = new THREE.Skeleton([new THREE.Bone()]);
-    const probes = [skinMat, outlineMat, garmentMats.fabric, garmentMats.trim, garmentMats.hardware, garmentMats.ink].map(material => {
+    const probes = [skinMat, garmentMats.fabric, garmentMats.trim, garmentMats.hardware].map(material => {
       const mesh = new THREE.SkinnedMesh(geometry, material);
       mesh.bind(skeleton); mesh.frustumCulled = false; mesh.castShadow = mesh.receiveShadow = true;
       return mesh;
@@ -249,7 +249,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     renderer.domElement.dataset.hairColor = hair.id;
   }
 
-  let body = null; // { base, geometry, mesh, outline }
+  let body = null; // { base, geometry, mesh }
   function clearBody() {
     for (const child of [...bodyGroup.children]) bodyGroup.remove(child);
     body?.geometry.dispose();
@@ -264,10 +264,10 @@ export function createScene(container, { characterAsset = null, quality = detect
       geometry.setIndex(base.index);
       for (const name of ['uv','skinIndex','skinWeight','ao','hairMask']) if (base.attributes[name]) geometry.setAttribute(name, base.attributes[name]);
       for (const name of ['position','normal','basePosition']) geometry.setAttribute(name, new THREE.BufferAttribute(new Float32Array(n*3),3));
-      const mesh = new THREE.SkinnedMesh(geometry,skinMat), outline = new THREE.SkinnedMesh(geometry,outlineMat);
+      const mesh = new THREE.SkinnedMesh(geometry,skinMat);
       mesh.castShadow = mesh.receiveShadow = true;
-      outline.renderOrder = -1;mesh.add(outline);bodyGroup.add(mesh);
-      body = { base, geometry, mesh, outline };
+      bodyGroup.add(mesh);
+      body = { base, geometry, mesh };
       renderer.domElement.dataset.bodyVertices = n;
     }
     const { geometry } = body, { position, normal, basePosition } = geometry.attributes;
@@ -281,7 +281,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     rig.skinBody(geometry, base.skinWeights);
     updateBodyArt(skinMat, measuredModel, settings);
     figure.updateMatrixWorld(true);
-    rig.bind(body.mesh); rig.bind(body.outline);
+    rig.bind(body.mesh);
     releaseSkeletons();
   }
 
@@ -369,7 +369,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     canvas.height = TEX_H * PPC;
     const ctx = canvas.getContext('2d');
     paintPattern(ctx, canvas.width, canvas.height, g, PPC);
-    paintComicGrain(ctx, canvas.width, canvas.height, g.material);
+    paintFabricGrain(ctx, canvas.width, canvas.height, g.material);
     const toPx = (x, y) => [(0.5 + x / TEX_W) * canvas.width, (y + MARGIN) * PPC];
     const kind = GARMENT_TYPES[g.type].kind;
     // construction details
@@ -590,14 +590,17 @@ export function createScene(container, { characterAsset = null, quality = detect
     current.checks = [];
     if (!outfit.length || !model) return current;
     const textures = garmentTexturesFor(outfit);
-    const envelopes = [];
+    const envelopes = [], worn = [];
     outfit.forEach((g, index) => {
       const kind = GARMENT_TYPES[g.type].kind;
+      // Outerwear hangs open when there is something underneath to show.
+      const open = !!GARMENT_TYPES[g.type].open && outfit.slice(0, index).some((o) => ['top', 'dress'].includes(GARMENT_TYPES[o.type].kind));
       const built = buildGarment(g, model, {
         under: envelopes.length ? outfitEnvelope(envelopes) : null,
-        // Outerwear hangs open when there is something underneath to show.
-        open: !!GARMENT_TYPES[g.type].open && outfit.slice(0, index).some((o) => ['top', 'dress'].includes(GARMENT_TYPES[o.type].kind)),
+        open,
       });
+      const piece = { g, kind, open, hemY: Infinity, sleeves: [] };
+      worn.push(piece);
       envelopes.push(built.envelope);
       if (g === target) current.checks = built.checks;
       if(kind==='bottom') {
@@ -608,11 +611,13 @@ export function createScene(container, { characterAsset = null, quality = detect
       const lift = ['top','dress'].includes(kind);
       // Each layer stands a little further off the skin than the one beneath.
       const layer = index * .55 + Math.max(0, garmentLayer(g) - 1) * .25;
-      const { fabric, trim, hardware } = matsFor(index);
-      const { ink, fit: fitMat } = garmentMats;
-      fabric.map = textures[index];
-      fabric.userData.uniforms.comicGloss.value = fabricGloss(g);
+      const { fabric, trim, hardware, sleeve, sleeveTrim } = matsFor(index);
+      for (const material of [fabric, trim, hardware, sleeve, sleeveTrim]) setLayerBias(material, index);
+      const { fit: fitMat } = garmentMats;
+      fabric.map = sleeve.map = textures[index];
+      fabric.userData.uniforms.softGloss.value = sleeve.userData.uniforms.softGloss.value = fabricGloss(g);
       trim.color.set(shade(g.color,-.12));
+      sleeveTrim.color.copy(trim.color);
       hardware.color.set(['jeans','jacket'].includes(g.type)&&g.material==='denim'?'#e3a93c':'#f2ede0');
       for (const p of built.parts) {
         const geos = Array.isArray(p.geo) ? p.geo : [p.geo];
@@ -620,7 +625,12 @@ export function createScene(container, { characterAsset = null, quality = detect
           geo.userData.layer = layer;
           conformToCharacter(geo,p.region,model,sampler);
           applyPresentation(geo,model,character.proportions);
-          const surface = geo.userData.button ? hardware : geo.userData.trim ? trim : fabric;
+          const arm = p.region === 'sleeve';
+          const surface = geo.userData.button ? hardware : geo.userData.trim ? (arm ? sleeveTrim : trim) : arm ? sleeve : fabric;
+          if (['torso', 'skirt'].includes(p.region)) {
+            if (!geo.boundingBox) geo.computeBoundingBox();
+            piece.hemY = Math.min(piece.hemY, geo.boundingBox.min.y);
+          }
           const m = new THREE.SkinnedMesh(geo, opts.fitMap && geo.getAttribute('color') ? fitMat : surface);
           m.userData.lift = lift && p.region !== 'sleeve';
           m.userData.region = p.region;
@@ -629,19 +639,38 @@ export function createScene(container, { characterAsset = null, quality = detect
           m.userData.fit = geo.getAttribute('color') ? fitMat : surface;
           m.castShadow = true;
           m.receiveShadow = true;
-          const edge = new THREE.SkinnedMesh(geo, ink);
-          edge.userData.outline = true;
-          m.add(edge);
+          if (arm) piece.sleeves.push(m);
           garmentGroup.add(m);
         }
       }
     });
+    hideCoveredLayers(worn);
     skinGarments(false);
     transferSoon();
     invalidate();
     return current;
   }
   const setGarment = (g) => setGarments(g ? [g] : [], { focus: g?.id });
+
+  // Cloth hidden under an outer layer can still poke through it, especially
+  // once the figure is posed: skip drawing what the outer layers cover. Body
+  // cloth is hidden from a hand above the outer hem (hems lift with the arms)
+  // to below the armpits (all the way round under closed garments, behind a
+  // front wedge under open ones), and sleeves wherever an outer sleeve is at
+  // least as long.
+  function hideCoveredLayers(worn) {
+    const toY = (y) => presentationPoint(0, y, 0, model, character.proportions)[1];
+    const top = toY(model.lm.armpitY - 2);
+    worn.forEach((piece, index) => {
+      const outer = worn.slice(index + 1).filter((o) => ['top', 'dress'].includes(o.kind) && o.hemY < top);
+      const closed = outer.filter((o) => !o.open), cover = closed.length ? closed : outer;
+      const hem = Math.min(...cover.map((o) => o.hemY)) + 10;
+      const mats = matsFor(index);
+      for (const material of [mats.fabric, mats.trim, mats.hardware]) hideCovered(material, cover.length && hem < top ? [hem, top] : null, closed.length ? 0 : 1);
+      const sleeved = outer.some((o) => GARMENT_TYPES[o.g.type].sleeves && (o.g.sleeve ?? 0) >= (piece.g.sleeve ?? 0) - 2);
+      for (const m of piece.sleeves) m.visible = !sleeved;
+    });
+  }
 
   // The painted sports top would show its straps above strapless or halter tops.
   function updateUnderwear() {
@@ -658,7 +687,7 @@ export function createScene(container, { characterAsset = null, quality = detect
     coverage.value = opts.showClothing ? garmentCoverage : noCoverage;
     updateUnderwear();
     garmentGroup.traverse((m) => {
-      if (m.isMesh && !m.userData.outline) m.material = opts.fitMap ? m.userData.fit : m.userData.fabric;
+      if (m.isMesh) m.material = opts.fitMap ? m.userData.fit : m.userData.fabric;
     });
   }
 
@@ -759,7 +788,7 @@ export function createScene(container, { characterAsset = null, quality = detect
       clearTimeout(transferTimer);
       clearBody();disposeGroup(garmentGroup);sky.dispose();
       for (const set of wardrobeMats) for (const material of Object.values(set)) material.dispose();
-      for (const material of [garmentMats.ink, garmentMats.fit, skinMat, outlineMat]) material.dispose();
+      for (const material of [garmentMats.fit, skinMat]) material.dispose();
       garmentTextures.forEach((texture) => texture.dispose());blank.dispose();
       releaseSkeletons();rig?.skeleton.dispose();
       renderer.dispose();bodyStatus.remove();renderer.domElement.remove();

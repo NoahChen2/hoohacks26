@@ -1854,6 +1854,7 @@ b.loose {
 .g-add { width: 100%; flex-direction: row; gap: 8px; align-items: center; padding: 8px; border-radius: 12px; border: 1px dashed rgba(173, 248, 255, 0.4); background: rgba(52, 100, 234, 0.12); }
 .g-add select { flex: 1; min-width: 0; }
 .g-add .btn { flex: 0 0 auto; background: linear-gradient(135deg, #d336d3, #6713cd); box-shadow: 0 0 10px rgba(173, 248, 255, 0.35); }
+.g-add .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
 .g-card.active { background: radial-gradient(circle at center, rgba(211, 54, 211, 0.45), rgba(45, 17, 146, 0.7)); border: 1.5px solid #adf8ff; box-shadow: 0 0 15px rgba(211, 54, 211, 0.45); }
 .sec { background: linear-gradient(145deg, rgba(45, 17, 146, 0.4) 0%, rgba(18, 27, 186, 0.2) 100%); border: 1px solid rgba(205, 137, 250, 0.28); border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(173, 248, 255, 0.2); }
 .lbl input[type='text'], .lbl select, .g-add select, .field .val input, .auth-card .lbl input { background: rgba(18, 27, 186, 0.35); border: 1px solid rgba(173, 248, 255, 0.3); border-radius: 8px; color: #ffffff; }

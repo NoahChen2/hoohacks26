@@ -199,6 +199,11 @@ export function setWorn(g, on = true) {
   state.worn = (on ? dressOutfit(outfit, g) : outfit.filter((o) => o.id !== g.id)).map((o) => o.id);
 }
 
+// Take every garment off the body; they stay in the closet.
+export function undressAll() {
+  state.worn = [];
+}
+
 // Add new garments to the closet and dress the body in them (photo scans, try-ons).
 export function addGarments(list, { wear = true } = {}) {
   for (const g of list) {

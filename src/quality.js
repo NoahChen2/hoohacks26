@@ -1,5 +1,5 @@
 // Rendering tier chosen once at startup. Phones and tablets get fewer pixels, no
-// MSAA (the ink outlines already hide stair-stepping), cheaper shadows and a
+// MSAA (the soft shading keeps edges forgiving), cheaper shadows and a
 // coarser body mesh; the weakest devices also animate at 30 fps.
 // `?quality=low|mobile|high` overrides detection.
 // The body first appears as a quick draft mesh (draftResolution, ~0.3 s to

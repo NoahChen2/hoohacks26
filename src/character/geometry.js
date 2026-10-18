@@ -8,7 +8,7 @@ export { headFrame };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const bell = (x, c, w) => Math.exp(-(((x - c) / w) ** 2));
 
-// Shared with the comic body shader so painted facial features sit on this head.
+// Shared with the body shader so painted facial features sit on this head.
 function smoothRadius(keys, value, key, field) {
   if (value <= keys[0][key]) return keys[0][field];
   for (let i = 1; i < keys.length; i++) if (value <= keys[i][key]) {

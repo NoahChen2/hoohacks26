@@ -1,4 +1,4 @@
-import { state, emit, GARMENT_TYPES, MATERIALS, PATTERNS, garmentFields, defaultGarment, selectedGarment, garmentFromSpec, STARTER_PIECES, isWorn, setWorn, addGarments } from '../state.js';
+import { state, emit, GARMENT_TYPES, MATERIALS, PATTERNS, garmentFields, defaultGarment, selectedGarment, garmentFromSpec, STARTER_PIECES, isWorn, setWorn, undressAll, addGarments } from '../state.js';
 import { scanPhoto } from '../scan/scan.js';
 import { describeEstimate } from '../scan/bodyEstimate.js';
 import { flatSVG, flatViewBox } from '../flats.js';
@@ -133,6 +133,7 @@ function renderList(list) {
         .map(([k, v]) => `<option value="${k}">${v.label}</option>`)
         .join('')}</select>
       <button class="btn small" id="add-btn">+ Add</button>
+      <button class="btn small ghost" id="clear-worn" title="Take every piece off the 3D body" ${(state.worn || []).length ? '' : 'disabled'}>Clear clothes</button>
     </div>`;
   list.querySelectorAll('.g-card').forEach((c) =>
     c.addEventListener('click', () => {
@@ -142,6 +143,12 @@ function renderList(list) {
       renderEditor(document.getElementById('editor'));
     })
   );
+  list.querySelector('#clear-worn').addEventListener('click', () => {
+    undressAll();
+    emit('garment');
+    renderList(list);
+    renderEditor(document.getElementById('editor'));
+  });
   list.querySelector('#add-btn').addEventListener('click', () => {
     const g = defaultGarment(list.querySelector('#add-type').value);
     state.garments.push(g);

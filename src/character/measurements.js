@@ -4,7 +4,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 // Head height (vertex to chin) is ~13% of stature, breadth ~9% and length ~11.5%.
-// Shared by the body mesh and the comic face shader.
+// Shared by the body mesh and the face shader.
 export const headFrame = H => ({ y: H * .935, r: H * .065, z: 1.1 });
 
 export function assertPreviewRange(model) {

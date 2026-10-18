@@ -364,6 +364,8 @@ const MOW = { ...both(CART), spine: [.12, 0, 0], head: [0, 0, 0] };
 const SHELF = { armR: [-.6, 0, 1.9], foreR: [0, 0, .2], head: [-.25, .3, 0], spine: [-.05, .15, 0] };
 const PUSH = { ...both(CART), spine: [.1, 0, 0], head: [0, 0, 0] };
 const EGYPT = { armR: [-.35, 0, 1.4], foreR: [0, 0, 1.57], armL: [-.15, 0, -1.4], foreL: [0, 0, 1.57], root: [0, .6, 0] };
+// Palms up at the waist, one hand bobbing up as the other drops, like weighing two things.
+const SIX_SEVEN = { armR: [-.4, 0, .42], foreR: [-1.9, -.3, 0], armL: [-.1, 0, -.38], foreL: [-.9, .3, 0], head: [.05, .18, .14], spine: [0, .08, .05], root: [0, 0, .03], lift: 2 };
 
 export const DANCES = [
   { name: 'Floss', emoji: '🦷', seconds: 5, pose: t => {
@@ -477,6 +479,7 @@ export const DANCES = [
     { root: [0, 0, .07], spine: [.1, .2, -.1], head: [0, .3, .15] },
     { root: [0, 0, -.07], spine: [.1, -.2, .1], head: [0, -.3, -.15] },
   ], .2, true), hop: onBeat(t, 116, 1) }) },
+  { name: '6-7', emoji: '🤷', seconds: 5, pose: t => ({ ...keyed(t, 156, [SIX_SEVEN, mirror(SIX_SEVEN)], .35, true), hop: onBeat(t, 156, 1) }) },
 ];
 
 let lastDance = null;
