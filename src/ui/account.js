@@ -2,6 +2,7 @@
 
 import { getSupabase, supabaseEnabled } from '../supabase.js';
 import { subscribe, snapshot, replaceState, useStorage, guestData } from '../state.js';
+import { escapeHtml } from './escape.js';
 
 const TABLE = 'user_data';
 const SKIP = new Set(['tab', 'reset', 'goto:upcycle']);
@@ -265,8 +266,4 @@ function friendly(err) {
   if (/already registered/i.test(m)) return 'That email already has an account. Try signing in.';
   if (/rate limit/i.test(m)) return 'Too many attempts. Wait a minute and try again.';
   return m;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }

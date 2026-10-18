@@ -6,6 +6,7 @@ import { renderClosetPanel } from './ui/closetPanel.js';
 import { renderUpcyclePanel, previewEvents, setPreview } from './ui/upcyclePanel.js';
 import { GARMENT_TYPES } from './state.js';
 import { initAccount } from './ui/account.js';
+import { escapeHtml } from './ui/escape.js';
 
 const panel = document.getElementById('panel');
 const caption = document.getElementById('stage-caption');
@@ -14,7 +15,15 @@ const sparkleLayer = document.createElement('div');
 sparkleLayer.className = 'sparkle-burst';
 sparkleLayer.setAttribute('aria-hidden', 'true');
 stage.appendChild(sparkleLayer);
-const scene = createScene(document.getElementById('viewport'));
+let scene;
+try {
+  scene = createScene(document.getElementById('viewport'));
+} catch (error) {
+  console.error('Could not start garment preview', error);
+  document.getElementById('viewport').innerHTML = '<p class="preview-unavailable" role="status">The 3D preview could not start on this device. Your closet and project guides are still available.</p>';
+  scene = { setBody() {}, setGarment() {}, setOptions() {}, resetCamera() {}, flashReveal() {}, get checks() { return []; } };
+  document.querySelectorAll('.stage-toolbar input, .stage-toolbar button').forEach((control) => (control.disabled = true));
+}
 
 let preview = null; // { g, label }
 let sparkleTimer;
@@ -69,13 +78,38 @@ function burstSparkles() {
 
 const PANELS = { body: renderBodyPanel, closet: renderClosetPanel, upcycle: renderUpcyclePanel };
 
-function switchTab(tab) {
+function switchTab(tab, { fromRoute = false } = {}) {
+  if (!PANELS[tab]) tab = 'body';
+  if (tab !== state.tab) {
+    preview = null;
+    document.getElementById('overlay').hidden = true;
+  }
   state.tab = tab;
-  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  const path = '#/' + tab;
+  // Leave non-route hashes (Supabase auth redirects carry #access_token=…) for the auth client to read.
+  const routeHash = !location.hash || location.hash.startsWith('#/');
+  if (location.hash !== path && (routeHash || !fromRoute)) history[fromRoute ? 'replaceState' : 'pushState'](null, '', path);
+  document.body.dataset.route = location.hash;
+  document.querySelectorAll('#tabs button').forEach((b) => {
+    const active = b.dataset.tab === tab;
+    b.classList.toggle('active', active);
+    if (active) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   panel.scrollTop = 0;
   PANELS[tab](panel);
+  syncScene();
   emit('tab');
 }
+
+// Back/forward and #/tab links move between studio steps.
+function route() {
+  if (location.hash === document.body.dataset.route) return;
+  const page = location.hash.slice(2).split('/')[0];
+  if (PANELS[page]) switchTab(page, { fromRoute: true });
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('popstate', route);
 
 document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -107,7 +141,7 @@ function renderCaption() {
     })
     .join('');
   caption.innerHTML = `
-    <div class="cap-title">${preview ? `<span class="badge">Preview</span> ${preview.label}` : g.name}</div>
+    <div class="cap-title">${preview ? `<span class="badge">Preview</span> ${escapeHtml(preview.label)}` : escapeHtml(g.name)}</div>
     <div class="cap-chips">${chips}</div>
     ${preview ? '<button class="btn small" id="cap-back">Back to original</button>' : ''}`;
   caption.querySelector('#cap-back')?.addEventListener('click', () => setPreview(null));
@@ -134,12 +168,19 @@ const tgClothing = document.getElementById('tg-clothing');
 const tgFit = document.getElementById('tg-fit');
 const tgSpin = document.getElementById('tg-spin');
 const tgAnimate = document.getElementById('tg-animate');
+const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+if (motionPreference.matches) tgAnimate.checked = tgSpin.checked = false;
 const legend = document.getElementById('fit-legend');
 const applyOpts = () => {
   scene.setOptions({ showBody: tgBody.checked, showClothing: tgClothing.checked, fitMap: tgFit.checked, spin: tgSpin.checked, animate: tgAnimate.checked });
   legend.hidden = !tgFit.checked;
 };
 [tgBody, tgClothing, tgFit, tgSpin, tgAnimate].forEach((t) => t.addEventListener('change', applyOpts));
+motionPreference.addEventListener('change', (event) => {
+  if (!event.matches) return;
+  tgAnimate.checked = tgSpin.checked = false;
+  applyOpts();
+});
 document.getElementById('btn-reset-cam').addEventListener('click', () => scene.resetCamera());
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') document.getElementById('overlay').hidden = true;
@@ -151,5 +192,6 @@ scene.setGarment(selectedGarment());
 scene.resetCamera();
 applyOpts();
 renderCaption();
-switchTab(state.tab && PANELS[state.tab] ? state.tab : 'body');
+const initialTab = location.hash.slice(2).split('/')[0];
+switchTab(PANELS[initialTab] ? initialTab : PANELS[state.tab] ? state.tab : 'body', { fromRoute: true });
 initAccount(document.getElementById('account'));

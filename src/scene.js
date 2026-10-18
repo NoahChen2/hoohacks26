@@ -514,6 +514,7 @@ export function createScene(container, { characterAsset = null, quality = detect
   function resize() {
     const w = container.clientWidth,
       h = container.clientHeight;
+    if (!w || !h) return;
     renderer.setSize(w, h, false);
     renderer.domElement.style.width = w + 'px';
     renderer.domElement.style.height = h + 'px';
@@ -533,6 +534,7 @@ export function createScene(container, { characterAsset = null, quality = detect
   let animationTime = 0, sinceFrame = 0, posed = false;
   renderer.setAnimationLoop(() => {
     const dt = clock.getDelta();
+    if (document.hidden) return;
     const animating = opts.animate && animatable && !!rig;
     const revealAge = performance.now() - revealStarted, revealing = revealAge < 700;
     revealLight.intensity = revealAge < 150 ? 7.5 * Math.sin((revealAge / 150) * Math.PI) : revealAge < 650 ? 1.8 * (1 - (revealAge - 150) / 500) : 0;

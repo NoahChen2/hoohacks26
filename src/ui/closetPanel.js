@@ -2,6 +2,7 @@ import { state, emit, GARMENT_TYPES, MATERIALS, PATTERNS, garmentFields, default
 import { flatSVG, flatViewBox } from '../flats.js';
 import { PATTERN_LABELS, svgPattern } from '../patterns.js';
 import { inch } from '../upcycle.js';
+import { escapeHtml } from './escape.js';
 
 const PPC = 8; // sketch canvas px per cm
 const STAMPS = ['★', '♥', '✿', '☀', '☾', '⚡'];
@@ -161,7 +162,7 @@ function renderEditor(ed) {
   ed.querySelector('#g-type').addEventListener('change', (e) => {
     const fresh = defaultGarment(e.target.value);
     const oldLabel = GARMENT_TYPES[g.type].label;
-    const keep = { id: g.id, name: g.name, color: g.color, color2: g.color2, pattern: g.pattern, stains: g.stains, holes: g.holes, sketch: g.sketch, sketchBox: g.sketchBox, sketchBounds: g.sketchBounds };
+    const keep = { id: g.id, name: g.name, material: g.material, color: g.color, color2: g.color2, pattern: g.pattern, stains: g.stains, holes: g.holes, sketch: g.sketch, sketchBox: g.sketchBox, sketchBounds: g.sketchBounds };
     Object.keys(g).forEach((k) => delete g[k]);
     Object.assign(g, fresh, keep);
     if (g.name === oldLabel) g.name = fresh.name;
@@ -206,7 +207,11 @@ function renderEditor(ed) {
 
   let relayout;
   const setField = (key, v) => {
-    if (Number.isNaN(v)) return;
+    if (!Number.isFinite(v)) return;
+    const [, , min, max] = fields.find((field) => field[0] === key);
+    const input = ed.querySelector(`[data-num="${key}"]`);
+    input.setCustomValidity(v < min || v > max ? `Enter ${min}–${max} cm.` : '');
+    if (!input.reportValidity()) return;
     g[key] = v;
     ed.querySelector(`[data-key="${key}"]`).value = v;
     const num = ed.querySelector(`[data-num="${key}"]`);
@@ -387,8 +392,4 @@ function sketchPad(ed, g) {
 
   layout();
   return { layout, refreshBg };
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
