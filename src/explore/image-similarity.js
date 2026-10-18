@@ -11,7 +11,7 @@ export function descriptorSimilarity(a,b){return cosine(a.color,b.color)*.85+cos
 export function rankImages(query,index,{sourceId,style,kind,beginner=false,savedOnly=false,saved=[]}={}){
   return index.filter(({project:p})=>p.id!==sourceId&&(!style||p.aesthetic===style)&&(!kind||p.kind===kind)&&(!beginner||p.difficulty==='Beginner')&&(!savedOnly||saved.includes(p.id))).map(entry=>({project:entry.project,score:Math.max(...entry.descriptors.map(d=>descriptorSimilarity(query,d)))})).sort((a,b)=>b.score-a.score||a.project.id.localeCompare(b.project.id)).slice(0,12);
 }
-let indexPromise;
+let indexPromise,indexedCount=0;
 function describeCanvas(canvas){const small=document.createElement('canvas');small.width=small.height=64;const ctx=small.getContext('2d',{willReadFrequently:true});ctx.drawImage(canvas,0,0,64,64);return imageDescriptor(ctx.getImageData(0,0,64,64));}
 export function describeImage(image,region={x:0,y:0,width:1,height:1}){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
@@ -19,10 +19,14 @@ export function describeImage(image,region={x:0,y:0,width:1,height:1}){
   return imageDescriptor(ctx.getImageData(0,0,64,64));
 }
 export const describeCrop=describeCanvas;
+// Rebuilt when more projects have loaded. Photos from the post-images bucket are
+// cross-origin, so they are requested with CORS to keep their pixels readable;
+// one that fails to load is left out rather than failing the whole search.
 export function catalogImageIndex(projects){
-  indexPromise||=Promise.all(projects.map(async project=>{
-    const image=new window.Image();image.src=project.cover;await image.decode();
+  if(indexedCount!==projects.length){indexPromise=null;indexedCount=projects.length;}
+  indexPromise||=Promise.allSettled(projects.map(async project=>{
+    const image=new window.Image();image.crossOrigin='anonymous';image.src=project.cover;await image.decode();
     return {project,descriptors:[{x:0,y:0,width:1,height:1},{x:.2,y:.18,width:.6,height:.63},{x:.3,y:.24,width:.4,height:.48}].map(region=>describeImage(image,region))};
-  })).catch(error=>{indexPromise=null;throw error;});
+  })).then(results=>results.flatMap(result=>result.status==='fulfilled'?[result.value]:[]));
   return indexPromise;
 }

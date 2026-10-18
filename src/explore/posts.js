@@ -3,11 +3,16 @@
 export const POST_AESTHETICS=['Streetwear','Y2K','Vintage','Minimalist','Cottagecore'];
 export const POST_DIFFICULTIES=['Beginner','Intermediate','Advanced'];
 export const POST_TOOLS=['Needle and thread','Sewing machine','Fabric scissors','Iron','Measuring tape','Pins or clips','Seam ripper','Fabric glue'];
-// Garment kinds the 3D try-on can draw (src/shell/tryOn.js KIND_SHAPES).
+// Garment kinds someone can pick when posting. The try-on draws all of these and
+// a few more the launch catalog uses (src/shell/tryOn.js KIND_SHAPES).
 export const POST_KINDS=[['tee','T-shirt'],['shirt','Shirt'],['blouse','Blouse'],['cami','Cami or tank'],['crop','Crop top'],['hoodie','Hoodie'],['cardigan','Cardigan'],['jacket','Jacket'],['vest','Vest'],['dress','Dress'],['skirt','Skirt'],['jeans','Jeans'],['trousers','Trousers']];
 const SAFETY=['Check the fabric condition before starting. Do not rework weak or damaged load-bearing areas.','Keep fingers clear of needles and blades, and follow your iron’s heat instructions.','This guide was shared by a community maker. Try on and baste before cutting, and adjust to your own measurements.'];
 export const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const IMAGE_PATH=/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/;
+const WEARABLE=new Set(['denim','cami','halter','vest','longsleeve','blouse','crop','cardigan','hoodie','jacket','wrap','shirt','tee','skirt','jeans','trousers','dress']);
+// An upload in the post-images bucket, or a launch-catalog photo bundled with the site.
+const IMAGE_PATH=/^(?:[0-9a-f-]{36}\/[0-9a-f-]{36}|\/explore\/photos\/[a-z0-9-]+)\.jpg$/;
+const SLUG=/^[a-z0-9-]{1,60}$/,HEX=/^#[0-9a-f]{6}$/;
+export const isBundledImage=path=>path.startsWith('/');
 export const USERNAME=/^[a-z0-9._]{2,30}$/;
 
 const lines=(text,max)=>String(text||'').split(/\r?\n/).map(line=>line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/,'').trim()).filter(Boolean).slice(0,max).map(line=>line.slice(0,300));
@@ -31,19 +36,22 @@ export function validatePost(fields){
 }
 
 // A posts row, as the project shape the feed, detail page and tutorial use.
-// Returns null for a row that does not look like one this app wrote.
+// Launch-catalog rows keep their slug as the id, so saved boards, tutorial
+// progress and rewards recorded against it still match. Returns null for a row
+// that does not look like one this app wrote.
 export function postToProject(row,coverUrl){
-  if(!row||!UUID.test(row.id)||!IMAGE_PATH.test(row.image_path)||!USERNAME.test(row.username)||!POST_AESTHETICS.includes(row.aesthetic)||!POST_DIFFICULTIES.includes(row.difficulty)||!Array.isArray(row.steps)||!row.steps.length)return null;
+  if(!row||!UUID.test(row.id)||(row.slug!==null&&row.slug!==undefined&&(typeof row.slug!=='string'||!SLUG.test(row.slug)))||!IMAGE_PATH.test(row.image_path)||!USERNAME.test(row.username)||!POST_AESTHETICS.includes(row.aesthetic)||!POST_DIFFICULTIES.includes(row.difficulty)||!Array.isArray(row.steps)||!row.steps.length)return null;
   const width=Number(row.image_width),height=Number(row.image_height),hours=Number(row.hours)||1;
   const strings=list=>Array.isArray(list)?list.filter(item=>typeof item==='string'):[];
   const materials=strings(row.materials),hash=[...row.user_id||row.id].reduce((sum,c)=>sum+c.charCodeAt(0),0);
-  const kind=POST_KINDS.some(([id])=>id===row.kind)?row.kind:'project';
-  return {id:`post-${row.id}`,postId:row.id,source:'community',title:String(row.title),description:String(row.description||''),username:row.username,aesthetic:row.aesthetic,difficulty:row.difficulty,kind,color:'Original',...(/^#[0-9a-f]{6}$/.test(row.color)&&{art:{cloth:row.color}}),steps:strings(row.steps),materials,tools:strings(row.tools),safetyNotes:SAFETY,hours,estimatedTime:estimatedTime(hours),likes:0,tags:[row.aesthetic,materials[0]].filter(Boolean),cover:coverUrl,photo:true,avatar:`/explore/creator-${hash%8}.svg`,height:width>0&&height>0?Math.round(400*height/width):520,createdAt:row.created_at};
+  const avatar=Number.isInteger(row.avatar)&&row.avatar>=0&&row.avatar<8?row.avatar:hash%8;
+  const art=HEX.test(row.color)?{cloth:row.color,...(HEX.test(row.trim_color)&&{trim:row.trim_color})}:null;
+  return {id:row.slug||`post-${row.id}`,postId:row.id,source:'community',title:String(row.title),description:String(row.description||''),username:row.username,aesthetic:row.aesthetic,difficulty:row.difficulty,kind:WEARABLE.has(row.kind)?row.kind:'project',color:'Original',...(art&&{art}),steps:strings(row.steps),materials,tools:strings(row.tools),safetyNotes:SAFETY,hours,estimatedTime:estimatedTime(hours),likes:Math.max(0,Number(row.likes)||0),tags:[row.aesthetic,materials[0]].filter(Boolean),cover:coverUrl,photo:true,avatar:`/explore/creator-${avatar}.svg`,height:width>0&&height>0?Math.round(400*height/width):520,createdAt:row.created_at};
 }
 
 export function friendlyError(error){
   const message=error?.message||String(error);
-  if(error?.code==='PGRST205'||error?.code==='42P01'||/does not exist|schema cache|bucket not found/i.test(message))return 'Posting isn’t set up yet. Run supabase/schema.sql in the Supabase SQL editor.';
+  if(error?.code==='PGRST205'||error?.code==='42P01'||/does not exist|schema cache|bucket not found/i.test(message))return 'Explore isn’t set up yet. Run supabase/schema.sql, then supabase/seed.sql, in the Supabase SQL editor.';
   if(/invalid login credentials/i.test(message))return 'That email and password don’t match.';
   if(/email not confirmed/i.test(message))return 'Confirm your email first (check your inbox), then sign in.';
   if(/already registered/i.test(message))return 'That email already has an account. Sign in instead.';

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bodyModel } from '../src/character/measurements.js';
 import { CharacterGeometryService } from '../src/character/service.js';
-import { projects } from '../src/explore/projects.js';
+import {catalog as projects} from './fixtures/catalog.mjs';
 import { garmentFromSpec } from '../src/garments.js';
 import { buildGarment } from '../src/model.js';
 import { canTryOn, garmentSpecFromProject, garmentSpecFromAnalysis, sizeGarmentToBody } from '../src/shell/tryOn.js';

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {loadLibrary,createBoard,setBoardMembership,saveLibrary} from '../src/explore/library.js';
 import {ENGAGEMENT_KEY,toggleEngagement,loadEngagement} from '../src/explore/storage.js';
 import {canonicalProjectUrl,shareProject,imageActionOverlay} from '../src/explore/image-actions.js';
-import {projects} from '../src/explore/projects.js';
+import {catalog as projects} from './fixtures/catalog.mjs';
 function memory(seed={}){const values=new Map(Object.entries(seed));return {values,getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};}
 
 test('read-only legacy migration preserves likes, saves, unknown settings, and unrelated storage',()=>{

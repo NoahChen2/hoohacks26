@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {defaultPreferences,normalizePreferences,loadPreferences,savePreferences,toggleTool,validateStep,rankProjects,PREFERENCES_KEY} from '../src/explore/preferences.js';
-import {projects} from '../src/explore/projects.js';
+import {catalog as projects} from './fixtures/catalog.mjs';
 test('preferences round-trip independently of existing boards and survive malformed storage',()=>{
   const data=new Map([['rethread.explore.v1','existing boards']]);const storage={getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v)};
   const p={...defaultPreferences(),aesthetics:['Vintage','Coquette'],skill:'Intermediate',tools:['Iron'],status:'completed'};

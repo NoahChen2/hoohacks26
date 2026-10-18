@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import {lessons,DIFFICULTIES} from '../src/learn/lessons.js';
 import {gradeQuiz,loadLessonProgress,saveLessonProgress,submitLessonQuiz,LESSON_PROGRESS_PREFIX} from '../src/learn/progress.js';
 import {awardProjectCompletion,saveProgress,getRewardSummary,awardLessonCompletion,LESSON_COMPLETION_PREFIX} from '../src/tutorial/store.js';
-import {seededTutorial} from '../src/tutorial/catalog.js';
-import {projects} from '../src/explore/projects.js';
+import {catalog as projects} from './fixtures/catalog.mjs';
 import {lessonVisual} from '../src/learn/visuals.js';
 const memory=()=>{const map=new Map();return {get length(){return map.size;},key:i=>[...map.keys()][i]??null,getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)};};
 const answers=lesson=>lesson.quiz.map(question=>question.answer);
@@ -28,7 +27,7 @@ test('failure, retry, success and repeated practice award only one 50 XP / 20 cu
  const repeat=submitLessonQuiz(storage,lesson,{...result.progress,submitted:false});assert.equal(repeat.reward.awarded,false);assert.equal(getRewardSummary(storage).xp,50);assert.equal(getRewardSummary(storage).currency,20);assert.equal(getRewardSummary(storage).completedLessons,1);assert.equal(getRewardSummary(storage).garmentsReused,0);
 });
 test('lesson rewards combine with existing project rewards without changing completion or reuse counts',()=>{
- const storage=memory(),project=seededTutorial(projects[0]);saveProgress(storage,project,{steps:[0,1,2],tools:[],materials:[]});awardProjectCompletion(storage,project);const lesson=lessons[2];submitLessonQuiz(storage,lesson,{...loadLessonProgress(storage,lesson),answers:answers(lesson)});const summary=getRewardSummary(storage);assert.equal(summary.xp,150);assert.equal(summary.currency,60);assert.equal(summary.completedProjects,1);assert.equal(summary.completedLessons,1);assert.equal(summary.garmentsReused,1);
+ const storage=memory(),project=projects[0];saveProgress(storage,project,{steps:[0,1,2],tools:[],materials:[]});awardProjectCompletion(storage,project);const lesson=lessons[2];submitLessonQuiz(storage,lesson,{...loadLessonProgress(storage,lesson),answers:answers(lesson)});const summary=getRewardSummary(storage);assert.equal(summary.xp,150);assert.equal(summary.currency,60);assert.equal(summary.completedProjects,1);assert.equal(summary.completedLessons,1);assert.equal(summary.garmentsReused,1);
 });
 test('blocked storage never announces completion and corrupted reward records are not overwritten',()=>{
  const storage=memory(),lesson=lessons[0],progress={...loadLessonProgress(storage,lesson),answers:answers(lesson)};assert.throws(()=>submitLessonQuiz({...storage,setItem(){throw Error();}},lesson,progress),/could not save/);assert.equal(getRewardSummary(storage).xp,0);

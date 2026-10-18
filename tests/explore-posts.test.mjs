@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validatePost,postToProject,suggestUsername,estimatedTime} from '../src/explore/posts.js';
+import {readFileSync} from 'node:fs';
 import {filterProjects} from '../src/explore/projects.js';
+import {SEED_POSTS} from '../supabase/seed-posts.mjs';
+import {catalog} from './fixtures/catalog.mjs';
 
 const fields={title:'  Flannel to cropped jacket ',description:'Cut and rebound.',username:'Mila.Mends',aesthetic:'Vintage',difficulty:'Beginner',hours:'1.5',kind:'jacket',tools:['Iron','Laser cutter'],materials:'- Old flannel\n\n• Thread',steps:'1. Unpick the hem\n2) Bind the edge\n'};
 const row={id:'0f8fad5b-d9cb-469f-a165-70867728950e',user_id:'7c9e6679-7425-40de-944b-e07fc1f90ae7',username:'mila.mends',title:'Flannel to cropped jacket',description:'Cut and rebound.',aesthetic:'Vintage',difficulty:'Beginner',hours:1.5,kind:'jacket',color:'#aa3322',tools:['Iron'],materials:['Old flannel'],steps:['Unpick the hem'],image_path:'7c9e6679-7425-40de-944b-e07fc1f90ae7/16fd2706-8baf-433b-82eb-8c7fada847da.jpg',image_width:1200,image_height:1500,created_at:'2026-10-18T12:00:00Z'};
@@ -33,4 +36,15 @@ test('rows this app did not write are ignored instead of rendered',()=>{
 test('usernames and times read naturally',()=>{
   assert.equal(suggestUsername('Noah.Chen+x@gmail.com'),'noah.chenx');assert.equal(suggestUsername('a@b.c'),'maker');
   assert.equal(estimatedTime(0.5),'30 minutes');assert.equal(estimatedTime(1),'1 hour');assert.equal(estimatedTime(3),'3 hours');
+});
+test('the launch catalog keeps its slugs, likes, avatars and photos, and seed.sql has every row',()=>{
+  const sql=readFileSync('supabase/seed.sql','utf8');
+  assert.equal(catalog.length,SEED_POSTS.length);
+  SEED_POSTS.forEach((row,i)=>{
+    const p=catalog[i];assert.ok(p,row.slug);
+    assert.equal(p.id,row.slug);assert.equal(p.likes,row.likes);assert.equal(p.cover,row.image_path);assert.equal(p.avatar,`/explore/creator-${row.avatar}.svg`);assert.deepEqual(p.art,{cloth:row.color,trim:row.trim_color});
+    assert.ok(sql.includes(`('${row.slug}', '${row.username}', `),row.slug);
+  });
+  assert.equal(postToProject({...SEED_POSTS[0],id:row.id,slug:'Bad Slug'},'u'),null);
+  assert.equal(postToProject({...SEED_POSTS[0],id:row.id,image_path:'/elsewhere/x.jpg'},'u'),null);
 });

@@ -1,13 +1,13 @@
-// Projects people share with everyone on Explore. Rows live in the Supabase
-// `posts` table and photos in the public `post-images` bucket (supabase/schema.sql);
-// new posts stream to every open feed through Supabase Realtime.
+// Every Explore project comes from the Supabase `posts` table: the launch
+// catalog (supabase/seed.sql) and what people share, whose photos live in the
+// public `post-images` bucket. New posts stream to every open feed through Realtime.
 import {getSupabase,supabaseEnabled} from '../supabase.js';
-import {UUID,validatePost,postToProject} from './posts.js';
+import {UUID,validatePost,postToProject,isBundledImage} from './posts.js';
 export {POST_AESTHETICS,POST_DIFFICULTIES,POST_TOOLS,POST_KINDS,suggestUsername,friendlyError} from './posts.js';
 
 export const communityEnabled=supabaseEnabled;
 const TABLE='posts',BUCKET='post-images';
-const publicUrl=(supabase,path)=>supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+const publicUrl=(supabase,path)=>isBundledImage(path)?path:supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 const toProject=(supabase,row)=>postToProject(row,publicUrl(supabase,row.image_path));
 
 export async function loadPosts(){
@@ -17,11 +17,12 @@ export async function loadPosts(){
   if(error)throw error;
   return data.map(row=>toProject(supabase,row)).filter(Boolean);
 }
+// A project by its feed id: post-<uuid> for shared posts, the slug for the catalog.
 export async function loadPost(projectId){
-  const id=projectId.replace(/^post-/,'');
-  if(!communityEnabled||!UUID.test(id))return null;
+  const id=projectId.replace(/^post-/,''),bySlug=!projectId.startsWith('post-');
+  if(!communityEnabled||(bySlug?!/^[a-z0-9-]{1,60}$/.test(id):!UUID.test(id)))return null;
   const supabase=await getSupabase();
-  const {data,error}=await supabase.from(TABLE).select('*').eq('id',id).maybeSingle();
+  const {data,error}=await supabase.from(TABLE).select('*').eq(bySlug?'slug':'id',id).maybeSingle();
   if(error)throw error;
   return data?toProject(supabase,data):null;
 }

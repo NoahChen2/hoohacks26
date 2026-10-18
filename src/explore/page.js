@@ -2,12 +2,12 @@ import {loadGeneratedProjects} from '../tutorial/store.js';
 import {bodyCard,mountBodyCards,tryOnBody} from '../shell/bodyCard.js';
 import {canTryOn,garmentSpecFromProject} from '../shell/tryOn.js';
 import {siteHeader,installShell} from '../shell/shell.js';
-import {seededTutorial,generatedTutorial} from '../tutorial/catalog.js';
+import {generatedTutorial} from '../tutorial/catalog.js';
 import {tutorialMarkup,installTutorial,tutorialShelf} from '../tutorial/view.js';
 import {loadPreferences,rankProjects,PREFERENCES_KEY} from './preferences.js';
 import './onboarding.css';
 import './style.css';
-import {projects as seededProjects,CATEGORIES,filterProjects} from './projects.js';
+import {CATEGORIES,filterProjects} from './projects.js';
 import {toggleEngagement,ENGAGEMENT_KEY} from './storage.js';
 import {loadLibrary,createBoard,setBoardMembership,saveLibrary} from './library.js';
 import {icon,escape} from './ui.js';
@@ -26,7 +26,8 @@ import {createPostDialog} from './post-dialog.js';
 let storage;
 try{storage=window.localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}};}
 let engagement=loadLibrary(storage);
-const projects=[...seededProjects.map(seededTutorial),...loadGeneratedProjects(storage).map(generatedTutorial)];
+// Your AI Studio ideas live in this browser; everything on Explore loads from the server.
+const projects=loadGeneratedProjects(storage).map(generatedTutorial);
 let disposeTutorial=()=>{};
 let toastTimer;
 const params=new URLSearchParams(location.search);
@@ -35,10 +36,11 @@ const isProfile=/^\/profile\/?$/.test(location.pathname);
 const isExplore=/^\/explore\/?$/.test(location.pathname);
 const projectId=/^\/project\/([^/]+)\/?$/.exec(location.pathname)?.[1];
 let project=projects.find(p=>p.id===projectId);
-// Posts people shared, newest first. They lead the feed and also join `projects`
+// Explore's projects from the server, newest first. They also join `projects`
 // so every lookup (boards, image actions, try-on) finds them.
-const posts=[],freshPosts=new Set();
-const waitingForPost=!project&&communityEnabled&&/^post-/.test(projectId||'');
+const posts=[],freshPosts=new Set(),postedHere=new Set();
+let feedStatus=communityEnabled?'loading':'error',feedError=communityEnabled?'':'Explore can’t reach the server. Check the Supabase settings in .env.local.';
+const waitingForPost=!project&&communityEnabled&&!!projectId;
 
 document.body.classList.add('discovery-page');
 document.body.innerHTML=`${siteHeader(isProfile?'profile':'explore',{savedCount:engagement.saved.length})}<main id="discovery-main"></main><div class="discovery-toast" role="status" aria-live="polite"></div>`;
@@ -60,7 +62,14 @@ function renderFeed(){
 }
 function updateFeed(){
   const preferences=loadPreferences(storage);
-  const filtered=[...filterProjects(query,category,savedOnly,engagement.saved,posts),...rankProjects(filterProjects(query,category,savedOnly,engagement.saved),preferences)];
+  // Ranked for this person's taste, newest first among equals; what they just posted leads.
+  const filtered=rankProjects(filterProjects(query,category,savedOnly,engagement.saved,posts),preferences).sort((a,b)=>postedHere.has(b.id)-postedHere.has(a.id));
+  if(!posts.length){
+    main.querySelector('#project-feed').innerHTML=feedStatus==='loading'?`<div class="feed-empty"><p role="status">Loading projects…</p></div>`:feedStatus==='ready'?`<div class="feed-empty">${icon('thread')}<h2>No projects yet.</h2><p>Be the first to share something you made.</p><button type="button" data-share-post>Share your project</button></div>`:`<div class="feed-empty">${icon('thread')}<h2>Projects couldn’t load.</h2><p>${escape(feedError)}</p><button type="button" id="retry-feed">Try again</button></div>`;
+    main.querySelector('#feed-count').textContent='';
+    main.querySelector('#retry-feed')?.addEventListener('click',()=>{feedStatus='loading';updateFeed();loadCommunity();});
+    return;
+  }
   main.querySelector('#project-feed').innerHTML=filtered.length?filtered.map(card).join(''):`<div class="feed-empty">${icon(savedOnly?'save':'search')}<h2>${savedOnly?'Your next favorite is out there.':'Nothing here just yet.'}</h2><p>${savedOnly?'Save a project using its bookmark button, or try another filter.':'Try another search or explore all the categories.'}</p><button type="button" id="clear-filters">Show all projects</button></div>`;
   main.querySelector('#feed-count').textContent=`${filtered.length} ${savedOnly?'saved ':''}${filtered.length===1?'idea':'ideas'} to make your own`;
   const toggle=main.querySelector('.saved-filter');toggle.classList.toggle('active',savedOnly);toggle.setAttribute('aria-pressed',String(savedOnly));
@@ -71,7 +80,7 @@ function renderDetail(){
   if(!project){document.title='Project not found — ReThread';main.innerHTML=`<div class="project-not-found"><p class="eyebrow">A LOOSE THREAD</p><h1>This project couldn’t be found.</h1><p>Find something new to make in the community feed.</p><a class="primary-link" href="/explore">Back to Explore ↗</a></div>`;return;}
   disposeTutorial();
   const p=project;document.title=`${p.title} — ReThread`;
-  main.innerHTML=`<a class="back-link" href="/explore${escape(location.search)}">${icon('arrow')} Back to Explore</a><article class="project-detail"><div class="detail-visual"><div class="image-action-frame detail-image-frame"><img src="${p.cover}" alt="${escape(p.title)} — project cover" width="400" height="${p.height}"/>${imageActionOverlay(p,engagement)}</div><span>${p.source==='community'?`Photo by @${escape(p.username)}`:p.photo?'':p.source==='seeded'?'Original project illustration':'Illustration only, not a preview of the result'}</span>${bodyCard({title:'Try it on you',note:'Your saved body and garment',cta:'Fit it in 3D'})}</div><div class="detail-content"><div class="card-tags">${p.tags.map(tag=>`<span>${escape(tag)}</span>`).join('')}</div><h1>${escape(p.title)}</h1><div class="detail-creator creator"><img src="${p.avatar}" alt="" width="38" height="38"/><div><strong>@${escape(p.username)}</strong><small>${p.source==='community'?`Shared ${escape(new Date(p.createdAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}`:p.source==='seeded'?'ReThread creator':p.source==='ai-demo'?'DEMO idea · photo was not analyzed':'AI-generated tutorial · review before starting'}</small></div></div><p class="detail-description">${escape(p.description)}</p><div id="detail-actions">${actions(p,true)}</div><div class="project-facts"><div><small>SKILL LEVEL</small><strong>${p.difficulty}</strong></div><div><small>ESTIMATED TIME</small><strong>${escape(p.estimatedTime)}</strong></div></div>${tutorialMarkup(p,storage)}</div></article><section class="related-projects"><div class="section-title"><h2>Keep the inspiration going</h2><a href="/explore?category=${encodeURIComponent(p.aesthetic)}">More ${p.aesthetic} ↗</a></div><div class="related-grid">${projects.filter(item=>item.aesthetic===p.aesthetic&&item.id!==p.id).slice(0,4).map(card).join('')}</div></section>`;
+  main.innerHTML=`<a class="back-link" href="/explore${escape(location.search)}">${icon('arrow')} Back to Explore</a><article class="project-detail"><div class="detail-visual"><div class="image-action-frame detail-image-frame"><img src="${p.cover}" alt="${escape(p.title)} — project cover" width="400" height="${p.height}"/>${imageActionOverlay(p,engagement)}</div><span>${p.source==='community'?`Photo by @${escape(p.username)}`:'Illustration only, not a preview of the result'}</span>${bodyCard({title:'Try it on you',note:'Your saved body and garment',cta:'Fit it in 3D'})}</div><div class="detail-content"><div class="card-tags">${p.tags.map(tag=>`<span>${escape(tag)}</span>`).join('')}</div><h1>${escape(p.title)}</h1><div class="detail-creator creator"><img src="${p.avatar}" alt="" width="38" height="38"/><div><strong>@${escape(p.username)}</strong><small>${p.source==='community'?`Shared ${escape(new Date(p.createdAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))}`:p.source==='ai-demo'?'DEMO idea · photo was not analyzed':'AI-generated tutorial · review before starting'}</small></div></div><p class="detail-description">${escape(p.description)}</p><div id="detail-actions">${actions(p,true)}</div><div class="project-facts"><div><small>SKILL LEVEL</small><strong>${p.difficulty}</strong></div><div><small>ESTIMATED TIME</small><strong>${escape(p.estimatedTime)}</strong></div></div>${tutorialMarkup(p,storage)}</div></article><section class="related-projects"><div class="section-title"><h2>Keep the inspiration going</h2><a href="/explore?category=${encodeURIComponent(p.aesthetic)}">More ${p.aesthetic} ↗</a></div><div class="related-grid">${projects.filter(item=>item.aesthetic===p.aesthetic&&item.id!==p.id).slice(0,4).map(card).join('')}</div></section>`;
   mountBodyCards(main);
   disposeTutorial=installTutorial(main,p,storage);
   if(canTryOn(p))tryOnBody(garmentSpecFromProject(p),{card:main.querySelector('.detail-visual [data-body-card]')});
@@ -128,7 +137,7 @@ main.addEventListener('pointermove',event=>{
 });
 window.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'&&!event.target.closest('.image-action-frame'))cancelHover();},{passive:true});
 main.addEventListener('pointerout',event=>{const frame=event.target.closest('.image-action-frame');if(!imageFocus.activeProjectId&&frame&&!frame.contains(event.relatedTarget))cancelHover();});
-const visualSearch=createVisualSearch({projects:seededProjects,onAction:handleAction,getState:()=>engagement});
+const visualSearch=createVisualSearch({projects:posts,onAction:handleAction,getState:()=>engagement});
 installImageLongPress(main,{
   onOpen(frame,pointerId){const trigger=frame.querySelector('[data-image-menu]');imageFocus.open(projects.find(p=>p.id===trigger.dataset.imageMenu),trigger,{pointerId});},
   onMove:(x,y)=>imageFocus.targetAt(x,y),onRelease:(x,y)=>imageFocus.releaseAt(x,y),onCancel:()=>imageFocus.close({immediate:true}),
@@ -198,12 +207,12 @@ function addPost(p){
   return true;
 }
 function showNewPost(p){freshPosts.add(p.id);window.setTimeout(()=>freshPosts.delete(p.id),1500);if(!projectId)renderCurrent();}
-const postDialog=createPostDialog({storage,onPublished(p){addPost(p);if(isExplore){showNewPost(p);window.scrollTo({top:main.querySelector('#project-feed').offsetTop-90,behavior:'smooth'});toast('Posted. It’s live on Explore for everyone.');}else location.assign(`/project/${p.id}`);}});
+const postDialog=createPostDialog({storage,onPublished(p){addPost(p);postedHere.add(p.id);if(isExplore){showNewPost(p);window.scrollTo({top:main.querySelector('#project-feed').offsetTop-90,behavior:'smooth'});toast('Posted. It’s live on Explore for everyone.');}else location.assign(`/project/${p.id}`);}});
 async function loadCommunity(){
   try{
-    (await loadPosts()).forEach(addPost);
+    (await loadPosts()).forEach(addPost);feedStatus='ready';
     if(waitingForPost){project=projects.find(p=>p.id===projectId)||await loadPost(projectId);if(project)addPost(project);}
-  }catch(error){console.error('[ReThread posts]',error);if(!waitingForPost)toast(friendlyError(error));}
+  }catch(error){console.error('[ReThread posts]',error);feedStatus='error';feedError=friendlyError(error);if(!isExplore&&!waitingForPost)toast(feedError);}
   if(!projectId||waitingForPost)renderCurrent();
 }
 if(isExplore)renderFeed();else if(waitingForPost)main.innerHTML='<p class="post-help post-loading">Loading project…</p>';else renderCurrent();
