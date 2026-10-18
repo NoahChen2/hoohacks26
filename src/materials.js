@@ -203,11 +203,13 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
   frame[8] = vec2(u, t); live[8] = onArm && !front;
   frame[9] = vec2(lx, p.y); live[9] = onLeg && front;
   frame[10] = vec2(lx, p.y); live[10] = onLeg && !front;
+  // Anatomy strokes; hidden later wherever underwear or shoes cover the skin.
+  float art = 0., covered = 0.;
   for (int i = 0; i < uStrokeCount; i++) {
     vec4 ab = texelFetch(uStrokes, ivec2(2 * i, 0), 0), cw = texelFetch(uStrokes, ivec2(2 * i + 1, 0), 0);
     int f = int(cw.w);
     if (!live[f]) continue;
-    lines = max(lines, (cw.w - float(f)) * 2. * stroke(frame[f], ab.xy, ab.zw, cw.xy, cw.z));
+    art = max(art, (cw.w - float(f)) * 2. * stroke(frame[f], ab.xy, ab.zw, cw.xy, cw.z));
   }
 
   if (onFace) {
@@ -247,15 +249,21 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
       float strapX = mix(Cx * .40, Sx * .52, clamp((p.y - top) / (shoulderY + 3. - top), 0., 1.));
       float dBra = min(max(bottom - p.y, p.y - top), max(abs(ax - strapX) - 1.1, max(bottom - p.y, p.y - shoulderY - 4.)));
       col = mix(col, mix(uBrief, uBriefTrim, step(p.y, bottom + 1.6)), fillIn(dBra));
+      covered = max(covered, fillIn(dBra));
       lines = max(lines, inkW(abs(dBra), .14));
       lines = max(lines, inkW(abs(p.y - bottom - 1.6), .07) * fillIn(dBra));
     }
   }
-  // Briefs: waistband over the hips, leg openings rising toward the outer thigh.
-  float waistband = hipY + 3.5, opening = crotchY - (front ? 2. : 3.5) + 9. * clamp(lx / tR * .5 + .5, 0., 1.);
-  if (!onArm && p.y < waistband + 1. && p.y > crotchY - 6.) {
+  // Underwear at a realistic mid rise (a hand below the navel): trunks to mid
+  // thigh for the masculine body, full briefs with a moderate leg cut otherwise.
+  // A high, low-rise cut reads as extra leg length.
+  float waistband = uTrunkY2.y - 7.5, outer = clamp(lx / tR * .5 + .5, 0., 1.);
+  float opening = fem > .5 ? crotchY - (front ? 1.5 : 3.5) + 4.5 * outer : crotchY - 7. + 1.2 * outer;
+  // Limited to the hips' width so hanging hands beside the thighs stay bare.
+  if (!onArm && ax < uTrunkX.w + 3. && p.y < waistband + 1. && p.y > crotchY - 10.) {
     float dBrief = max(p.y - waistband, onLeg ? opening - p.y : -1e3);
     col = mix(col, mix(uBrief, uBriefTrim, step(waistband - 1.7, p.y)), fillIn(dBrief));
+    covered = max(covered, fillIn(dBrief));
     lines = max(lines, inkW(abs(dBrief), .15));
     lines = max(lines, inkW(abs(p.y - (waistband - 1.7)), .08) * fillIn(dBrief));
   }
@@ -265,10 +273,12 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
     float shoe = step(p.y, collar);
     vec3 shoeColor = mix(uShoe, uShoeAccent, step(abs(p.y - .026 * H), .9) * step(.5 * tR, abs(lx) + .2 * tR));
     col = mix(col, mix(shoeColor, uSole, step(p.y, 1.1)), shoe);
+    covered = max(covered, shoe);
     lines = max(lines, inkW(abs(p.y - collar), .16));
     lines = max(lines, inkW(abs(p.y - 1.1), .12) * shoe);
     lines = max(lines, inkW(abs(fract(p.z / 1.7) - .5) * 1.7, .12) * step(abs(lx), 1.6) * step(2.5, p.y) * step(p.z, .095 * H) * step(.04 * H, p.z) * shoe);
   }
+  lines = max(lines, art * (1. - covered));
   return mix(col, ink, clamp(lines, 0., 1.));
 }
 `;

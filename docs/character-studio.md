@@ -88,6 +88,11 @@ The fallback has a light procedural rig, is not a body scan, and is not AAA or
 Fortnite-quality. Rendered proportions follow standard anthropometric ratios
 (head ~13% of stature, trapezius meeting the neck near 0.85 H, fingertips near
 0.38 H, feet ~15% of stature); arm length is taped from the shoulder point.
+Legs are deliberately stylized shorter: the rendered crotch sits 4.5% of stature
+(~8 cm at 172 cm) below the measured inseam and the torso lengthens to keep
+stature (`LEG_STYLE` in `presentation.js`); arms move with the shoulder rather
+than stretching. This is appearance only: fit checks and garment cutting use the
+measured inseam. The leg-to-torso slider adjusts around this baseline.
 Hands have a palm, thumb and finger grouping but no articulated finger rig.
 
 No cloth simulation is introduced. Each garment vertex copies the averaged skin
