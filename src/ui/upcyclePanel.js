@@ -104,13 +104,13 @@ function card(r, i) {
         <div class="c-title"><h4>${p.title}</h4>
           <div class="c-meta"><span class="dots">${'●'.repeat(p.difficulty)}${'○'.repeat(3 - p.difficulty)}</span> ${['', 'Easy', 'Medium', 'Advanced'][p.difficulty]} · ${p.time}</div>
         </div>
-        <span class="c-score" title="Match score"><b>${r.score}</b><small>match</small></span>
+        <span class="c-score" style="--score:${r.score}" title="Match score"><b>${r.score}</b><small>match</small></span>
       </header>
       <ul class="why">${r.why.map((w) => `<li>${w}</li>`).join('')}</ul>
       ${r.missing.length ? `<div class="missing">Needs: ${r.missing.join(', ')}</div>` : ''}
       <footer>
         <button class="btn small" data-steps="${i}">Step-by-step</button>
-        ${hasAfter ? `<button class="btn small ghost" data-preview="${i}">Preview in 3D</button>` : ''}
+        ${hasAfter ? `<button class="btn small ghost preview-btn" data-preview="${i}">✦ Preview in 3D</button>` : ''}
       </footer>
     </article>`;
 }
