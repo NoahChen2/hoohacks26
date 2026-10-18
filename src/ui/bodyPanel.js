@@ -1,3 +1,4 @@
+import { BUILD_LABELS, PROPORTION_FIELDS, buildStartingPoint } from '../character/settings.ts';
 import { state, emit, BODY_FIELDS, BODY_PRESETS } from '../state.js';
 import { bodyModel } from '../model.js';
 import { inch } from '../upcycle.js';
@@ -16,13 +17,28 @@ const HINTS = {
 
 export function renderBodyPanel(el) {
   const b = state.body;
+  const character = state.character;
   el.innerHTML = `
     <div class="panel-head">
       <h2>Your body</h2>
-      <p>Enter real tape-measure numbers. Everything in the 3D view and the cut lines is worked out from these.</p>
+      <p>Start with a body shape, then make it yours. Fit checks and cutting guides use your tape measurements in centimeters.</p>
     </div>
-    <div class="presets">${Object.keys(BODY_PRESETS)
-      .map((k) => `<button class="pill" data-preset="${k}">${k}</button>`)
+    <section class="body-starting-points" aria-label="Body starting points">
+      <span class="body-section-label">BODY SHAPE</span>
+      <div class="body-shape-options" role="group" aria-label="Body shape">
+        ${[['feminine','Feminine'],['masculine','Masculine']].map(([value,label]) => `<button class="body-shape-option ${character.bodyPreset===value?'active':''}" data-body-shape="${value}" aria-pressed="${character.bodyPreset===value}"><span class="body-shape-symbol" aria-hidden="true">${value==='feminine'?'◒':'◓'}</span><strong>${label}</strong><small>Editable starting point</small></button>`).join('')}
+      </div>
+      <p>Either shape can wear everything. Switching shape keeps your measurements and proportion edits.</p>
+      <span class="body-section-label">BUILD STARTING POINTS</span>
+      <div class="body-build-options" role="group" aria-label="Body build">
+        ${Object.entries(BUILD_LABELS).map(([value,label])=>`<button class="pill ${character.build===value?'active':''}" data-build="${value}" aria-pressed="${character.build===value}">${label}</button>`).join('')}
+      </div>
+      <p>Builds set editable measurement values. Manual edits always take precedence.</p>
+    </section>
+    <div class="body-preview-note"><strong>Procedural body preview</strong><span>One continuous surface; no rigged character asset is installed. Anatomy and bust distribution are approximations, not a body scan. Detailed faces and hair are outside this review.</span></div>
+    <h3 class="body-subheading">Fit measurements <small>cm</small></h3>
+    <div class="presets" aria-label="Clothing size starting points">${Object.keys(BODY_PRESETS)
+      .map((k) => `<button class="pill" data-preset="${k}" aria-pressed="${character.sizePreset===k}">${k}</button>`)
       .join('')}</div>
     <div class="body-grid">
       <div class="silhouette" id="silhouette"></div>
@@ -37,14 +53,25 @@ export function renderBodyPanel(el) {
         ).join('')}
       </div>
     </div>
+    <details class="body-proportions" open>
+      <summary>Appearance proportions <span>Preview only</span></summary>
+      <p>These approximate controls change the character and clothing preview together. They do not change tape measurements, fit warnings, or cut lines. Changing proportions can make the preview differ from measured dimensions.</p>
+      ${PROPORTION_FIELDS.map(([key,label,min,max])=>`<label class="field"><span class="field-top"><span>${label}</span><output data-proportion-value="${key}">${Math.round(character.proportions[key]*100)}%</output></span><input type="range" data-proportion="${key}" min="${min}" max="${max}" step=".05" value="${character.proportions[key]}" /></label>`).join('')}
+      <button class="btn small ghost" id="reset-proportions">Reset appearance proportions</button>
+    </details>
   `;
   const sil = el.querySelector('#silhouette');
   const draw = () => (sil.innerHTML = silhouetteSVG(state.body));
   draw();
 
   const set = (key, v) => {
-    if (Number.isNaN(v)) return;
+    if (!Number.isFinite(v)) return;
+    const [, , min, max] = BODY_FIELDS.find(field=>field[0]===key);
+    const numeric=el.querySelector(`[data-num="${key}"]`);
+    numeric.setCustomValidity(v<min||v>max?`Enter ${min}–${max} cm.`:'');
+    if(!numeric.reportValidity())return;
     state.body[key] = v;
+    state.character.sizePreset = null;
     el.querySelector(`[data-key="${key}"]`).value = v;
     const num = el.querySelector(`[data-num="${key}"]`);
     if (document.activeElement !== num) num.value = v;
@@ -52,13 +79,37 @@ export function renderBodyPanel(el) {
     draw();
     emit('body');
   };
-  el.querySelectorAll('input[type=range]').forEach((r) => r.addEventListener('input', () => set(r.dataset.key, parseFloat(r.value))));
+  el.querySelectorAll('input[data-key]').forEach((r) => r.addEventListener('input', () => set(r.dataset.key, parseFloat(r.value))));
   el.querySelectorAll('input[data-num]').forEach((n) => n.addEventListener('change', () => set(n.dataset.num, parseFloat(n.value))));
-  el.querySelectorAll('[data-preset]').forEach((btn) =>
-    btn.addEventListener('click', () => {
-      Object.entries(BODY_PRESETS[btn.dataset.preset]).forEach(([k, v]) => set(k, v));
-    })
-  );
+  el.querySelectorAll('[data-body-shape]').forEach(button=>button.addEventListener('click',()=>{
+    state.character.bodyPreset=button.dataset.bodyShape;
+    renderBodyPanel(el);emit('character');
+  }));
+  el.querySelectorAll('[data-build]').forEach(button=>button.addEventListener('click',()=>{
+    const build=button.dataset.build;
+    const closest=Object.keys(BODY_PRESETS).reduce((best,key)=>Math.abs(BODY_PRESETS[key].height-b.height)<Math.abs(BODY_PRESETS[best].height-b.height)?key:best,Object.keys(BODY_PRESETS)[0]);
+    const source=BODY_PRESETS[character.sizePreset] || {...BODY_PRESETS[closest],height:b.height,arm:b.arm,inseam:b.inseam};
+    const values=buildStartingPoint(source,build);
+    for(const [key,,min,max] of BODY_FIELDS)b[key]=Math.max(min,Math.min(max,values[key]));
+    character.build=build;
+    const definition={slim:.08,average:.15,athletic:.55,muscular:.9,curvy:.12,plus:.05};
+    character.proportions.muscleDefinition=definition[build];
+    renderBodyPanel(el);emit('body');
+  }));
+  el.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>{
+    Object.assign(state.body,BODY_PRESETS[button.dataset.preset]);
+    character.sizePreset=button.dataset.preset;character.build='average';
+    renderBodyPanel(el);emit('body');
+  }));
+  el.querySelectorAll('[data-proportion]').forEach(input=>input.addEventListener('input',()=>{
+    character.proportions[input.dataset.proportion]=Number(input.value);
+    el.querySelector(`[data-proportion-value="${input.dataset.proportion}"]`).textContent=`${Math.round(Number(input.value)*100)}%`;
+    emit('character');
+  }));
+  el.querySelector('#reset-proportions').addEventListener('click',()=>{
+    for(const [key] of PROPORTION_FIELDS)character.proportions[key]=key==='muscleDefinition'?.15:0;
+    renderBodyPanel(el);emit('character');
+  });
 }
 
 // Front-view silhouette with measurement callouts, drawn from the same body model as the 3D figure.

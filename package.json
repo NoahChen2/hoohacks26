@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --test tests/progression.test.js tests/avatar.test.js tests/illustration.test.js",
+    "test": "node --test tests/*.test.js tests/*.test.mjs",
     "test:browser": "node tests/browser-flow.mjs",
     "test:worlds": "node tests/world-presentation.mjs",
     "test:avatar": "node tests/avatar-browser.mjs",
-    "typecheck": "tsc --allowJs --checkJs --noEmit --target es2022 --module esnext --moduleResolution bundler src/avatar/effects.js",
+    "typecheck": "tsc --noEmit && tsc --ignoreConfig --allowJs --checkJs --noEmit --target es2022 --module esnext --moduleResolution bundler src/avatar/effects.js",
     "test:illustration": "node tests/illustration-browser.mjs"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "typescript": "^7.0.2",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "@types/three": "^0.169.0"
   }
 }

@@ -20,9 +20,9 @@
         <span class="tag">upcycle studio</span>
       </div>
       <nav class="tabs" id="tabs">
-        <button data-tab="body" class="active"><b>1</b> Body</button>
-        <button data-tab="closet"><b>2</b> Closet</button>
-        <button data-tab="upcycle"><b>3</b> Upcycle</button><button data-tab="community">Ranks &amp; schools</button>
+        <button disabled data-tab="body" class="active"><b>1</b> Body</button>
+        <button disabled data-tab="closet"><b>2</b> Closet</button>
+        <button disabled data-tab="upcycle"><b>3</b> Upcycle</button><button disabled data-tab="community">Ranks &amp; schools</button>
       </nav>
       <div class="account" id="account"></div>
     </header>
@@ -34,8 +34,10 @@
         <div id="viewport"></div>
         <div class="stage-toolbar">
           <label class="chip"><input type="checkbox" id="tg-body" checked /> Body</label>
+          <label class="chip"><input type="checkbox" id="tg-clothing" checked /> Clothing</label>
           <label class="chip"><input type="checkbox" id="tg-fit" /> Fit map</label>
           <label class="chip"><input type="checkbox" id="tg-spin" /> Turntable</label>
+          <label class="chip"><input type="checkbox" id="tg-animate" checked /> Animate</label>
           <button class="chip" id="btn-reset-cam">Reset view</button>
         </div>
         <div class="fit-legend" id="fit-legend" hidden>
