@@ -1,5 +1,9 @@
 import {loadPreferences} from './explore/preferences.js';
 async function bootPage(){
+if(location.pathname==='/'){
+  location.replace(`/explore${location.search}${location.hash}`);
+  return;
+}
 if (/^\/studio\/?$/.test(location.pathname)) {
   return import('./studio/page.js');
 } else if (/^\/(onboarding|settings)\/?$/.test(location.pathname)) {
