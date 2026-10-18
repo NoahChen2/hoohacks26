@@ -2,9 +2,8 @@ import * as THREE from 'three';
 import { headFrame, hairShape } from './character/measurements.js';
 import { characterHair } from './character/canonical.js';
 
-// Comic-book rendering: flat cartoon colours, one hard shadow band, screen-space
-// halftone dots in the deeper shade, ink rim lines and an inverted-hull outline.
-// Comic materials bypass tone mapping so the palette renders as authored.
+// Clean cel rendering: broad two-tone planes, restrained feature ink and a soft
+// celestial rim. Materials bypass tone mapping so the palette renders as authored.
 
 const INK = '#15121a';
 const noise = (x,y) => { const n=Math.sin(x*127.1+y*311.7)*43758.5453; return n-Math.floor(n); };
@@ -24,6 +23,7 @@ uniform float comicRim;
 uniform float comicWarm;
 uniform float comicRimLight;
 uniform float comicDots;
+uniform float comicFlat;
 float comicHalftone(float amount) {
   vec2 cell = fract(mat2(.7071, -.7071, .7071, .7071) * gl_FragCoord.xy / comicDot) - .5;
   float r = amount * .58;
@@ -33,8 +33,8 @@ vec3 comicColor(vec3 base, vec3 light, vec3 n, vec3 toCamera, float occlusion) {
   float lit = dot(light, vec3(.299, .587, .114)) * mix(.55, 1., occlusion);
   float shadow = 1. - smoothstep(comicLit - .02, comicLit + .02, lit);
   // A soft gradient inside the lit band models the forms; the band edge stays hard.
-  vec3 color = base * mix(.9, 1.05, smoothstep(comicLit, comicLit * 1.9, lit));
-  color = mix(color, base * comicShade, shadow);
+  vec3 color = base * mix(mix(.9, 1.05, smoothstep(comicLit, comicLit * 1.9, lit)), 1., comicFlat);
+  color = mix(color, base * comicShade, shadow * (1. - comicFlat));
   // Warm subsurface glow where skin turns from light to shadow.
   color *= mix(vec3(1.), vec3(1.1, .82, .76), comicWarm * (1. - smoothstep(0., .09, abs(lit - comicLit))));
   float deep = smoothstep(comicLit * .92, comicLit * .30, lit);
@@ -44,18 +44,19 @@ vec3 comicColor(vec3 base, vec3 light, vec3 n, vec3 toCamera, float occlusion) {
   float glossy = smoothstep(comicLit * 1.95 - .02, comicLit * 1.95 + .02, lit) * comicGloss;
   color = mix(color, mix(base, vec3(1.), .55), glossy);
   float facing = abs(dot(n, toCamera));
-  // Thin back-light rim just inside the ink line, strongest on the shadow side.
+  // Thin lavender/cyan back-light rim just inside the contour.
   float rimBand = smoothstep(.17, .23, facing) * (1. - smoothstep(.23, .34, facing)) * mix(.15, 1., shadow);
-  color = mix(color, mix(base, vec3(1.), .4), rimBand * comicRimLight);
+  vec3 rimTint = mix(vec3(.678, .939, 1.), vec3(.824, .537, .980), smoothstep(-.55, .55, n.x));
+  color = mix(color, rimTint, rimBand * comicRimLight);
   return mix(color, comicInk, (1. - smoothstep(.07, .17, facing)) * comicRim);
 }
 `;
 
-function comicPatch(material, { key, shade, deep, gloss = 0, saturation = 1, rim = 1, lit = .5, warm = 0, rimLight = .45, occlusion = '1.', dots = 1,
+function comicPatch(material, { key, shade, deep, gloss = 0, saturation = 1, rim = 1, lit = .5, warm = 0, rimLight = .45, occlusion = '1.', dots = 1, flat = 0,
   vertexHeader = '', vertexBody = '', fragmentHeader = '', artBody = '', uniforms = {} }) {
   const shared = {
     comicShade: { value: shade }, comicDeep: { value: deep }, comicInk: { value: new THREE.Color(INK) },
-    comicLit: { value: lit }, comicDot,
+    comicLit: { value: lit }, comicDot, comicFlat: { value: flat },
     comicGloss: { value: gloss }, comicSat: { value: saturation }, comicRim: { value: rim },
     comicWarm: { value: warm }, comicRimLight: { value: rimLight }, comicDots: { value: dots }, ...uniforms,
   };
@@ -109,15 +110,15 @@ export function paintComicGrain(ctx,w,h,material) {
 
 // Inverted hull with a width proportional to view distance, so the ink line
 // keeps a constant on-screen thickness at any zoom level.
-export function outlineMaterial(width = .0028) {
-  const material=new THREE.MeshBasicMaterial({color:INK,side:THREE.BackSide,toneMapped:false});
+export function outlineMaterial(width = .0028, color = INK) {
+  const material=new THREE.MeshBasicMaterial({color,side:THREE.BackSide,toneMapped:false});
   material.onBeforeCompile=shader=>{
     shader.uniforms.outlineWidth={value:width};
     shader.vertexShader='uniform float outlineWidth;\n'+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float outlineDistance = -(modelViewMatrix * vec4(position, 1.)).z;
       transformed += normalize(normal) * outlineWidth * outlineDistance / length(modelMatrix[0].xyz);`);
   };
-  material.customProgramCacheKey=()=> `comic-outline-v1-${width}`;
+  material.customProgramCacheKey=()=> `comic-outline-v2-${width}-${color}`;
   return material;
 }
 
@@ -144,7 +145,7 @@ uniform vec4 uTrunkX;  // shoulderHalf, chestHalf, waistHalf, hipHalf
 uniform vec4 uArm;     // jointX, jointY, armAngle, armLength
 uniform vec4 uLeg;     // legX, thighR, upperArmR, neckR
 uniform vec3 uStyle;   // shape (feminine 1, neutral .5, masculine 0), definition, height
-uniform vec3 uHair, uIris, uLip, uBrief, uBriefTrim, uShoe, uShoeAccent, uSole;
+uniform vec3 uHair, uHairHighlight, uIris, uLip, uJawShadow, uForeheadShadow, uNose, uMouth, uLash, uBrief, uBriefTrim, uShoe, uShoeAccent, uSole;
 uniform highp sampler2D uStrokes;
 uniform int uStrokeCount;
 varying vec3 vBase;
@@ -190,7 +191,7 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
   vec2 hp = vec2(p.x, p.y - headY), fp = vec2(ax, p.y - headY);
   float hz = p.z - uHead.z;
   bool onFace = onHead && hz > R * .25;
-  vec2 ep = vec2(p.z - uHead.z + 1.1, p.y - (headY - R * .06));
+  vec2 ep = vec2(p.z - uHead.z, p.y - (headY - R * .27));
   // Curtains and big volumes cover the ears.
   bool onEar = onHead && uHairInfo.y < .5 && ax > R * .58 && abs(ep.y) < R * .3 && abs(ep.x) < R * .22;
   bool onTorso = !onHead && !onArm && !onLeg;
@@ -221,17 +222,54 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
   }
 
   if (onFace) {
-    // Eyes: sclera, iris, pupil and catch-light; lips and blush.
-    vec2 eye = R * vec2(.29, -.02), er = R * vec2(.125, mix(.058, .072, fem));
-    float inEye = fillIn((length((fp - eye) / er) - 1.) * er.y);
-    col = mix(col, vec3(.97, .96, .93), inEye);
-    float ir = length(fp - eye - R * vec2(-.012, -.006));
-    col = mix(col, uIris, fillIn(ir - R * .056) * inEye);
-    col = mix(col, ink, fillIn(ir - R * .028) * inEye);
-    col = mix(col, vec3(1.), fillIn(length(hp - vec2(side * eye.x, eye.y) - R * vec2(.022, .024)) - R * .014) * inEye);
-    col = mix(col, uLip, fem * fillIn((length((hp - R * vec2(0., -.60)) / R / vec2(.15, .055)) - 1.) * R * .055));
-    col = mix(col, mix(col, vec3(.95, .45, .45), .35 * (1. - .85 * uSkinInfo.x)), fem * fillIn((length((fp - R * vec2(.42, -.36)) / R / vec2(.10, .055)) - 1.) * R * .05));
+    // H = 2R, W = .78H: all placements below are direct normalized values.
+    vec2 eye = (2. * R) * vec2(.17, -.08), er = R * vec2(.205, mix(.108, .135, fem));
+    vec2 eyeQ = fp - eye;
+    eyeQ.y -= eyeQ.x * .12;
+    float eyeDistance = (length(eyeQ / er) - 1.) * er.y;
+    float inEye = fillIn(eyeDistance);
+    col = mix(col, vec3(.985, .975, .955), inEye);
+    float ir = length((fp - eye) / vec2(.8, 1.));
+    col = mix(col, uIris, fillIn(ir - R * .105) * inEye);
+    col = mix(col, vec3(.071, .027, .016), fillIn(ir - R * .045) * inEye);
+    vec2 eyeWorld = vec2(side * eye.x, eye.y);
+    col = mix(col, vec3(1.), fillIn(length(hp - eyeWorld - (2. * R) * vec2(-.02, .02)) - R * .022) * inEye);
+    col = mix(col, vec3(1.), fillIn(length(hp - eyeWorld - R * vec2(side * .025, -.035)) - R * .01) * inEye);
+    float eyeShell = abs(eyeDistance);
+    float upperLash = inkW(eyeShell, R * .02) * smoothstep(eye.y - R * .005, eye.y + R * .02, fp.y);
+    float outerLash = inkW(length(fp - (eye + R * vec2(.14, .018))), R * .013) * fem;
+    float browHalf = R * .1404, browSpan = 1. - smoothstep(browHalf * .82, browHalf, abs(fp.x - eye.x));
+    float browLine = R * .085 + .04 * R * (1. - pow(clamp((fp.x - eye.x) / browHalf, -1., 1.), 2.));
+    float browThickness = R * mix(.032, .025, fem);
+    float brow = inkW(abs(fp.y - browLine), browThickness) * browSpan;
+    // Triangular warm nose-side plane and 0.03W nostril tick at Y=-.20H.
+    vec2 nq = hp / (2. * R) - vec2(0., -.22);
+    float noseSide = fillIn(max(max(-nq.x - .018, nq.x - .022 + nq.y * .45), abs(nq.y) - .035) * (2. * R));
+    col = mix(col, uNose, noseSide);
+    float nostrilSpan = 1. - smoothstep(R * .018, R * .0468, abs(hp.x - R * .025));
+    float nostril = inkW(abs(hp.y + R * .46), R * .007) * nostrilSpan;
+    // Mouth at -.33H with the requested lower-lip dash at -.36H.
+    float mouthHalf = R * .17, mouthSpan = 1. - smoothstep(mouthHalf * .82, mouthHalf, abs(hp.x));
+    float smileY = R * (-.70 + .035 * pow(abs(hp.x) / mouthHalf, 1.6));
+    float smile = inkW(abs(hp.y - smileY), R * .009) * mouthSpan;
+    float lipDash = inkW(abs(hp.y + R * .72), R * .006) * (1. - smoothstep(R * .045, R * .0546, abs(hp.x)));
+    col = mix(col, uMouth, smile);
+    col = mix(col, uLip, lipDash * .8);
+    col = mix(col, uLash, max(max(upperLash, outerLash), max(brow, nostril * .65)));
+    // Thin mandibular edge from each ear to the gender-specific chin width.
+    float faceV = hp.y / (2. * R);
+    float jawX = .35 * .78 * 2. * R * clamp((faceV + .50) / .25, 0., 1.);
+    float jawInk = inkW(abs(fp.x - jawX), R * .009) * step(faceV, -.22) * step(-.505, faceV);
+    col = mix(col, ink, jawInk * .18);
+    // Hair volume casts a warm shadow across +.12H .. +.25H forehead.
+    float foreheadBand = smoothstep(.15, .26, hp.y / R) * (1. - smoothstep(.30, .42, hp.y / R));
+    col = mix(col, uForeheadShadow, foreheadBand * .22);
   }
+  // Direct sub-chin crescent across the upper front neck (-.50H .. -.62H).
+  float headLocalY = (p.y - headY) / (2. * R);
+  float neckShadowEdge = -.64 + .17 * clamp(ax / (.42 * R), 0., 1.);
+  float subChin = smoothstep(neckShadowEdge - .015, neckShadowEdge + .015, headLocalY) * step(headLocalY, -.49) * (1. - smoothstep(.35 * R, .46 * R, ax));
+  col = mix(col, uJawShadow, subChin);
   float headHair = 0.;
   if (onHead) {
     // Painted hair above the hairstyle's hairline: fringe, shine and strands (or
@@ -241,8 +279,8 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
     float sides = mix(uHairline.y, uHairline.x, frontness);
     sides = mix(sides, uHairline.z, uHairInfo.x * smoothstep(.95, 1.45, aa));
     float hairline = mix(sides, uHairline.w, backness);
-    float jag = tex < .5 ? abs(fract(ang * 2.3 + .5) - .5) * 2. : tex < 1.5 ? .5 + .5 * sin(ang * 16.) : tex > 2.5 && tex < 3.5 ? 1. : 0.;
-    hairline -= frontness * .14 * jag;
+    float jag = tex < .5 ? .5 + .5 * sin(ang * 5. + .7) : tex < 1.5 ? .5 + .5 * sin(ang * 16.) : 0.;
+    hairline -= frontness * .12 * jag;
     float ears = onEar ? 0. : 1.;
     float hairD = hairline * R - hp.y;
     bool mohawk = tex > 2.5 && tex < 3.5, buzz = tex > 1.5 && tex < 2.5;
@@ -250,8 +288,7 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
     float region = fillIn(hairD) * ears * step(tex, 3.5);
     float hair = buzz ? 0. : fillIn(stripD) * region;
     float stubble = buzz ? region : mohawk ? region - hair : 0.;
-    float speck = fract(sin(dot(floor(p * 2.5), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-    col = mix(col, mix(skin, uHair, .5 + .25 * step(.6, speck)), stubble * .85);
+    col = mix(col, uHair, stubble * .85);
     lines = max(lines, inkW(abs(hairD), R * .008) * stubble);
     vec3 hairColor;
     if (tex > .5 && tex < 1.5) {
@@ -263,12 +300,13 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
       float glint = inkW(abs(length(f - vec2(-.04, .05)) - .2) * R * .26, R * .012) * step(.05, -f.x - f.y);
       hairColor = mix(mix(uHair, mix(uHair, vec3(.75, .85, 1.), .5), glint * .7), ink, curl * .75);
     } else {
-      float shine = inkW(abs(hp.y - R * (.66 + .05 * sin(ang * 9.))), R * .035) * step(.38, fract(ang * 1.9 + .2)) * (1. - backness);
-      float strands = inkW(abs(fract(ang * 1.4 + hp.y / R * .55) - .5) * R * 1.2, R * .016) * step(hairline * R + R * .12, hp.y) * step(hp.y, R * .55);
-      hairColor = mix(mix(uHair, mix(uHair, vec3(.65, .78, 1.), .45), shine), ink, strands * .8);
+      float zig = abs(fract(ang * 3.5) - .5) * 2.;
+      float shine = inkW(abs(hp.y - R * (.50 + .06 * zig)), R * .035) * (1. - backness);
+      float layerBand = (1. - smoothstep(R * .025, R * .075, abs(fract(ang * 1.15 + hp.y / R * .24) - .5) * R)) * .18;
+      hairColor = mix(uHair, uHairHighlight, clamp(shine * .72 + layerBand, 0., .78));
     }
     col = mix(col, hairColor, hair);
-    lines = max(lines, inkW(abs(stripD), R * .02) * ears * step(tex, 3.5) * (buzz ? 0. : 1.));
+    lines = max(lines, inkW(abs(stripD), R * .006) * ears * step(tex, 3.5) * (buzz ? 0. : .25));
     headHair = max(hair, stubble);
     covered = max(covered, headHair);
   }
@@ -306,7 +344,9 @@ vec3 bodyArt(vec3 skin, vec3 ink) {
   float drape = smoothstep(.3, .7, vHairMask);
   if (vHairMask > .01) {
     float strand = inkW(abs(fract((p.x + .3 * p.z) / 1.6) - .5) * 1.6, .05) * step(.95, drape);
-    col = mix(col, mix(uHair, ink, strand * .55), drape);
+    float zig = abs(fract(p.x / R * 3.5) - .5) * 2.;
+    float highlight = inkW(abs(hp.y - R * (.50 + .06 * zig)), R * .035);
+    col = mix(col, mix(mix(uHair, uHairHighlight, highlight), ink, strand * .18), drape);
     lines *= 1. - drape;
     covered = max(covered, drape);
     float mw = max(fwidth(vHairMask), 1e-4);
@@ -338,29 +378,11 @@ function bodyStrokes(model, character) {
   const { chestY, waistY, hipY, crotchY, shoulderY, armpitY, neckBaseY: neckBase, neckTopY: neckTop } = lm;
   const Ra = model.upperR, L = lm.wristT, tR = model.thighR, K = .275 * H, ankle = .052 * H;
   const F = FRAMES, out = [];
-  const bez = (frame, a, b, c, w, weight = 1) => { if (weight > .01) out.push(a[0], a[1], b[0], b[1], c[0], c[1], w, frame + Math.min(weight, 1) / 2); };
+  const bez = (frame, a, b, c, w, weight = 1) => { if (weight > .01) out.push(a[0], a[1], b[0], b[1], c[0], c[1], w * .56, frame + Math.min(weight, 1) / 2); };
   const seg = (frame, a, b, w, weight) => bez(frame, a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], b, w, weight);
   const r = (x, y) => [x * R, y * R];
-  // Face: lids, lashes, brows, nose, mouth, chin, cheek.
-  const mix = (a, b) => a + (b - a) * fem;
-  const eye = [.29 * R, -.02 * R], ex = .125 * R, ey = mix(.058, .072) * R, e = (x, y) => [eye[0] + x * ex, eye[1] + y * ey];
-  bez(F.faceMirror, e(-1.05, -.1), e(0, 2.1), e(1.08, .15), R * mix(.022, .03));
-  bez(F.faceMirror, e(-.7, -.75), e(0, -1.35), e(.8, -.6), R * .009);
-  if (fem === 1) seg(F.faceMirror, e(.95, .25), e(1.45, 1.25), R * .02);
-  if (fem === 0) seg(F.faceMirror, r(.15, -.13), r(.27, -.16), R * .008);
-  bez(F.faceMirror, r(.13, mix(.13, .15)), r(.29, mix(.21, .27)), r(.46, .15), R * mix(.045, .026));
-  seg(F.face, r(-.05, -.02), r(-.075, -.27), R * .014);
-  bez(F.face, r(-.075, -.30), r(0, -.37), r(.07, -.31), R * .017);
-  bez(F.faceMirror, r(.06, -.27), r(.115, -.30), r(.075, -.335), R * .011);
-  bez(F.face, r(-.21, -.545), r(0, -.63), r(.21, -.545), R * .02);
-  seg(F.faceMirror, r(.2, -.53), r(.235, -.565), R * .012);
-  bez(F.face, r(-.08, -.70), r(0, -.725), r(.08, -.70), R * .012);
-  bez(F.face, r(-.06, -.88), r(0, -.905), r(.06, -.88), R * .01, 1 - fem * .6);
-  if (fem === 0) bez(F.faceMirror, r(.43, -.25), r(.40, -.40), r(.33, -.52), R * .012);
-  bez(F.ear, r(.06, .19), r(-.24, .02), r(.05, -.21), R * .022);
-  bez(F.ear, r(.02, .09), r(-.08, -.01), r(.03, -.08), R * .014);
-  // Keep the neck and upper chest clean. Their former heavy contour strokes
-  // read as black scratches/freckles on light skin, especially in close-ups.
+  // Facial features are analytic in the shader. No wrinkle, cheek, chin, ear,
+  // nasolabial or under-eye stroke data is generated.
   if (fem === 0) {
     bez(F.frontMirror, [.6, chestY + 2.5], [Cx * .42, chestY - 6.5], [Cx * .88, chestY + 2], .2 + .1 * muscle);
     seg(F.frontMirror, [0, chestY + 5], [0, chestY - 1.5], .12, muscle);
@@ -405,7 +427,7 @@ function bodyStrokes(model, character) {
 // Feminine 1, neutral .5, masculine 0.
 const shapeValue = preset => ({ feminine: 1, neutral: .5, masculine: 0 })[preset] ?? 1;
 
-const SKIN = { color: '#f2bf98', shade: linear(.64, .43, .40), deep: linear(.40, .22, .23) };
+const SKIN = { color: '#f3c6b1', shade: linear(.89, .70, .63), deep: linear(.78, .53, .48) };
 
 export function bodyMaterial() {
   const color = c => ({ value: new THREE.Color(c) });
@@ -415,13 +437,15 @@ export function bodyMaterial() {
   const uniforms = {
     uHead: vec4(), uHairline: vec4(), uHairInfo: vec4(), uSkinInfo: vec4(), uTrunkY: vec4(), uTrunkY2: vec4(), uTrunkX: vec4(), uArm: vec4(), uLeg: vec4(),
     uStyle: { value: new THREE.Vector3(0, .15, 172) },
-    uHair: color('#3a2418'), uIris: color('#3f7fb5'), uLip: color('#d9786f'),
+    uHair: color('#261815'), uHairHighlight: color('#4e352f'), uIris: color('#3b2219'), uLip: color('#d49279'),
+    uJawShadow: color('#d99b82'), uForeheadShadow: color('#d99b82'),
+    uNose: color('#c9886e'), uMouth: color('#5c2e26'), uLash: color('#1e1412'),
     uBrief: color('#2f4b8f'), uBriefTrim: color('#f1d24a'),
     uShoe: color('#f5f2ea'), uShoeAccent: color('#e0443e'), uSole: color('#c9c3b5'),
     uStrokes: { value: strokes }, uStrokeCount: { value: 0 },
   };
   return comicPatch(new THREE.MeshLambertMaterial({ color: SKIN.color }), {
-    key: 'comic-body-v5', shade: SKIN.shade.clone(), deep: SKIN.deep.clone(), lit: .52, warm: 1, rim: .28, rimLight: .38, occlusion: 'vAO', dots: .04, uniforms,
+    key: 'anime-body-v3', shade: SKIN.shade.clone(), deep: SKIN.deep.clone(), lit: .54, warm: 0, rim: .04, rimLight: .18, occlusion: '1.', dots: 0, flat: 1, uniforms: { ...uniforms, comicInk: color('#3a231e') },
     vertexHeader: 'attribute vec3 basePosition;\nattribute float ao;\nattribute float hairMask;\nvarying vec3 vBase;\nvarying float vAO;\nvarying float vHairMask;\n',
     vertexBody: 'vBase = basePosition;\nvAO = ao;\nvHairMask = hairMask;',
     fragmentHeader: 'varying float vAO;\n' + BODY_ART,
@@ -453,11 +477,13 @@ export function updateBodyArt(material, model, character) {
 // Skin and hair colours are plain uniforms: changing them never recompiles the
 // shader or rebuilds the mesh. Shadow and halftone tints follow the tone, so
 // deep tones shade toward a cool, saturated brown instead of muddy grey-black.
-const SHADE_DEEP = { shade: linear(.56, .48, .62), deep: linear(.32, .24, .38) };
-export function updateBodyAppearance(material, { skin = SKIN.color, hair = '#3a2418' } = {}) {
+const SHADE_DEEP = { shade: linear(.78, .61, .56), deep: linear(.62, .42, .38) };
+export function updateBodyAppearance(material, { skin = SKIN.color, hair = '#261815' } = {}) {
   const u = material.userData.uniforms, tone = new THREE.Color(skin);
   material.color.copy(tone);
   u.uHair.value.set(hair);
+  const hairTone = new THREE.Color(hair).lerp(new THREE.Color('#8a6559'), .28);
+  u.uHairHighlight.value.copy(hair === '#261815' ? new THREE.Color('#4e352f') : hairTone);
   const srgb = tone.clone().convertLinearToSRGB();
   const lightness = .2126 * srgb.r + .7152 * srgb.g + .0722 * srgb.b;
   const deepness = 1 - Math.max(0, Math.min(1, (lightness - .25) / .5));
@@ -469,7 +495,7 @@ export function updateBodyAppearance(material, { skin = SKIN.color, hair = '#3a2
 }
 
 export function bodyOutlineMaterial() {
-  return outlineMaterial(.00135);
+  return outlineMaterial(.00105, '#3a231e');
 }
 
 // Covered skin stays hidden at the trouser crotch during size changes. The radial

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { presentationPoint } from './presentation.js';
+import { headFrame } from './measurements.js';
 
 // A light skeleton for the procedural body. Bones sit at presented (rendered)
 // landmarks; legs stay planted on the root. Garments inherit the weights of the
@@ -18,12 +19,23 @@ const limbOf = (w, o = 0) => w[o + B.armL] + w[o + B.foreL] + w[o + B.armR] + w[
 // presentation). Pure, so the body worker can bake it off the main thread.
 export function bodyWeightField(model, sampler) {
   const lm = model.lm, r = model.upperR, neckR = model.neckR;
+  const headShape = headFrame(lm.H), headH = headShape.r * 2;
+  const headCutY = headShape.y - headH * .45;
   const arms = [model.jointL, model.jointR].map((joint, k) => {
     const side = k ? 1 : -1;
     return { x: joint.x, y: joint.y, dx: side * Math.sin(lm.armAngle), dy: -Math.cos(lm.armAngle), elbowT: lm.wristT * .47, arm: k ? B.armR : B.armL, fore: k ? B.foreR : B.foreL };
   });
   return (x, y, z, out) => {
     out.fill(0);
+    const hz = z - headShape.z;
+    const onFace = hz > 0 && y >= headShape.y - headH * .505;
+    // Head vertices form a rigid skinning island. In particular, forward face
+    // vertices never reach the armAngle/joint calculations below, preventing
+    // the chin and jaw from stretching with the animated shoulder joints.
+    if (y > headCutY || onFace) {
+      out[B.head] = 1;
+      return out;
+    }
     const a = arms[x < 0 ? 0 : 1], qx = x - a.x, qy = y - a.y;
     const t = qx * a.dx + qy * a.dy, d = Math.hypot(qx - a.dx * t, qy - a.dy * t, z);
     let arm = smooth(-.7 * r, .8 * r, t) * (1 - smooth(1.35 * r, 2.1 * r, d)) * smooth(0, 3, Math.abs(x));

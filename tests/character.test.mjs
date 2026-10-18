@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { bodyModel, perim } from '../src/character/measurements.js';
+import { bodyModel, perim, headFrame } from '../src/character/measurements.js';
 import { buildProceduralBody, weld } from '../src/character/geometry.js';
 import { smoothSurface, vertexNormals, bakeOcclusion } from '../src/character/finish.js';
 import { morphRegions, morphBody } from '../src/character/morph.js';
 import { CANONICAL_MEASUREMENTS, canonicalCharacter } from '../src/character/canonical.js';
 import { createTorsoSampler, conformToCharacter } from '../src/character/sections.js';
-import { createRig, CLIPS } from '../src/character/rig.js';
+import { createRig, CLIPS, bodyWeightField } from '../src/character/rig.js';
 import { presentationPoint, applyPresentation } from '../src/character/presentation.js';
 import { defaultCharacter, normalizeCharacter, buildStartingPoint, BUILD_LABELS } from '../src/character/settings.ts';
 import { inspectCharacterAsset, applyCharacterMorphs, disposeCharacterAsset } from '../src/character/assets.ts';
@@ -16,6 +16,20 @@ import { buildGarment } from '../src/model.js';
 
 const sizes = ['Petite (XS)', 'Medium (M)', 'X-Large (XL)'];
 const shapes = ['feminine', 'masculine'];
+test('jaw and chin remain rigid across size/build changes and extreme shoulder angles', () => {
+  for (const size of sizes) for (const build of Object.keys(BUILD_LABELS)) {
+    const m = bodyModel(buildStartingPoint(BODY_PRESETS[size], build));
+    const h = headFrame(m.lm.H), H = h.r * 2, W = .78 * H, D = .82 * H;
+    for (const angle of [0, Math.PI / 3, Math.PI / 2]) {
+      m.lm.armAngle = angle;
+      const field = bodyWeightField(m), weights = new Float32Array(8);
+      for (const [x, y, z] of [[0, -.50 * H, .12 * D], [-.35 * W, -.25 * H, -.05 * D], [.35 * W, -.25 * H, -.05 * D]]) {
+        field(x, h.y + y, h.z + z, weights);
+        assert.deepEqual(Array.from(weights), [0, 0, 1, 0, 0, 0, 0, 0]);
+      }
+    }
+  }
+});
 function validateGeometry(geometry) {
   const count = geometry.attributes.position.count;
   assert.ok(count > 0);

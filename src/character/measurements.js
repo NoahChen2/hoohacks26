@@ -3,9 +3,13 @@ import * as THREE from 'three';
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// Head height (vertex to chin) is ~13% of stature, breadth ~9% and length ~11.5%.
-// Shared by the body mesh and the comic face shader.
-export const headFrame = H => ({ y: H * .935, r: H * .065, z: 1.1 });
+// Normalized anime head frame. `r` is half the local head height; width is
+// .78 * (2r), depth is .82 * (2r). The head centre sits .06 depth units ahead
+// of the neck axis, creating a real sub-chin overhang in profile.
+export const headFrame = H => {
+  const r = H * .065, depth = 1.64 * r;
+  return { y: H * .935, r, z: depth * .06 };
+};
 
 export function assertPreviewRange(model) {
   const { crotchY, H } = model.lm;
@@ -82,6 +86,8 @@ export function bodyModel(b) {
   const [waA, waB] = radiiFor(b.waist, 0.78);
   const [chA, chB] = radiiFor(b.chest, 0.68);
   const neckR = b.neck / (2 * Math.PI);
+  const animeHeadH = H * .13, animeHeadW = animeHeadH * .78;
+  const neckTopR = animeHeadW * .28, neckBaseR = animeHeadW * .32;
   const shA = b.shoulder / 2;
 
   const torso = [
@@ -96,8 +102,11 @@ export function bodyModel(b) {
     { y: lerp(armpitY, shoulderY, 0.55), rx: Math.max(chA * 0.97, shA - 3), rz: chB * 0.85 },
     { y: shoulderY - 1.5, rx: shA - 2.5, rz: chB * 0.62 },
     { y: shoulderY + 0.8, rx: lerp(shA - 2.5, neckR, 0.55), rz: lerp(chB * 0.55, neckR, 0.5) },
-    { y: neckBaseY, rx: neckR * 1.15, rz: neckR * 1.1 },
-    { y: neckTopY, rx: neckR, rz: neckR },
+    // The measured neck still shapes the lower transition/trapezius above. The
+    // visible upper neck resolves to strict head-relative radii, preventing a
+    // wide build from swelling into the jaw.
+    { y: neckBaseY, rx: neckBaseR, rz: neckBaseR },
+    { y: neckTopY, rx: neckTopR, rz: neckTopR },
   ];
 
   // legs

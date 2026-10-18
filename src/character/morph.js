@@ -19,7 +19,11 @@ export function morphRegions(model, sampler, positions) {
     field(x, y, z, w);
     const arm = w[3] + w[4] + w[5] + w[6];
     const leg = smooth(lm.crotchY + 2.5, lm.crotchY - 2.5, y) * (1 - arm);
-    const skull = smooth(head.y - head.r * 1.02, head.y - head.r * .8, y) * (1 - arm - leg);
+    const headCutY = head.y - (head.r * 2) * .45;
+    const onFace = z > head.z && y >= head.y - (head.r * 2) * .505;
+    const skull = y > headCutY || onFace
+      ? 1
+      : smooth(headCutY - head.r * .12, headCutY, y) * (1 - arm - leg);
     out.set([arm, leg, skull], i * 3);
   }
   return out;

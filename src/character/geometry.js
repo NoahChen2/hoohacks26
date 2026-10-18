@@ -8,6 +8,27 @@ export { headFrame };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const bell = (x, c, w) => Math.exp(-(((x - c) / w) ** 2));
 
+// Marching cubes samples the surface on a finite grid. Anchor the three jaw
+// landmarks after extraction/finishing so resolution cannot blunt the chin.
+export function pinJawLandmarks(positions, height) {
+  const head = headFrame(height), H = 2 * head.r, W = .78 * H, D = .82 * H;
+  for (const target of [[0, -.50 * H, .12 * D], [-.35 * W, -.25 * H, -.05 * D], [.35 * W, -.25 * H, -.05 * D]]) {
+    target[1] += head.y; target[2] += head.z;
+    let best = Infinity, nearest = -1;
+    for (let i = 0; i < positions.length; i += 3) {
+      const d = (positions[i] - target[0]) ** 2 + (positions[i + 1] - target[1]) ** 2 + (positions[i + 2] - target[2]) ** 2;
+      if (d < best) { best = d; nearest = i; }
+    }
+    if (nearest < 0) continue;
+    const original = Array.from(positions.subarray(nearest, nearest + 3));
+    // Move every copy of the vertex together before welding; never open seams.
+    for (let i = 0; i < positions.length; i += 3) {
+      if (positions[i] === original[0] && positions[i + 1] === original[1] && positions[i + 2] === original[2]) positions.set(target, i);
+    }
+  }
+  return positions;
+}
+
 // Shared with the comic body shader so painted facial features sit on this head.
 function smoothRadius(keys, value, key, field) {
   if (value <= keys[0][key]) return keys[0][field];
@@ -22,6 +43,7 @@ function smoothRadius(keys, value, key, field) {
 // All unions happen in the signed distance field before the mesh is extracted.
 export function buildProceduralBody(model, character, resolution = 128) {
   const M = model, H = M.lm.H;
+  const frame = headFrame(H), headHeight = 2 * frame.r;
   assertPreviewRange(M);
   const halfWidth = Math.max(M.jointR.x + Math.sin(M.lm.armAngle) * (M.lm.armLen + H * .11) + H * .06, M.profileAt(M.lm.hipY).rx + 8);
   const halfDepth = Math.max(H * .15, M.profileAt(M.lm.hipY).rz + 8);
@@ -44,8 +66,11 @@ export function buildProceduralBody(model, character, resolution = 128) {
     for (let iz = start[2]; iz <= end[2]; iz++) for (let iy = start[1]; iy <= end[1]; iy++) for (let ix = start[0]; ix <= end[0]; ix++) {
       const index = iz * N2 + iy * N + ix;
       const d = -distance(coords[0][ix], coords[1][iy], coords[2][iz]);
-      const old = field[index], h = Math.max(blend - Math.abs(old - d), 0) / blend;
-      field[index] = Math.max(old, d) + h * h * blend * .25;
+      // Above the jaw, use a hard union: shoulder/neck smoothing must never
+      // inflate the face. Skinning is independently isolated in rig.js.
+      const radius = coords[1][iy] > frame.y - headHeight * .45 ? 0 : blend;
+      const old = field[index], h = radius ? Math.max(radius - Math.abs(old - d), 0) / radius : 0;
+      field[index] = Math.max(old, d) + h * h * radius * .25;
     }
   }
   function ellipsoid(center, scale, angle = 0, blend = .8, sole = false) {
@@ -95,7 +120,12 @@ export function buildProceduralBody(model, character, resolution = 128) {
   union([-sampler.maxRadius - 2, sampler.low, -sampler.maxRadius - 2], [sampler.maxRadius + 2, sampler.high, sampler.maxRadius + 2], (x, y, z) => {
     const bottom = M.lm.crotchY - 3;
     const cap = y < M.lm.hipY ? Math.sqrt(Math.max(0, 1 - ((M.lm.hipY-y)/(M.lm.hipY-bottom)) ** 2)) : 1;
-    const radial = Math.hypot(x, z) - sampler.radius(y, Math.atan2(x, z)) * cap;
+    const neckBlend = clamp((y - M.lm.neckBaseY) / (M.lm.neckTopY - M.lm.neckBaseY), 0, 1);
+    const neckLimit = .28 * .78 * headHeight;
+    const neckZ = neckBlend * (frame.z - .05 * .82 * headHeight - neckLimit);
+    const measuredRadius = sampler.radius(y, Math.atan2(x, z - neckZ));
+    const radius = measuredRadius + (Math.min(measuredRadius, neckLimit) - measuredRadius) * neckBlend;
+    const radial = Math.hypot(x, z - neckZ) - radius * cap;
     return Math.max(radial, bottom-y, y-sampler.high);
   }, 1.0);
 
@@ -142,28 +172,55 @@ export function buildProceduralBody(model, character, resolution = 128) {
     capsule(at(armLen + H * .018, H * .013, H * .004), at(armLen + H * .042, H * .024, H * .011), H * .0066, .35);
     capsule(at(armLen + H * .042, H * .024, H * .011), at(armLen + H * .062, H * .027, H * .017), H * .0058, .25);
   }
-  // Head with sculpted brow, cheekbones, nose, lips, chin and jaw; the painted
-  // eyes, brows and mouth sit on these forms.
+  // Clean anime head: one continuous cranium tapering into a soft jaw. Facial
+  // features are intentionally kept out of the implicit surface (apart from a
+  // restrained nose bridge) so the shader does not fight lumpy brow/lip/chin
+  // geometry. The head still uses the stature-based frame, so every existing
+  // measurement and presentation morph remains anchored to the same skeleton.
   const { y: headY, r: headR, z: headZ } = headFrame(H);
-  union([-headR, headY - headR * 1.15, -headR], [headR, H + .1, headR], (x, y, z) => {
-    const v = (y - headY) / headR;
-    // Cranium tapers through the cheekbones to a narrower jaw and chin.
-    const jaw = v < -.05 ? .80 + .20 * Math.sqrt(clamp((v + 1) / .95, 0, 1)) : 1;
-    const rx = headR * .70 * jaw, rz = headR * .88 * (v < -.3 ? .93 : 1);
-    const vertical = v < 0 ? -Math.pow(-v, 1.4) : v;
-    return (Math.hypot(x / rx, vertical, (z - headFrame(H).z) / rz) - 1) * Math.min(rx, rz);
-  }, 1.0);
-  for (const side of [-1, 1]) ellipsoid([side * headR * .675, headY - headR * .06, headFrame(H).z - 1.1], [headR * .12, headR * .25, headR * .15], 0, .45);
-  const R = headR, face = (x, v, z, scale, blend) => ellipsoid([x * R, headY + v * R, headZ + z * R], scale.map(k => k * R), 0, blend);
-  face(0, .12, .80, [.46, .09, .10], .5);
-  for (const side of [-1, 1]) {
-    face(side * .36, -.14, .66, [.17, .12, .17], .5);
-    face(side * .44, -.62, .16, [.17, .2, .32], .6);
-  }
-  face(0, -.2, .84, [.075, .2, .17], .35);
-  face(0, -.33, .86, [.1, .075, .1], .3);
-  face(0, -.6, .70, [.17, .06, .08], .35);
-  face(0, -.86, .55, [.19, .13, .15], .5);
+  const femininity = ({ feminine: 1, neutral: .5, masculine: 0 })[character.bodyPreset] ?? .5;
+  const R = headR, headH = 2 * R, headW = .78 * headH, headD = .82 * headH;
+  // Anatomical cervical bridge: the neck continues upward and slightly back
+  // into the occiput instead of ending in a horizontal cap beneath the head.
+  // It remains narrow at the jaw and broadens gently into the trapezius.
+  cone(
+    [0, M.lm.neckBaseY - H * .004, -headD * .015],
+    [0, headY - headH * .225, headZ - headD * .14],
+    headW * .32,
+    headW * .245,
+    .42,
+  );
+  const sections = [
+    { v: -.50, w: 0, d: 0, z: .12 * headD },
+    { v: -.25, w: .70 * headW, d: .28 * headD, z: -.05 * headD },
+    { v: -.05, w: .94 * headW, d: .43 * headD, z: 0 },
+    { v: .15, w: headW, d: .50 * headD, z: 0 },
+    { v: .32, w: .86 * headW, d: .43 * headD, z: -.02 * headD },
+    { v: .43, w: .58 * headW, d: .30 * headD, z: -.03 * headD },
+    { v: .52, w: .08 * headW, d: .08 * headD, z: -.04 * headD },
+  ];
+  const section = (v, field) => {
+    // Linear mandibular planes converge to one tip; only the cranium is rounded.
+    if (v < -.05) {
+      const i = v < -.25 ? 0 : 1, a = sections[i], b = sections[i + 1];
+      return THREE.MathUtils.lerp(a[field], b[field], clamp((v - a.v) / (b.v - a.v), 0, 1));
+    }
+    return smoothRadius(sections, v, 'v', field);
+  };
+  union([-headW * .56, headY - headH * .54, headZ - headD * .57], [headW * .56, headY + headH * .54, headZ + headD * .54], (x, y, z) => {
+    const v = (y - headY) / headH;
+    const rx = Math.max(section(v, 'w') * .5, .03);
+    const rz = Math.max(section(v, 'd'), .03);
+    const cz = headZ + section(v, 'z');
+    const radial = (Math.hypot(x / rx, (z - cz) / rz) - 1) * Math.min(rx, rz);
+    return Math.max(radial, headY - headH * .50 - y, y - (headY + headH * .52));
+  }, .06);
+  // Ears occupy the specified brow-to-nose band at ±.50W.
+  for (const side of [-1, 1]) ellipsoid(
+    [side * headW * .5, headY - headH * .135, headZ - headD * .04],
+    [headW * .07, headH * .095, headD * .06], 0, .32
+  );
+  // The nose is projected in the face shader; no bulb or capsule on the face.
   // Hair volume above the painted hairline, per hairstyle. Parts that hang below
   // the head (tails, braids, long hair) are recorded as drape so the worker can
   // bake a hair mask for them; the head itself is painted from the hairline.
@@ -178,25 +235,49 @@ export function buildProceduralBody(model, character, resolution = 128) {
   const lock = (base, tip, r1, r2, blend = .55) => cone(headPt(base), headPt(tip), r1 * R, r2 * R, blend);
   const blob = (c, r, blend = .6) => ellipsoid(headPt(c), r.map(v => v * R), 0, blend);
   const draped = build => { drape = []; build(); hairParts.push(...drape); drape = null; };
-  const shell = () => hair([0, headY + .25, headZ - .3], [R * .70 + .7, R + 1.4, R * .88 + 1.1], .7);
-  const quiff = () => hair([0, headY + R * .72, headZ + R * .3], [R * .5, R * .26, R * .45], .8);
+  const wedge = (base, tip, width, depth) => {
+    const a = headPt(base), b = headPt(tip);
+    const pad = Math.max(width, depth) * R;
+    union(a.map((v, i) => Math.min(v, b[i]) - pad), a.map((v, i) => Math.max(v, b[i]) + pad), (x, y, z) => {
+      const t = clamp((a[1] - y) / (a[1] - b[1]), 0, 1);
+      const cx = THREE.MathUtils.lerp(a[0], b[0], t) - R * .10 * Math.sin(t * Math.PI);
+      const cz = THREE.MathUtils.lerp(a[2], b[2], t) + R * .12 * Math.sin(t * Math.PI);
+      const taper = Math.max(.015, Math.sqrt(1 - t) * (.65 + .35 * Math.sin(t * Math.PI)));
+      return Math.max((Math.hypot((x - cx) / (width * R), (z - cz) / (depth * R)) - taper) * Math.min(width, depth) * R, y - a[1], b[1] - y);
+    }, .08);
+  };
+  const shell = () => hair([0, headY + headH * .035, headZ - headD * .03], [headW * .54, headH * .525, headD * .53], .6);
+  const quiff = () => hair([0, headY + headH * .455, headZ + headD * .08], [headW * .42, headH * .095, headD * .34], .55);
   // Pulled-back styles lie closer to the scalp.
   const slick = () => hair([0, headY + .2, headZ - .25], [R * .70 + .45, R + .9, R * .88 + .7], .6);
   const bobLobe = () => hair([0, headY - R * .55, headZ - R * .45], [R * .68, R * .8, R * .5], .9);
   const sweptFringe = () => lock([-.45, .72, .55], [.42, .48, .8], .2, .07);
   if (style === 'crop') {
-    shell(); quiff();
-    // Chunky fringe locks lifting forward, and crown spikes sweeping back.
-    for (let k = -2; k <= 2; k++) {
-      const a = k * .3, s = Math.sin(a), c = Math.cos(a);
-      lock([s * .5, .66, c * .58], [s * .66, .9, c * .86], .19, .04);
-      lock([s * .45, .86, c * .1 - .1], [s * .62, 1.12, c * .05 - .38], .2, .05);
+    shell();
+    // Feathered, overlapping locks: a tousled short cut for masculine bodies
+    // and a slightly softer medium-short silhouette for the neutral preset.
+    const softness = femininity * .14;
+    for (let k = -4; k <= 4; k++) {
+      const t = (k + 4) / 8, sweep = -1 + 2 * t;
+      const tips = [.05, .12, -.02, .20, .07, -.06, .14, .02, -.12];
+      draped(() => wedge([sweep * .49 - .07, .80 - .12 * Math.abs(sweep), .30], [sweep * .62 + .08, tips[k + 4], .66 - .16 * Math.abs(sweep)], .24 + softness * .15, .34));
+    }
+    for (const side of [-1, 1]) {
+      // Round-cone temple locks stay buried in the scalp at their root, then
+      // taper beside the cheek. This avoids tiny detached marching-cubes caps.
+      draped(() => lock([side * .60, .44, -.02], [side * .66, -.50, -.02], .28, .07, .34));
     }
   } else if (style === 'bob') {
-    shell(); quiff(); bobLobe();
-    // Side curtains to the jaw and a fringe swept across the forehead.
-    for (const side of [-1, 1]) lock([side * .56, .3, .05], [side * .7, -.68, -.08], .26, .13);
-    sweptFringe();
+    shell(); bobLobe();
+    // Face-framing tapered side layers stop above the shoulder line.
+    for (const side of [-1, 1]) {
+      lock([side * .55, .34, .08], [side * .75, -.90, .04], .22, .075);
+      lock([side * .64, .12, -.18], [side * .76, -.88, -.18], .19, .065, .42);
+    }
+    for (let k = -4; k <= 4; k++) {
+      const sweep = k / 4;
+      draped(() => wedge([sweep * .49 - .10, .80 - .10 * Math.abs(sweep), .37], [sweep * .67 + .12, .04 + .14 * Math.sin(k * 1.7), .74 - .14 * Math.abs(sweep)], .23, .27));
+    }
   } else if (style === 'long') {
     shell(); quiff(); bobLobe(); sweptFringe();
     draped(() => {
@@ -263,6 +344,18 @@ export function buildProceduralBody(model, character, resolution = 128) {
   const positions = marcher.positionArray.slice(0, count * 3), normals = marcher.normalArray.slice(0, count * 3), uv = new Float32Array(count * 2);
   for (let i = 0; i < count; i++) {
     for (let axis = 0; axis < 3; axis++) positions[i * 3 + axis] = min[axis] + (positions[i * 3 + axis] + 1) * .5 * span[axis];
+    // Re-centre only the extracted cervical rings. Keeping this correction
+    // local preserves the calibrated torso field/topology while removing the
+    // backward nape shelf that was visible in profile.
+    const px = positions[i * 3], py = positions[i * 3 + 1], pz = positions[i * 3 + 2];
+    if (py >= M.lm.neckBaseY && py <= M.lm.neckTopY) {
+      const t0 = clamp((py - M.lm.neckBaseY) / (M.lm.neckTopY - M.lm.neckBaseY), 0, 1);
+      const t = t0 * t0 * (3 - 2 * t0);
+      const neckLimit = .28 * .78 * headHeight, headDepth = .82 * headHeight;
+      const oldZ = t0 * (frame.z - .05 * headDepth - neckLimit);
+      const newZ = THREE.MathUtils.lerp(-.015 * headDepth, frame.z - .08 * headDepth, t);
+      if (Math.hypot(px, pz - oldZ) < neckLimit * 1.45) positions[i * 3 + 2] += newZ - oldZ;
+    }
     const nx = normals[i * 3] / span[0], ny = normals[i * 3 + 1] / span[1], nz = normals[i * 3 + 2] / span[2];
     const length = Math.hypot(nx, ny, nz) || 1;
     normals.set([nx / length, ny / length, nz / length], i * 3);
@@ -270,6 +363,7 @@ export function buildProceduralBody(model, character, resolution = 128) {
     uv[i * 2 + 1] = positions[i * 3 + 1] / H;
   }
   const geometry = new THREE.BufferGeometry();
+  pinJawLandmarks(positions, H);
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
   geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));

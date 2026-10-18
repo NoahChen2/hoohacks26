@@ -608,9 +608,14 @@ export function createScene(container, { characterAsset = null, quality = detect
           m.userData.fit = geo.getAttribute('color') ? fitMat : surface;
           m.castShadow = true;
           m.receiveShadow = true;
-          const edge = new THREE.SkinnedMesh(geo, ink);
-          edge.userData.outline = true;
-          m.add(edge);
+          // The inverted outline shell can turn into a black wedge at an open
+          // sleeve cap during raised-arm poses. Sleeves retain the material's
+          // own cel rim but skip that expanded duplicate surface.
+          if (p.region !== 'sleeve') {
+            const edge = new THREE.SkinnedMesh(geo, ink);
+            edge.userData.outline = true;
+            m.add(edge);
+          }
           garmentGroup.add(m);
         }
       }

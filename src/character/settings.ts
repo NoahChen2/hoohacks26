@@ -18,7 +18,7 @@ export const PROPORTION_FIELDS = [
 export const SKIN_TONES: { id: string; label: string; color: string }[] = [
   { id: 'porcelain', label: 'Porcelain', color: '#fbe0cf' },
   { id: 'ivory', label: 'Ivory', color: '#f6d0b1' },
-  { id: 'sand', label: 'Sand', color: '#f2bf98' },
+  { id: 'sand', label: 'Sand', color: '#f3c6b1' },
   { id: 'honey', label: 'Honey', color: '#e3a676' },
   { id: 'olive', label: 'Olive', color: '#c99a66' },
   { id: 'amber', label: 'Amber', color: '#ba7d4c' },
@@ -42,7 +42,7 @@ export const HAIR_STYLES: { id: string; label: string }[] = [
 ];
 export const HAIR_COLORS: { id: string; label: string; color: string }[] = [
   { id: 'black', label: 'Black', color: '#2a2631' },
-  { id: 'dark-brown', label: 'Dark brown', color: '#3a2418' },
+  { id: 'dark-brown', label: 'Dark brown', color: '#261815' },
   { id: 'brown', label: 'Brown', color: '#6b4226' },
   { id: 'auburn', label: 'Auburn', color: '#8c3a26' },
   { id: 'ginger', label: 'Ginger', color: '#cf6a2e' },

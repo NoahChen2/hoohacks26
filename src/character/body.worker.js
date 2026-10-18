@@ -1,5 +1,5 @@
 import { bodyModel } from './measurements.js';
-import { buildProceduralBody, weld, bakeHairMask } from './geometry.js';
+import { buildProceduralBody, weld, bakeHairMask, pinJawLandmarks } from './geometry.js';
 import { createTorsoSampler } from './sections.js';
 import { bodyWeightField, bakeBodyWeights, packSkin } from './rig.js';
 import { smoothSurface, vertexNormals, bakeOcclusion } from './finish.js';
@@ -15,6 +15,7 @@ self.onmessage = ({ data }) => {
     const raw = buildProceduralBody(model, character, resolution);
     const mesh = weld(raw.attributes.position.array, raw.attributes.normal.array, raw.attributes.uv.array);
     smoothSurface(mesh.positions, mesh.index);
+    pinJawLandmarks(mesh.positions, model.lm.H);
     vertexNormals(mesh.positions, mesh.index, mesh.normals);
     const ao = bakeOcclusion(mesh.positions, mesh.normals, raw.sdf);
     const hairMask = bakeHairMask(mesh.positions, raw.hairParts);
