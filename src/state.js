@@ -1,5 +1,3 @@
-import { migrateProgress } from './progression.js';
-import { defaultCharacter, normalizeCharacter } from './character/settings.ts';
 // Central app state with localStorage persistence and a tiny pub/sub.
 
 const KEY = 'restitch.v1';
@@ -42,16 +40,17 @@ export const TOOLS = {
 
 // Body presets (cm). Rough ready-to-wear averages.
 export const BODY_PRESETS = {
-  'Petite (XS)': { height: 155, chest: 80, waist: 63, hips: 87, shoulder: 36, arm: 54, inseam: 70, neck: 32, thigh: 50 },
-  'Small (S)': { height: 163, chest: 86, waist: 69, hips: 93, shoulder: 39, arm: 57, inseam: 75, neck: 34, thigh: 54 },
-  'Medium (M)': { height: 172, chest: 96, waist: 80, hips: 99, shoulder: 44, arm: 61, inseam: 79, neck: 38, thigh: 57 },
-  'Large (L)': { height: 178, chest: 106, waist: 92, hips: 106, shoulder: 47, arm: 63, inseam: 81, neck: 41, thigh: 62 },
-  'X-Large (XL)': { height: 181, chest: 116, waist: 104, hips: 114, shoulder: 49, arm: 64, inseam: 81, neck: 44, thigh: 67 },
+  'Petite (XS)': { height: 155, chest: 80, underbust: 70, waist: 63, hips: 87, shoulder: 36, arm: 54, inseam: 70, neck: 32, thigh: 50 },
+  'Small (S)': { height: 163, chest: 86, underbust: 76, waist: 69, hips: 93, shoulder: 39, arm: 57, inseam: 75, neck: 34, thigh: 54 },
+  'Medium (M)': { height: 172, chest: 96, underbust: 84, waist: 80, hips: 99, shoulder: 44, arm: 61, inseam: 79, neck: 38, thigh: 57 },
+  'Large (L)': { height: 178, chest: 106, underbust: 94, waist: 92, hips: 106, shoulder: 47, arm: 63, inseam: 81, neck: 41, thigh: 62 },
+  'X-Large (XL)': { height: 181, chest: 116, underbust: 104, waist: 104, hips: 114, shoulder: 49, arm: 64, inseam: 81, neck: 44, thigh: 67 },
 };
 
 export const BODY_FIELDS = [
-  ['height', 'Height', 140, 205],
+  ['height', 'Height', 110, 215],
   ['chest', 'Chest / bust', 70, 140],
+  ['underbust', 'Underbust / ribcage', 58, 135],
   ['waist', 'Waist', 55, 135],
   ['hips', 'Hips', 75, 145],
   ['shoulder', 'Shoulder width', 32, 56],
@@ -59,7 +58,24 @@ export const BODY_FIELDS = [
   ['inseam', 'Inseam', 60, 95],
   ['neck', 'Neck', 28, 50],
   ['thigh', 'Thigh', 40, 80],
+  ['belly', 'Belly projection / fundal height', 0, 24],
 ];
+
+export const BODY_PROFILE_DEFAULTS = {
+  frame: 'neutral',
+  underbust: 84,
+  chestProjection: 0.5,
+  maternity: 'none',
+  belly: 0,
+  stature: 'standard',
+  limbRatio: 1,
+  leftArm: 'full',
+  rightArm: 'full',
+  leftLeg: 'full',
+  rightLeg: 'full',
+  chestOption: 'symmetric',
+  posture: 'upright',
+};
 
 // Garment measurement fields (flat-lay measurements, doubled to circumference where noted).
 export function garmentFields(type) {
@@ -144,8 +160,7 @@ function initialState() {
   flannel.waist = 120;
   flannel.hem = 120;
   return {
-    body: { ...BODY_PRESETS['Medium (M)'] },
-    character: defaultCharacter(),
+    body: { ...BODY_PROFILE_DEFAULTS, ...BODY_PRESETS['Medium (M)'] },
     garments: [shirt, jeans, flannel],
     selected: shirt.id,
     tools: { scissors: true, needle: true, pins: true },
@@ -164,10 +179,19 @@ function load(key = storageKey) {
   return null;
 }
 
-export const state = load() || initialState();
-state.progression = migrateProgress(state.progression ? {...state.progression,avatar:state.progression.avatar||state.avatar,inventory:state.progression.inventory||state.inventory} : {xp:state.xp,currency:state.currency,avatar:state.avatar,inventory:state.inventory});
-// Additive migration: keep existing measurements, garments, IDs and unknown fields.
-state.character = normalizeCharacter(state.character);
+function hydrate(data) {
+  if (!data) return initialState();
+  const defaults = initialState();
+  return {
+    ...defaults,
+    ...data,
+    body: { ...defaults.body, ...(data.body || {}) },
+    tools: { ...defaults.tools, ...(data.tools || {}) },
+    garments: Array.isArray(data.garments) ? data.garments : defaults.garments,
+  };
+}
+
+export const state = hydrate(load());
 const subs = new Set();
 
 export function subscribe(fn) {
@@ -183,7 +207,6 @@ function persistLocal() {
 
 let saveTimer;
 export function emit(reason = 'change') {
-  persistLocal();
   subs.forEach((fn) => fn(reason));
   clearTimeout(saveTimer);
   saveTimer = setTimeout(persistLocal, 250);
@@ -191,13 +214,13 @@ export function emit(reason = 'change') {
 
 // The parts of state worth saving to an account (UI-only fields like `tab` stay local).
 export function snapshot() {
-  const { body, garments, selected, tools, character } = state;
-  return JSON.parse(JSON.stringify({ body, garments, selected, tools, character }));
+  const { body, garments, selected, tools } = state;
+  return JSON.parse(JSON.stringify({ body, garments, selected, tools }));
 }
 
 export function replaceState(data) {
   const tab = state.tab;
-  const next = { ...initialState(), ...data, tab, progression: migrateProgress(data.progression || state.progression), character: normalizeCharacter(data.character ?? state.character) };
+  const next = { ...hydrate(data), tab };
   Object.keys(state).forEach((k) => delete state[k]);
   Object.assign(state, next);
   persistLocal();

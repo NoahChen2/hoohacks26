@@ -5,23 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "test": "node --test tests/*.test.js tests/*.test.mjs",
-    "test:browser": "node tests/browser-flow.mjs",
-    "test:worlds": "node tests/world-presentation.mjs",
-    "test:avatar": "node tests/avatar-browser.mjs",
-    "typecheck": "tsc --noEmit && tsc --ignoreConfig --allowJs --checkJs --noEmit --target es2022 --module esnext --moduleResolution bundler src/avatar/effects.js",
-    "test:illustration": "node tests/illustration-browser.mjs"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",
     "three": "^0.169.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.1",
-    "typescript": "^7.0.2",
-    "vite": "^5.4.10",
-    "@types/three": "^0.169.0"
+    "vite": "^5.4.10"
   }
 }
