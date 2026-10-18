@@ -4,7 +4,9 @@ if(location.pathname==='/'){
   location.replace(`/settings${location.search}${location.hash}`);
   return;
 }
-if (/^\/studio\/?$/.test(location.pathname)) {
+if (/^\/learn\/?$/.test(location.pathname)) {
+  return import('./learn/page.js');
+} else if (/^\/studio\/?$/.test(location.pathname)) {
   return import('./studio/page.js');
 } else if (/^\/(onboarding|settings)\/?$/.test(location.pathname)) {
   return import('./explore/onboarding.js');
